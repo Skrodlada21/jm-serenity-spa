@@ -1218,7 +1218,11 @@ app.get("/admin/settings", requireAdmin, (req, res) => {
 app.post("/admin/settings", requireAdmin, (req, res) => {
   const fields = ["spa_name","phone","email","address","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon"];
   for (const f of fields) {
-    if (req.body[f] !== undefined) db.setSetting(f, req.body[f]);
+    if (req.body[f] !== undefined) {
+      // Checkboxes with hidden fallback can send arrays — take the last value
+      const val = Array.isArray(req.body[f]) ? req.body[f][req.body[f].length - 1] : req.body[f];
+      db.setSetting(f, val);
+    }
   }
   if (req.body.new_password && req.body.new_password.trim()) {
     db.setSetting("admin_password", req.body.new_password.trim());
