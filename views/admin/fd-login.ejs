@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Front Desk Login — J&amp;M Serenity Spa</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f3f5f7, #e8f0f1);
+    }
+    .fd-login-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.08);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .fd-login-brand {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #1f6f78;
+      margin-bottom: .2rem;
+    }
+    .fd-login-sub {
+      font-size: .85rem;
+      color: #5b6470;
+      margin-bottom: 1.5rem;
+    }
+    .fd-login-input {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid #e6e9ee;
+      border-radius: 14px;
+      font-size: 1.2rem;
+      text-align: center;
+      letter-spacing: .1em;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      outline: none;
+    }
+    .fd-login-input:focus {
+      border-color: #1f6f78;
+      box-shadow: 0 0 0 4px rgba(31,111,120,.12);
+    }
+    .fd-login-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #1f6f78, #114a50);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 54px;
+    }
+    .fd-login-btn:hover { filter: brightness(1.08); }
+    .fd-login-error {
+      color: #c0392b;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      font-size: .95rem;
+    }
+    .fd-login-footer {
+      margin-top: 1.5rem;
+      font-size: .8rem;
+      color: #999;
+    }
+    .fd-login-footer a { color: #1f6f78; }
+  </style>
+</head>
+<body>
+
+<div class="fd-login-card">
+  <div class="fd-login-brand">J&amp;M Serenity Spa</div>
+  <div class="fd-login-sub">Front Desk Login</div>
+
+  <% if (error) { %>
+  <div class="fd-login-error"><%= error %></div>
+  <% } %>
+
+  <form method="POST" action="/desk/login">
+    <input class="fd-login-input" type="password" name="password" placeholder="Enter PIN" required autofocus inputmode="numeric" />
+    <button class="fd-login-btn" type="submit">Open Front Desk</button>
+  </form>
+
+  <div class="fd-login-footer">
+    <a href="/">Back to website</a> &middot; <a href="/admin/login">Admin login</a>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,159 @@
+<%- include('../partials/admin-header', { activePage: 'admin-reports' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Reports &amp; Analytics</h1>
+
+    <!-- Date Range Filter -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <form class="form" method="GET" action="/admin/reports" style="flex-direction: row; display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <label>
+          Start Date
+          <input type="date" name="start" value="<%= startDate %>" />
+        </label>
+        <label>
+          End Date
+          <input type="date" name="end" value="<%= endDate %>" />
+        </label>
+        <button class="btn btn-primary" type="submit">Update</button>
+      </form>
+    </div>
+
+    <!-- Revenue Summary -->
+    <div class="grid cards" style="margin-bottom: 1.5rem;">
+      <div class="card admin-stat">
+        <p class="admin-stat-number"><%= revenue.reduce(function(s, r) { return s + r.bookings; }, 0) %></p>
+        <p class="muted small">Completed Bookings</p>
+      </div>
+      <div class="card admin-stat">
+        <p class="admin-stat-number">$<%= revenue.reduce(function(s, r) { return s + (r.revenue || 0); }, 0).toFixed(0) %></p>
+        <p class="muted small">Total Revenue</p>
+      </div>
+      <div class="card admin-stat">
+        <p class="admin-stat-number">$<%= revenue.reduce(function(s, r) { return s + (r.tips || 0); }, 0).toFixed(0) %></p>
+        <p class="muted small">Total Tips</p>
+      </div>
+      <div class="card admin-stat">
+        <% var totalRev = revenue.reduce(function(s, r) { return s + (r.revenue || 0); }, 0); var totalBook = revenue.reduce(function(s, r) { return s + r.bookings; }, 0); %>
+        <p class="admin-stat-number">$<%= totalBook > 0 ? (totalRev / totalBook).toFixed(0) : 0 %></p>
+        <p class="muted small">Avg per Booking</p>
+      </div>
+    </div>
+
+    <!-- Popular Services -->
+    <div class="grid two" style="margin-bottom: 1.5rem;">
+      <div class="card">
+        <h2>Popular Services</h2>
+        <div class="admin-table-wrap" style="border: none; box-shadow: none;">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Service</th><th>Bookings</th><th>Revenue</th></tr>
+            </thead>
+            <tbody>
+              <% popularServices.forEach(function(s) { %>
+              <tr>
+                <td><strong><%= s.name %></strong></td>
+                <td><%= s.count %></td>
+                <td>$<%= (s.revenue || 0).toFixed(0) %></td>
+              </tr>
+              <% }); %>
+              <% if (popularServices.length === 0) { %><tr><td colspan="3" class="muted">No data</td></tr><% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Therapist Performance</h2>
+        <div class="admin-table-wrap" style="border: none; box-shadow: none;">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Therapist</th><th>Sessions</th><th>Revenue</th><th>Tips</th></tr>
+            </thead>
+            <tbody>
+              <% therapistPerformance.forEach(function(t) { %>
+              <tr>
+                <td><strong><%= t.name || 'Unassigned' %></strong></td>
+                <td><%= t.count %></td>
+                <td>$<%= (t.revenue || 0).toFixed(0) %></td>
+                <td>$<%= (t.tips || 0).toFixed(0) %></td>
+              </tr>
+              <% }); %>
+              <% if (therapistPerformance.length === 0) { %><tr><td colspan="4" class="muted">No data</td></tr><% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Busiest Times & Days -->
+    <div class="grid two" style="margin-bottom: 1.5rem;">
+      <div class="card">
+        <h2>Busiest Times of Day</h2>
+        <div class="admin-table-wrap" style="border: none; box-shadow: none;">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Hour</th><th>Bookings</th></tr>
+            </thead>
+            <tbody>
+              <% busiestTimes.forEach(function(t) { %>
+              <% var h = parseInt(t.hour, 10); var ampm = h >= 12 ? 'PM' : 'AM'; var h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; %>
+              <tr>
+                <td><strong><%= h12 %>:00 <%= ampm %></strong></td>
+                <td><%= t.count %></td>
+              </tr>
+              <% }); %>
+              <% if (busiestTimes.length === 0) { %><tr><td colspan="2" class="muted">No data</td></tr><% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Busiest Days of Week</h2>
+        <div class="admin-table-wrap" style="border: none; box-shadow: none;">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Day</th><th>Bookings</th></tr>
+            </thead>
+            <tbody>
+              <% busiestDays.forEach(function(d) { %>
+              <tr>
+                <td><strong><%= d.day_name %></strong></td>
+                <td><%= d.count %></td>
+              </tr>
+              <% }); %>
+              <% if (busiestDays.length === 0) { %><tr><td colspan="2" class="muted">No data</td></tr><% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Revenue Breakdown -->
+    <div class="card">
+      <h2>Daily Revenue</h2>
+      <div class="admin-table-wrap" style="border: none; box-shadow: none;">
+        <table class="admin-table">
+          <thead>
+            <tr><th>Date</th><th>Bookings</th><th>Revenue</th><th>Tips</th></tr>
+          </thead>
+          <tbody>
+            <% revenue.forEach(function(r) { %>
+            <tr>
+              <td><%= r.date %></td>
+              <td><%= r.bookings %></td>
+              <td>$<%= (r.revenue || 0).toFixed(0) %></td>
+              <td>$<%= (r.tips || 0).toFixed(0) %></td>
+            </tr>
+            <% }); %>
+            <% if (revenue.length === 0) { %><tr><td colspan="4" class="muted">No completed bookings in this period</td></tr><% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,60 @@
+<%- include('../partials/admin-header', { activePage: 'admin-reviews' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Manage Reviews</h1>
+    <p class="muted" style="margin-bottom: 1.5rem;">Approve reviews to show them on the public testimonials page. Feature the best ones to pin them to the top.</p>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Rating</th>
+            <th>Review</th>
+            <th>Therapist</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% reviews.forEach(function(r) { %>
+          <tr>
+            <td><strong><%= r.client_name %></strong></td>
+            <td>
+              <% for (var i = 0; i < 5; i++) { %>
+                <span style="color: <%= i < r.rating ? '#f4b942' : '#ddd' %>;">&#9733;</span>
+              <% } %>
+            </td>
+            <td style="max-width: 300px;"><%= r.text ? r.text.substring(0, 100) : '—' %><%= (r.text && r.text.length > 100) ? '...' : '' %></td>
+            <td><%= r.therapist_name || '—' %></td>
+            <td>
+              <span class="admin-badge <%= r.approved ? 'online' : 'offline' %>"><%= r.approved ? 'Approved' : 'Pending' %></span>
+              <% if (r.featured) { %><span class="admin-badge" style="background: #fff3cd; color: #856404; margin-left: .3rem;">Featured</span><% } %>
+            </td>
+            <td class="action-cell">
+              <% if (!r.approved) { %>
+              <form method="POST" action="/admin/reviews/<%= r.id %>/approve" style="display: inline;">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #155724;">Approve</button>
+              </form>
+              <% } %>
+              <form method="POST" action="/admin/reviews/<%= r.id %>/feature" style="display: inline;">
+                <button class="btn btn-small btn-ghost" type="submit"><%= r.featured ? 'Unfeature' : 'Feature' %></button>
+              </form>
+              <form method="POST" action="/admin/reviews/<%= r.id %>/delete" style="display: inline;" onsubmit="return confirm('Delete this review?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (reviews.length === 0) { %>
+          <tr><td colspan="6" class="muted">No reviews submitted yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "J&M Serenity Spa Check-In",
+  "short_name": "Spa Check-In",
+  "description": "Customer check-in kiosk for J&M Serenity Spa",
+  "start_url": "/checkin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f1eb",
+  "theme_color": "#1f6f78",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

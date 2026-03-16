@@ -1,0 +1,45 @@
+<%- include('partials/header', {
+  title: 'Gallery | J&M Serenity Spa',
+  description: 'Take a look inside J&M Serenity Spa — our treatment rooms, relaxation spaces, and more.',
+  activePage: 'gallery'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Gallery</p>
+      <h1 class="reveal">Inside Our Spa</h1>
+      <p class="lead muted reveal" style="max-width: 60ch;">
+        Take a peek at our treatment rooms, relaxation areas, and the welcoming spaces where your healing begins.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <% if (images.length === 0) { %>
+        <div class="callout reveal">
+          <p class="muted">Photos coming soon! Check back later for a look inside J&M Serenity Spa.</p>
+        </div>
+      <% } else { %>
+        <div class="gallery-grid reveal">
+          <% images.forEach(function(img) { %>
+          <div class="gallery-item">
+            <img src="<%= img.filename %>" alt="<%= img.caption || 'J&M Serenity Spa' %>" loading="lazy" />
+            <% if (img.caption) { %>
+            <p class="gallery-caption muted small"><%= img.caption %></p>
+            <% } %>
+          </div>
+          <% }); %>
+        </div>
+      <% } %>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="/book">Book Now</a>
+        <a class="btn btn-ghost" href="/treatments">View Treatments</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

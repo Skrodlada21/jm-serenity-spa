@@ -1,0 +1,209 @@
+<%- include('../partials/admin-header', { activePage: 'admin-settings' }) %>
+
+<main class="admin-main">
+  <div class="container" style="max-width: 640px;">
+    <h1>Settings</h1>
+
+    <% if (saved) { %>
+    <div class="admin-alert">Settings saved successfully.</div>
+    <% } %>
+
+    <form class="form" method="POST" action="/admin/settings">
+
+      <div class="card" style="margin-bottom: 1.5rem; border: 2px solid <%= settings.coming_soon === '1' ? '#e67e22' : '#ddd' %>;">
+        <h2>Coming Soon Mode</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">
+          When enabled, visitors see a beautiful "Opening Soon" page instead of the full website.
+          You can still access everything through <strong>/admin</strong> and preview the real site at <strong>/preview</strong>.
+        </p>
+        <label style="display: flex; align-items: center; gap: .5rem; cursor: pointer;">
+          <input type="hidden" name="coming_soon" value="0" />
+          <input type="checkbox" name="coming_soon" value="1" style="width: 20px; height: 20px;" <%= settings.coming_soon === '1' ? 'checked' : '' %> />
+          <span style="font-weight: 600; color: <%= settings.coming_soon === '1' ? '#e67e22' : '#333' %>;">
+            <%= settings.coming_soon === '1' ? 'Coming Soon page is LIVE — visitors see the teaser' : 'Coming Soon mode is OFF — visitors see the full site' %>
+          </span>
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Business Info</h2>
+        <label>
+          Spa Name
+          <input type="text" name="spa_name" value="<%= settings.spa_name || '' %>" />
+        </label>
+        <label>
+          Phone
+          <input type="tel" name="phone" value="<%= settings.phone || '' %>" placeholder="(555) 555-5555" />
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" value="<%= settings.email || '' %>" placeholder="info@jmserenityspa.com" />
+        </label>
+        <label>
+          Address
+          <input type="text" name="address" value="<%= settings.address || '' %>" placeholder="Highlands Ranch, CO" />
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Hours &amp; Scheduling</h2>
+        <div class="grid two">
+          <label>
+            Open Time
+            <input type="time" name="open_time" value="<%= settings.open_time || '09:00' %>" />
+          </label>
+          <label>
+            Close Time
+            <input type="time" name="close_time" value="<%= settings.close_time || '19:00' %>" />
+          </label>
+        </div>
+        <label>
+          Open Days <span class="muted small">(1=Mon, 2=Tue, ... 6=Sat, 7=Sun)</span>
+          <input type="text" name="open_days" value="<%= settings.open_days || '1,2,3,4,5,6' %>" placeholder="1,2,3,4,5,6" />
+        </label>
+        <label>
+          Slot Interval (minutes)
+          <input type="number" name="slot_interval" value="<%= settings.slot_interval || '30' %>" min="15" step="15" />
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Room &amp; Station Counts</h2>
+        <div class="grid two">
+          <label>
+            Full Body Rooms
+            <input type="number" name="full_body_rooms" value="<%= settings.full_body_rooms || '6' %>" min="1" />
+          </label>
+          <label>
+            Chair Stations
+            <input type="number" name="chair_stations" value="<%= settings.chair_stations || '4' %>" min="1" />
+          </label>
+          <label>
+            Foot Chairs
+            <input type="number" name="foot_chairs" value="<%= settings.foot_chairs || '4' %>" min="1" />
+          </label>
+          <label>
+            Couples Rooms <span class="muted small">(room numbers, e.g. 5,6)</span>
+            <input type="text" name="couples_rooms" value="<%= settings.couples_rooms || '5,6' %>" />
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Email Notifications (SMTP)</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">Configure to send booking confirmation emails. Leave blank to disable email.</p>
+        <div class="grid two">
+          <label>
+            SMTP Host
+            <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" placeholder="smtp.gmail.com" />
+          </label>
+          <label>
+            SMTP Port
+            <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
+          </label>
+        </div>
+        <label>
+          SMTP User
+          <input type="text" name="smtp_user" value="<%= settings.smtp_user || '' %>" placeholder="you@gmail.com" />
+        </label>
+        <label>
+          SMTP Password
+          <input type="password" name="smtp_pass" value="<%= settings.smtp_pass || '' %>" placeholder="App password" />
+        </label>
+        <label>
+          From Address <span class="muted small">(optional — defaults to SMTP user)</span>
+          <input type="email" name="smtp_from" value="<%= settings.smtp_from || '' %>" placeholder="noreply@jmserenityspa.com" />
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Text Message Reminders (OpenPhone)</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">Configure to send SMS booking confirmations and automatic 24-hour appointment reminders. Leave blank to disable texting.</p>
+        <label>
+          OpenPhone API Key
+          <input type="password" name="openphone_api_key" value="<%= settings.openphone_api_key || '' %>" placeholder="Your OpenPhone API key" />
+        </label>
+        <label>
+          Phone Number ID <span class="muted small">(from OpenPhone API — identifies which number to send from)</span>
+          <input type="text" name="openphone_phone_id" value="<%= settings.openphone_phone_id || '' %>" placeholder="e.g. PNxxxxxxxxx" />
+        </label>
+        <div class="grid two">
+          <label>
+            Reminder Time <span class="muted small">(hours before appt)</span>
+            <input type="number" name="sms_reminder_hours" value="<%= settings.sms_reminder_hours || '24' %>" min="1" max="72" />
+          </label>
+          <label>
+            Auto-Reminders
+            <select name="sms_reminders_enabled">
+              <option value="1" <%= settings.sms_reminders_enabled === '1' ? 'selected' : '' %>>Enabled</option>
+              <option value="0" <%= settings.sms_reminders_enabled !== '1' ? 'selected' : '' %>>Disabled</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Square Payments (Terminal)</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">Connect your Square Terminal for card payments at checkout. Your website never touches card data — Square handles everything securely.</p>
+        <label>
+          Access Token <span class="muted small">(from Square Developer Dashboard)</span>
+          <input type="password" name="square_access_token" value="<%= settings.square_access_token || '' %>" placeholder="Your Square access token" />
+        </label>
+        <div class="grid two">
+          <label>
+            Location ID
+            <input type="text" name="square_location_id" value="<%= settings.square_location_id || '' %>" placeholder="e.g. LXXXXXXXXXX" />
+          </label>
+          <label>
+            Device ID <span class="muted small">(Terminal)</span>
+            <input type="text" name="square_device_id" value="<%= settings.square_device_id || '' %>" placeholder="e.g. device:XXXXX" />
+          </label>
+        </div>
+        <label>
+          Environment
+          <select name="square_environment">
+            <option value="sandbox" <%= settings.square_environment !== 'production' ? 'selected' : '' %>>Sandbox (Testing)</option>
+            <option value="production" <%= settings.square_environment === 'production' ? 'selected' : '' %>>Production (Live)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Google Maps</h2>
+        <label>
+          Embed URL <span class="muted small">(paste the src from a Google Maps embed iframe)</span>
+          <input type="text" name="google_maps_embed" value="<%= settings.google_maps_embed || '' %>" placeholder="https://www.google.com/maps/embed?pb=..." />
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Front Desk PIN</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">This is the simple PIN your front desk staff use to log in at <strong>/desk</strong>. They only see the Easy Mode screen and can't access admin settings.</p>
+        <label>
+          Desk PIN
+          <input type="text" name="desk_password" value="<%= settings.desk_password || '1234' %>" placeholder="e.g. 1234" maxlength="10" style="font-size: 1.3rem; letter-spacing: .2em; font-family: monospace;" />
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Change Admin Password</h2>
+        <label>
+          New Password <span class="muted small">(leave blank to keep current)</span>
+          <input type="password" name="new_password" placeholder="Enter new password" />
+        </label>
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit">Save Settings</button>
+    </form>
+
+    <!-- Reset / Go Live -->
+    <div class="card" style="margin-top: 2rem; border: 1px solid #e74c3c;">
+      <h2 style="color: #e74c3c;">Ready to Go Live?</h2>
+      <p class="muted small" style="margin-bottom: .8rem;">When you're done testing with friends, clear out all the test bookings, clients, and gift certificates. Your expenses, settings, therapists, and services will be kept.</p>
+      <a href="/admin/reset" class="btn" style="background: #e74c3c; color: #fff;">Clear Test Data &amp; Start Fresh</a>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

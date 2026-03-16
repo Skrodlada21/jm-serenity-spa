@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="refresh" content="60" />
+  <title><%= settings.spa_name || 'J&M Serenity Spa' %> — Menu</title>
+  <style>
+    *{ box-sizing:border-box; margin:0; padding:0; }
+
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      padding: 2.5vw;
+    }
+
+    .menu-header{
+      text-align: center;
+      padding: 1.5vw 0 2vw;
+    }
+    .menu-logo{
+      max-height: 100px;
+      width: auto;
+      margin: 0 auto 1rem;
+      display: block;
+      filter: drop-shadow(0 0 20px rgba(78,205,196,.3));
+    }
+    .menu-title{
+      font-size: clamp(2.5rem, 4.5vw, 5rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #4ecdc4, #b68b5a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: .02em;
+    }
+    .menu-subtitle{
+      font-size: clamp(1rem, 1.8vw, 1.6rem);
+      color: #7d8590;
+      margin-top: .5rem;
+    }
+
+    .menu-grid{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 2vw;
+      padding: 1vw 0;
+    }
+
+    .menu-category{
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      padding: 1.8rem 2rem;
+    }
+
+    .category-name{
+      font-size: clamp(1.3rem, 2.2vw, 2rem);
+      font-weight: 800;
+      color: #4ecdc4;
+      margin-bottom: 1rem;
+      padding-bottom: .6rem;
+      border-bottom: 2px solid #21262d;
+    }
+
+    .menu-item{
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: .7rem 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .menu-item:last-child{ border-bottom: none; }
+
+    .item-name{
+      font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+      font-weight: 600;
+      flex: 1;
+    }
+    .item-duration{
+      font-size: clamp(.9rem, 1.4vw, 1.2rem);
+      color: #7d8590;
+      margin: 0 1.5rem;
+      white-space: nowrap;
+    }
+    .item-price{
+      font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+      font-weight: 800;
+      color: #b68b5a;
+      white-space: nowrap;
+    }
+
+    .menu-footer{
+      text-align: center;
+      padding: 2vw 0 1vw;
+      color: #484f58;
+      font-size: clamp(.85rem, 1.2vw, 1.1rem);
+    }
+
+    /* Responsive for smaller screens */
+    @media (max-width: 500px){
+      .menu-grid{ grid-template-columns: 1fr; }
+      body{ padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="menu-header">
+    <img src="/images/logo.png" alt="<%= settings.spa_name || 'J&M Serenity Spa' %>" class="menu-logo" />
+    <h1 class="menu-title"><%= settings.spa_name || 'J&M Serenity Spa' %></h1>
+    <p class="menu-subtitle">Signature Treatments &amp; Services</p>
+  </header>
+
+  <%
+    // Group services by category
+    var categoryLabels = {
+      full_body: 'Full Body Massage',
+      couples: 'Couples Massage',
+      chair: 'Chair Massage',
+      foot: 'Foot Treatments',
+      combo: 'Combo Packages',
+      four_hands: 'Four Hands Massage'
+    };
+    var grouped = {};
+    services.forEach(function(s) {
+      var cat = s.category || 'full_body';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(s);
+    });
+    var categoryOrder = ['full_body', 'couples', 'four_hands', 'chair', 'foot', 'combo'];
+  %>
+
+  <div class="menu-grid">
+    <% categoryOrder.forEach(function(cat) { %>
+      <% if (grouped[cat] && grouped[cat].length > 0) { %>
+        <div class="menu-category">
+          <h2 class="category-name"><%= categoryLabels[cat] || cat %></h2>
+          <% grouped[cat].forEach(function(s) { %>
+            <div class="menu-item">
+              <span class="item-name"><%= s.name %></span>
+              <span class="item-duration"><%= s.duration %> min</span>
+              <span class="item-price">$<%= s.price %></span>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    <% }); %>
+  </div>
+
+  <% if (addons && addons.length > 0) { %>
+  <div class="menu-grid" style="margin-top: 1vw;">
+    <div class="menu-category">
+      <h2 class="category-name">Enhancements &amp; Add-Ons</h2>
+      <% addons.forEach(function(a) { %>
+        <div class="menu-item">
+          <span class="item-name"><%= a.name %></span>
+          <% if (a.description) { %><span class="item-duration"><%= a.description %></span><% } %>
+          <span class="item-price">+$<%= a.price %></span>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
+
+  <footer class="menu-footer">
+    <p>Prices subject to change &middot; By appointment only &middot; <%= settings.address || 'Highlands Ranch, CO' %></p>
+  </footer>
+
+</body>
+</html>

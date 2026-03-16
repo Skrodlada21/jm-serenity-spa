@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>J&M Serenity Spa — Coming Soon</title>
+  <meta name="description" content="J&M Serenity Spa in Highlands Ranch, CO — Opening Soon! Massage therapy, chair massage, and signature treatments." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand: #1f6f78;
+      --brand-deep: #114a50;
+      --gold: #c9a96e;
+      --gold-light: #e8d5b0;
+      --cream: #faf7f2;
+      --text: #2c2c2c;
+      --text-light: #777;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--cream);
+      overflow-x: hidden;
+    }
+
+    /* ===== HERO SECTION ===== */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(
+          160deg,
+          rgba(31,111,120,.92) 0%,
+          rgba(17,74,80,.85) 40%,
+          rgba(31,111,120,.75) 100%
+        );
+      z-index: 1;
+    }
+
+    .hero-img {
+      position: absolute; inset: 0;
+      background: url('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1920&q=80') center/cover no-repeat;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 700px;
+      padding: 2rem 1.5rem;
+    }
+
+    .hero-logo {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(201,169,110,.6);
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    }
+
+    .hero-name {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .02em;
+      line-height: 1.15;
+    }
+
+    .hero-tagline {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      color: var(--gold-light);
+      font-weight: 400;
+      font-style: italic;
+      margin-top: .4rem;
+      letter-spacing: .03em;
+    }
+
+    .hero-divider {
+      width: 60px;
+      height: 2px;
+      background: var(--gold);
+      margin: 1.5rem auto;
+      border-radius: 2px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-family: 'Inter', sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      background: rgba(201,169,110,.15);
+      border: 1px solid rgba(201,169,110,.35);
+      padding: .5rem 1.5rem;
+      border-radius: 50px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-desc {
+      color: rgba(255,255,255,.85);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      max-width: 540px;
+      margin: 0 auto 2rem;
+      font-weight: 300;
+    }
+
+    .hero-location {
+      color: rgba(255,255,255,.6);
+      font-size: .9rem;
+      margin-top: 1rem;
+    }
+    .hero-location strong { color: rgba(255,255,255,.85); font-weight: 500; }
+
+    /* ===== PHOTO GALLERY STRIP ===== */
+    .gallery-strip {
+      padding: 4rem 1.5rem;
+      background: #fff;
+    }
+
+    .gallery-strip h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      text-align: center;
+      color: var(--brand-deep);
+      margin-bottom: .4rem;
+    }
+
+    .gallery-strip .sub {
+      text-align: center;
+      color: var(--text-light);
+      font-size: .95rem;
+      margin-bottom: 2rem;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .photo-card {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .6s ease;
+    }
+
+    .photo-card:hover img { transform: scale(1.05); }
+
+    .photo-card .caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: .8rem 1rem;
+      background: linear-gradient(transparent, rgba(17,74,80,.85));
+      color: #fff;
+      font-size: .85rem;
+      font-weight: 500;
+    }
+
+    /* ===== SERVICES PREVIEW ===== */
+    .services-preview {
+      padding: 4rem 1.5rem;
+      background: var(--cream);
+    }
+
+    .services-preview h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      text-align: center;
+      color: var(--brand-deep);
+      margin-bottom: 2rem;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .service-item {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,.04);
+      border: 1px solid rgba(0,0,0,.04);
+    }
+
+    .service-icon {
+      font-size: 2rem;
+      margin-bottom: .6rem;
+    }
+
+    .service-item h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      color: var(--brand-deep);
+      margin-bottom: .3rem;
+    }
+
+    .service-item p {
+      color: var(--text-light);
+      font-size: .85rem;
+      line-height: 1.5;
+    }
+
+    /* ===== CONTACT / FOOTER ===== */
+    .cs-footer {
+      background: var(--brand-deep);
+      color: rgba(255,255,255,.8);
+      text-align: center;
+      padding: 3rem 1.5rem;
+    }
+
+    .cs-footer h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: .5rem;
+    }
+
+    .cs-footer p { font-size: .95rem; line-height: 1.7; }
+    .cs-footer a { color: var(--gold-light); text-decoration: none; }
+    .cs-footer a:hover { text-decoration: underline; }
+
+    .cs-footer .divider {
+      width: 40px; height: 1px;
+      background: rgba(201,169,110,.4);
+      margin: 1.5rem auto;
+    }
+
+    .cs-footer .copy {
+      font-size: .8rem;
+      color: rgba(255,255,255,.4);
+      margin-top: 1.5rem;
+    }
+
+    /* ===== FLOATING SCROLL HINT ===== */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      color: rgba(255,255,255,.5);
+      font-size: .8rem;
+      text-align: center;
+      animation: bounce 2s ease infinite;
+    }
+    .scroll-hint .arrow { font-size: 1.2rem; display: block; margin-top: .2rem; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      .photo-grid { grid-template-columns: 1fr; }
+      .services-grid { grid-template-columns: 1fr 1fr; }
+      .hero-desc { font-size: .95rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-img"></div>
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <img src="/images/logo.png" alt="J&M Serenity Spa" class="hero-logo" />
+    <div class="hero-badge">Opening Soon</div>
+    <h1 class="hero-name">J&M Serenity Spa</h1>
+    <p class="hero-tagline">Signature Treatments</p>
+    <div class="hero-divider"></div>
+    <p class="hero-desc">
+      A new destination for relaxation and renewal in Highlands Ranch.
+      Specializing in therapeutic massage, chair massage, and signature
+      treatments designed to melt away stress and restore your body.
+    </p>
+    <p class="hero-location">
+      <strong>Highlands Ranch, Colorado</strong>
+    </p>
+  </div>
+  <div class="scroll-hint">
+    Scroll to see more
+    <span class="arrow">&#8595;</span>
+  </div>
+</section>
+
+<!-- ===== PHOTO GALLERY ===== -->
+<section class="gallery-strip">
+  <h2>A Glimpse of What's Coming</h2>
+  <p class="sub">Relaxation, reimagined</p>
+  <div class="photo-grid">
+    <div class="photo-card">
+      <img src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=600&q=80" alt="Relaxing massage therapy" loading="lazy" />
+      <div class="caption">Therapeutic Massage</div>
+    </div>
+    <div class="photo-card">
+      <img src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=600&q=80" alt="Chair massage" loading="lazy" />
+      <div class="caption">Chair Massage</div>
+    </div>
+    <div class="photo-card">
+      <img src="https://images.unsplash.com/photo-1540555700478-4be289fbec6f?w=600&q=80" alt="Spa treatment room" loading="lazy" />
+      <div class="caption">Serene Treatment Rooms</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SERVICES PREVIEW ===== -->
+<section class="services-preview">
+  <h2>What We'll Offer</h2>
+  <div class="services-grid">
+    <div class="service-item">
+      <div class="service-icon">&#128588;</div>
+      <h3>Deep Tissue</h3>
+      <p>Targeted pressure to release chronic muscle tension</p>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#127807;</div>
+      <h3>Swedish Massage</h3>
+      <p>Classic relaxation with long, flowing strokes</p>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#129506;</div>
+      <h3>Chair Massage</h3>
+      <p>Quick relief for neck, shoulders, and back</p>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#10024;</div>
+      <h3>Signature Treatments</h3>
+      <p>Custom blended experiences unique to J&M</p>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#128134;</div>
+      <h3>Couples Massage</h3>
+      <p>Share the relaxation side by side</p>
+    </div>
+    <div class="service-item">
+      <div class="service-icon">&#127873;</div>
+      <h3>Gift Certificates</h3>
+      <p>The perfect gift for someone special</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="cs-footer">
+  <h2>Stay Tuned</h2>
+  <p>We're putting the finishing touches on something special.<br />
+  Follow us for updates and opening announcements.</p>
+  <div class="divider"></div>
+  <p>
+    <strong>J&M Serenity Spa</strong><br />
+    Highlands Ranch, CO<br /><br />
+    Questions? <a href="/contact">Get in touch</a>
+  </p>
+  <p class="copy">&copy; <script>document.write(new Date().getFullYear())</script> J&M Serenity Spa. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

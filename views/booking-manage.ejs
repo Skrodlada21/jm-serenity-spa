@@ -1,0 +1,88 @@
+<%- include('partials/header', {
+  title: 'Manage Booking | J&M Serenity Spa',
+  description: 'Cancel or reschedule your appointment.',
+  activePage: 'book'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">My Booking</p>
+      <h1 class="reveal">Manage Your Appointment</h1>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content" style="max-width: 640px;">
+      <% if (error || !booking) { %>
+      <div class="card reveal">
+        <p><%= error || "Booking not found." %></p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/book">Book a New Appointment</a>
+        </div>
+      </div>
+      <% } else { %>
+
+        <% if (typeof cancelled !== 'undefined' || (typeof booking.status !== 'undefined' && booking.status === 'cancelled')) { %>
+        <div class="callout reveal" style="background: #f8d7da; border-color: #f5c6cb; margin-bottom: 1.5rem;">
+          <p style="color: #721c24; font-weight: 600;">This appointment has been cancelled.</p>
+        </div>
+        <% } %>
+
+        <% if (typeof rescheduled !== 'undefined') { %>
+        <div class="callout reveal" style="background: #d4edda; border-color: #c3e6cb; margin-bottom: 1.5rem;">
+          <p style="color: #155724; font-weight: 600;">Your appointment has been rescheduled!</p>
+        </div>
+        <% } %>
+
+        <div class="card reveal">
+          <h2>Appointment Details</h2>
+          <ul class="contact-list">
+            <li><strong>Name:</strong> <%= booking.client_name %></li>
+            <li><strong>Service:</strong> <%= booking.service_name %></li>
+            <li><strong>Therapist:</strong> <%= booking.therapist_name || 'Assigned at arrival' %></li>
+            <li><strong>Date:</strong> <%= booking.date %></li>
+            <li><strong>Time:</strong> <%= booking.time %></li>
+            <li><strong>Duration:</strong> <%= booking.duration %> minutes</li>
+            <li><strong>Status:</strong> <span style="font-weight: 700; color: <%= booking.status === 'confirmed' ? '#155724' : '#721c24' %>;"><%= booking.status %></span></li>
+          </ul>
+        </div>
+
+        <% if (booking.status === 'confirmed') { %>
+        <div class="card reveal" style="margin-top: 1rem;">
+          <h2>Reschedule</h2>
+          <form class="form" method="POST" action="/booking/reschedule/<%= booking.cancel_token %>">
+            <div class="grid two">
+              <label>
+                New Date
+                <input type="date" name="date" value="<%= booking.date %>" required />
+              </label>
+              <label>
+                New Time
+                <input type="time" name="time" value="<%= booking.time %>" required />
+              </label>
+            </div>
+            <button class="btn btn-primary" type="submit">Reschedule Appointment</button>
+          </form>
+        </div>
+
+        <div class="card reveal" style="margin-top: 1rem;">
+          <h2>Cancel Appointment</h2>
+          <p class="muted">Please provide at least 24 hours' notice when cancelling.</p>
+          <form method="POST" action="/booking/cancel/<%= booking.cancel_token %>" onsubmit="return confirm('Are you sure you want to cancel this appointment?')">
+            <button class="btn btn-ghost" type="submit" style="color: #c0392b; border-color: #c0392b; margin-top: .8rem;">Cancel This Appointment</button>
+          </form>
+        </div>
+        <% } %>
+
+      <% } %>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-ghost" href="/">Back to Home</a>
+        <a class="btn btn-primary" href="/book">Book Another</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

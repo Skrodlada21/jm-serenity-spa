@@ -1,0 +1,109 @@
+<%- include('../partials/admin-header', { activePage: 'admin-discounts' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Discount Codes &amp; Partnerships</h1>
+    <p class="muted" style="margin-bottom: 1.5rem;">Create codes for partner businesses, promos, and special deals. Staff enters the code when completing a booking.</p>
+
+    <!-- Add / Edit Form -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2><%= editCode ? 'Edit Discount Code' : 'Add Discount Code' %></h2>
+      <form class="form" method="POST" action="<%= editCode ? '/admin/discounts/' + editCode.id + '/edit' : '/admin/discounts' %>">
+        <div class="grid two">
+          <label>
+            Code (what staff types in)
+            <input type="text" name="code" value="<%= editCode ? editCode.code : '' %>" required placeholder="e.g. DEALER10" style="text-transform: uppercase;" />
+          </label>
+          <label>
+            Name / Partner
+            <input type="text" name="name" value="<%= editCode ? editCode.name : '' %>" required placeholder="e.g. AutoNation Dealership" />
+          </label>
+        </div>
+        <div class="grid three">
+          <label>
+            Discount Type
+            <select name="type">
+              <option value="percent" <%= editCode && editCode.type === 'percent' ? 'selected' : '' %>>Percentage (%)</option>
+              <option value="fixed" <%= editCode && editCode.type === 'fixed' ? 'selected' : '' %>>Fixed Amount ($)</option>
+            </select>
+          </label>
+          <label>
+            Value
+            <input type="number" name="value" value="<%= editCode ? editCode.value : '' %>" required min="0" step="0.01" placeholder="e.g. 10" />
+          </label>
+          <label>
+            Description (optional)
+            <input type="text" name="description" value="<%= editCode ? editCode.description : '' %>" placeholder="e.g. 10% off for dealership customers" />
+          </label>
+        </div>
+        <div style="display: flex; gap: .5rem;">
+          <button class="btn btn-primary btn-small" type="submit"><%= editCode ? 'Update' : 'Add Code' %></button>
+          <% if (editCode) { %>
+            <a class="btn btn-ghost btn-small" href="/admin/discounts">Cancel</a>
+          <% } %>
+        </div>
+      </form>
+    </div>
+
+    <!-- Existing Codes Table -->
+    <% if (codes.length === 0) { %>
+    <div class="card"><p class="muted">No discount codes yet. Add one above to get started.</p></div>
+    <% } else { %>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name / Partner</th>
+            <th>Discount</th>
+            <th>Description</th>
+            <th>Times Used</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% codes.forEach(function(c) { %>
+          <tr class="<%= c.active ? '' : 'inactive-row' %>">
+            <td><strong style="font-family: monospace; letter-spacing: .08em;"><%= c.code %></strong></td>
+            <td><%= c.name %></td>
+            <td>
+              <% if (c.type === 'percent') { %>
+                <strong><%= c.value %>% off</strong>
+              <% } else { %>
+                <strong>$<%= c.value.toFixed(2) %> off</strong>
+              <% } %>
+            </td>
+            <td class="muted"><%= c.description || '—' %></td>
+            <td><%= c.uses %></td>
+            <td>
+              <span class="admin-badge <%= c.active ? 'online' : 'offline' %>"><%= c.active ? 'Active' : 'Hidden' %></span>
+            </td>
+            <td>
+              <div class="action-cell">
+                <a class="btn btn-small btn-ghost" href="/admin/discounts?edit=<%= c.id %>">Edit</a>
+                <form method="POST" action="/admin/discounts/<%= c.id %>/toggle" style="display:inline;">
+                  <button class="btn btn-small btn-ghost" type="submit"><%= c.active ? 'Hide' : 'Show' %></button>
+                </form>
+                <form method="POST" action="/admin/discounts/<%= c.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this code?')">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <div class="card" style="margin-top: 1.5rem; background: rgba(31,111,120,.03);">
+      <h3 style="margin-bottom: .5rem;">How It Works</h3>
+      <p class="muted small" style="margin-bottom: .3rem;">When a customer mentions a deal (like the dealership discount), staff enters the discount code in the "Complete" form. The system tracks how many times each code is used so you can see which partnerships are working.</p>
+      <p class="muted small"><strong>Example:</strong> Create code <code>DEALER10</code> with 10% off for the car dealership across the street. When their customers come in, staff types DEALER10 when completing the booking.</p>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

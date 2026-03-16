@@ -1,0 +1,70 @@
+<%- include('partials/header', {
+  title: 'Contact | J&M Serenity Spa',
+  description: 'Contact J&M Serenity Spa with questions about our Signature Treatments or booking.',
+  activePage: 'contact'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Contact</p>
+      <h1 class="reveal">Get in Touch</h1>
+      <p class="lead muted reveal" style="max-width: 70ch;">
+        Have questions about our treatments or want to book by phone? We're happy to help.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <div class="grid two">
+        <div class="card reveal">
+          <h2>Contact Info</h2>
+          <ul class="contact-list">
+            <li><strong>Phone:</strong> <a href="tel:<%= settings.phone || '' %>"><%= settings.phone || '[Your Phone]' %></a></li>
+            <li><strong>Email:</strong> <a href="mailto:<%= settings.email || '' %>"><%= settings.email || '[Your Email]' %></a></li>
+            <li><strong>Hours:</strong> Mon–Sat, <%= settings.open_time || '9:00' %> – <%= settings.close_time || '7:00 PM' %></li>
+            <li><strong>Location:</strong> <%= settings.address || 'Highlands Ranch, CO' %></li>
+          </ul>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="/book">Book Online</a>
+            <a class="btn btn-ghost" href="/treatments">View Treatments</a>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h2>Send a Message</h2>
+          <form class="form" method="POST" action="/contact">
+            <label>
+              Name
+              <input type="text" name="name" placeholder="Your name" required />
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" placeholder="you@example.com" required />
+            </label>
+            <label>
+              Message
+              <textarea name="message" rows="6" placeholder="How can we help?" required></textarea>
+            </label>
+            <button class="btn btn-primary" type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <% if (settings.google_maps_embed) { %>
+  <section class="section alt">
+    <div class="container">
+      <h2 class="reveal" style="margin-bottom: 1rem;">Find Us</h2>
+      <div class="reveal" style="border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);">
+        <iframe src="<%= settings.google_maps_embed %>" width="100%" height="400" style="border:0; display:block;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </section>
+  <% } %>
+</main>
+
+<%- include('partials/footer') %>

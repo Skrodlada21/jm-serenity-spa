@@ -1,0 +1,84 @@
+<%- include('partials/header', {
+  title: 'Membership Plans | J&M Serenity Spa',
+  description: 'Join a J&M Serenity Spa membership plan — save on monthly treatments, enjoy exclusive benefits, and prioritize your wellness.',
+  activePage: 'memberships'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Wellness Memberships</p>
+      <h1 class="reveal">Make Relaxation a Routine</h1>
+      <p class="lead muted reveal" style="max-width: 68ch;">
+        Our membership plans make it easy (and affordable) to prioritize regular self-care. Choose a plan that fits your lifestyle.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <% if (plans.length === 0) { %>
+      <div class="card reveal" style="text-align: center; padding: 2rem;">
+        <h2>Membership Plans Coming Soon</h2>
+        <p class="muted">We're putting the finishing touches on our membership options. Check back soon or contact us for details.</p>
+        <a class="btn btn-primary" href="/contact" style="margin-top: 1rem;">Contact Us for Details</a>
+      </div>
+      <% } else { %>
+      <div class="grid <%= plans.length <= 2 ? 'two' : 'three' %>">
+        <% plans.forEach(function(plan, idx) { %>
+        <div class="card reveal" style="padding: 2rem; text-align: center; position: relative; <%= idx === Math.floor(plans.length / 2) && plans.length > 1 ? 'border: 2px solid var(--brand);' : '' %>">
+          <% if (idx === Math.floor(plans.length / 2) && plans.length > 1) { %>
+          <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--brand); color: #fff; padding: .2rem .8rem; border-radius: 20px; font-size: .75rem; font-weight: 700; letter-spacing: .05em;">MOST POPULAR</div>
+          <% } %>
+          <h2 style="margin-bottom: .25rem;"><%= plan.name %></h2>
+          <div style="margin-bottom: 1rem;">
+            <span style="font-size: 2.5rem; font-weight: 900; color: var(--brand);">$<%= plan.monthly_price.toFixed(0) %></span>
+            <span class="muted">/month</span>
+          </div>
+          <% if (plan.description) { %>
+          <p class="muted" style="margin-bottom: 1.2rem;"><%= plan.description %></p>
+          <% } %>
+          <div style="text-align: left; margin-bottom: 1.5rem;">
+            <div style="padding: .5rem 0; border-bottom: 1px solid var(--line);">
+              <strong><%= plan.visits_per_month %></strong> massage visit<%= plan.visits_per_month > 1 ? 's' : '' %> per month
+            </div>
+            <% if (plan.discount_percent > 0) { %>
+            <div style="padding: .5rem 0; border-bottom: 1px solid var(--line);">
+              <strong><%= plan.discount_percent %>% off</strong> all services
+            </div>
+            <% } %>
+            <% if (plan.addon_credits > 0) { %>
+            <div style="padding: .5rem 0; border-bottom: 1px solid var(--line);">
+              <strong><%= plan.addon_credits %></strong> free add-on<%= plan.addon_credits > 1 ? 's' : '' %> per month
+            </div>
+            <% } %>
+            <% if (plan.guest_passes > 0) { %>
+            <div style="padding: .5rem 0; border-bottom: 1px solid var(--line);">
+              <strong><%= plan.guest_passes %></strong> guest pass<%= plan.guest_passes > 1 ? 'es' : '' %> per month
+            </div>
+            <% } %>
+            <div style="padding: .5rem 0;">
+              Priority booking access
+            </div>
+          </div>
+          <a class="btn <%= idx === Math.floor(plans.length / 2) && plans.length > 1 ? 'btn-primary' : 'btn-ghost' %> btn-block" href="/contact">Get Started</a>
+        </div>
+        <% }); %>
+      </div>
+      <% } %>
+
+      <div class="card reveal" style="padding: 1.5rem; margin-top: 2rem;">
+        <h3>How Memberships Work</h3>
+        <p>When you sign up for a membership, you'll be billed monthly through our secure payment system. Your included visits reset each billing cycle. Simply book as usual — when you check in, we'll apply your membership benefits automatically.</p>
+        <p style="margin-top: .75rem;">You can pause or cancel your membership anytime by contacting us. No long-term contracts — just consistent wellness at a better price.</p>
+      </div>
+
+      <div class="cta-row reveal" style="margin-top: 1.5rem;">
+        <a class="btn btn-primary" href="/contact">Inquire About Memberships</a>
+        <a class="btn btn-ghost" href="/book">Book a Single Visit</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,174 @@
+<%- include('../partials/admin-header', { activePage: 'admin-phone' }) %>
+
+<main class="admin-main">
+  <div class="container" style="max-width: 640px;">
+    <h1>Phone Booking</h1>
+    <p class="muted">Add a booking from a phone call. Same availability system prevents double-booking.</p>
+
+    <div class="card">
+      <form class="form" method="POST" action="/admin/phone-booking" id="phone-booking-form">
+        <label>
+          Phone Number <span class="muted small">(required — we'll look them up)</span>
+          <input type="tel" name="client_phone" id="client-phone" placeholder="(555) 555-5555" required autofocus />
+        </label>
+
+        <div id="returning-banner" style="display:none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: .8rem 1rem; margin-bottom: .5rem;">
+          <strong style="color: #2e7d32;">Returning client!</strong>
+          <span id="returning-name" style="color: #2e7d32;"></span>
+        </div>
+
+        <label>
+          Client Name <span class="muted small">(optional — phone is enough)</span>
+          <input type="text" name="client_name" id="client-name" placeholder="Client's full name" />
+        </label>
+
+        <label>
+          Email <span class="muted small">(optional)</span>
+          <input type="email" name="client_email" id="client-email" placeholder="client@example.com" />
+        </label>
+
+        <label>
+          Service
+          <select name="service_id" id="service-select" required>
+            <option value="">— Choose a service —</option>
+            <% services.forEach(function(svc) { %>
+            <option value="<%= svc.id %>" data-duration="<%= svc.duration %>" data-category="<%= svc.category %>">
+              <%= svc.name %> — <%= svc.duration %> min ($<%= svc.price %>)
+            </option>
+            <% }); %>
+          </select>
+        </label>
+
+        <label>
+          Therapist Preference
+          <select name="gender_pref" id="gender-pref-select">
+            <option value="">No preference</option>
+            <option value="female">Female therapist</option>
+            <option value="male">Male therapist</option>
+          </select>
+        </label>
+
+        <label>
+          Therapist
+          <select name="therapist_id" id="therapist-select">
+            <option value="">No preference</option>
+            <% therapists.forEach(function(t) { %>
+            <option value="<%= t.id %>" data-gender="<%= t.gender %>">
+              <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
+            </option>
+            <% }); %>
+          </select>
+        </label>
+
+        <div id="therapist2-container" style="display: none;">
+          <label>
+            Second Therapist <span class="muted small">(for Four Hands)</span>
+            <select name="therapist2_id" id="therapist2-select">
+              <option value="">No preference</option>
+              <% therapists.forEach(function(t) { %>
+              <option value="<%= t.id %>" data-gender="<%= t.gender %>">
+                <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
+              </option>
+              <% }); %>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          Date
+          <input type="date" name="date" id="date-input" required />
+        </label>
+
+        <div id="slots-container" style="display:none;">
+          <p class="small" style="font-weight:700; margin-bottom:.5rem;">Available Times</p>
+          <div id="slots-grid" class="slots-grid"></div>
+          <input type="hidden" name="time" id="time-input" required />
+        </div>
+
+        <% if (addons.length > 0) { %>
+        <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem;">
+          <legend style="font-weight: 700;">Add-Ons</legend>
+          <div style="display: flex; flex-wrap: wrap; gap: .8rem;">
+            <% addons.forEach(function(a) { %>
+            <label style="display: inline-flex; align-items: center; gap: .4rem; font-weight: normal; min-width: 200px;">
+              <input type="checkbox" name="addon_ids" value="<%= a.id %>" />
+              <%= a.name %> (+$<%= a.price %>)
+            </label>
+            <% }); %>
+          </div>
+        </fieldset>
+        <% } %>
+
+        <label>
+          Areas to Focus On
+          <input type="text" name="areas" placeholder="e.g., lower back, shoulders" />
+        </label>
+
+        <label>
+          Notes for Therapist
+          <textarea name="notes" rows="3" placeholder="Any special requests or info"></textarea>
+        </label>
+
+        <label>
+          Recurring <span class="muted small">(repeat weekly for X more weeks — leave 0 for one-time)</span>
+          <input type="number" name="recurring_weeks" value="0" min="0" max="52" />
+        </label>
+
+        <button class="btn btn-primary btn-block" type="submit" id="submit-btn" disabled>
+          Select a time to continue
+        </button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+// Auto-fill client info when phone number is entered
+(function(){
+  var phoneInput = document.getElementById('client-phone');
+  var nameInput = document.getElementById('client-name');
+  var emailInput = document.getElementById('client-email');
+  var banner = document.getElementById('returning-banner');
+  var bannerName = document.getElementById('returning-name');
+  if (!phoneInput) return;
+
+  var timer;
+  phoneInput.addEventListener('input', function() {
+    clearTimeout(timer);
+    var phone = phoneInput.value.replace(/\D/g, '');
+    if (phone.length < 7) { banner.style.display = 'none'; return; }
+
+    timer = setTimeout(function() {
+      fetch('/api/client-lookup?phone=' + encodeURIComponent(phoneInput.value))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.client) {
+            if (data.client.name) {
+              nameInput.value = data.client.name;
+              banner.style.display = 'block';
+              bannerName.textContent = data.client.name;
+            }
+            if (data.client.email && !emailInput.value) emailInput.value = data.client.email;
+            if (data.client.areas_to_focus) {
+              var areasInput = document.querySelector('input[name="areas"]');
+              if (areasInput && !areasInput.value) areasInput.value = data.client.areas_to_focus;
+            }
+            if (data.client.notes || data.client.pressure_pref) {
+              var notesInput = document.querySelector('textarea[name="notes"]');
+              var prefill = [];
+              if (data.client.pressure_pref) prefill.push('Pressure: ' + data.client.pressure_pref);
+              if (data.client.areas_to_avoid) prefill.push('Avoid: ' + data.client.areas_to_avoid);
+              if (notesInput && !notesInput.value && prefill.length) notesInput.value = prefill.join('. ');
+            }
+          } else {
+            banner.style.display = 'none';
+          }
+        }).catch(function() {});
+    }, 500);
+  });
+})();
+</script>
+
+<script src="/script.js"></script>
+</body>
+</html>

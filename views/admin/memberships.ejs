@@ -1,0 +1,241 @@
+<%- include('../partials/admin-header', { activePage: 'admin-memberships' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Memberships</h1>
+
+    <!-- ============================================================
+         Membership Plans
+         ============================================================ -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <% if (editPlan) { %>
+        <h2>Edit Plan — <%= editPlan.name %></h2>
+        <form class="form" method="POST" action="/admin/memberships/plans/<%= editPlan.id %>/edit">
+      <% } else { %>
+        <h2>Create Membership Plan</h2>
+        <form class="form" method="POST" action="/admin/memberships/plans">
+      <% } %>
+          <div class="grid two">
+            <label>
+              Plan Name
+              <input type="text" name="name" value="<%= editPlan ? editPlan.name : '' %>" placeholder="e.g. Monthly Wellness" required />
+            </label>
+            <label>
+              Monthly Price ($)
+              <input type="number" name="monthly_price" value="<%= editPlan ? editPlan.monthly_price : '' %>" min="0" step="5" placeholder="79" required />
+            </label>
+          </div>
+          <label>
+            Description
+            <textarea name="description" rows="2" placeholder="What's included in this plan?"><%= editPlan ? editPlan.description : '' %></textarea>
+          </label>
+          <div class="grid three">
+            <label>
+              Visits Per Month
+              <input type="number" name="visits_per_month" value="<%= editPlan ? editPlan.visits_per_month : '1' %>" min="1" max="30" />
+            </label>
+            <label>
+              Discount % <span class="muted small">(on services)</span>
+              <input type="number" name="discount_percent" value="<%= editPlan ? editPlan.discount_percent : '0' %>" min="0" max="100" />
+            </label>
+            <label>
+              Addon Credits <span class="muted small">(free add-ons/mo)</span>
+              <input type="number" name="addon_credits" value="<%= editPlan ? editPlan.addon_credits : '0' %>" min="0" />
+            </label>
+          </div>
+          <label>
+            Guest Passes Per Month
+            <input type="number" name="guest_passes" value="<%= editPlan ? editPlan.guest_passes : '0' %>" min="0" max="10" />
+          </label>
+          <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem;">
+            <legend style="font-weight: 700;">Included Services</legend>
+            <div style="display: flex; flex-wrap: wrap; gap: .6rem;">
+              <% var editPlanSids = editPlan ? (editPlan.included_service_ids || '').split(',') : []; %>
+              <% services.forEach(function(svc) { %>
+              <label style="display: inline-flex; align-items: center; gap: .4rem; font-weight: normal; min-width: 200px;">
+                <input type="checkbox" name="included_service_ids" value="<%= svc.id %>"
+                  <%= editPlanSids.indexOf(String(svc.id)) > -1 ? 'checked' : '' %> />
+                <%= svc.name %>
+              </label>
+              <% }); %>
+            </div>
+          </fieldset>
+          <div style="display:flex; gap:.5rem;">
+            <button class="btn btn-primary" type="submit"><%= editPlan ? 'Save Changes' : 'Create Plan' %></button>
+            <% if (editPlan) { %>
+            <a class="btn btn-ghost" href="/admin/memberships">Cancel</a>
+            <% } %>
+          </div>
+        </form>
+    </div>
+
+    <!-- Plans Table -->
+    <div class="admin-table-wrap" style="margin-bottom: 2rem;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Price/mo</th>
+            <th>Visits/mo</th>
+            <th>Discount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% plans.forEach(function(p) { %>
+          <tr class="<%= p.active ? '' : 'inactive-row' %>">
+            <td>
+              <strong><%= p.name %></strong>
+              <% if (p.description) { %><br><span class="muted small"><%= p.description %></span><% } %>
+            </td>
+            <td>$<%= p.monthly_price.toFixed(2) %></td>
+            <td><%= p.visits_per_month %></td>
+            <td><%= p.discount_percent %>%</td>
+            <td><span class="admin-badge <%= p.active ? 'online' : 'offline' %>"><%= p.active ? 'Active' : 'Hidden' %></span></td>
+            <td class="action-cell">
+              <a class="btn btn-small btn-ghost" href="/admin/memberships?editPlan=<%= p.id %>">Edit</a>
+              <form method="POST" action="/admin/memberships/plans/<%= p.id %>/toggle" style="display:inline;">
+                <button class="btn btn-small btn-ghost" type="submit"><%= p.active ? 'Hide' : 'Show' %></button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (plans.length === 0) { %>
+          <tr><td colspan="6" class="muted">No membership plans created yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ============================================================
+         Members
+         ============================================================ -->
+    <h2 id="members">Members</h2>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <% if (editMember) { %>
+        <h3>Edit Member — <%= editMember.client_name %></h3>
+        <form class="form" method="POST" action="/admin/memberships/members/<%= editMember.id %>/edit">
+      <% } else { %>
+        <h3>Add New Member</h3>
+        <form class="form" method="POST" action="/admin/memberships/members">
+      <% } %>
+          <div class="grid two">
+            <label>
+              Client Name
+              <input type="text" name="client_name" value="<%= editMember ? editMember.client_name : '' %>" required />
+            </label>
+            <label>
+              Phone
+              <input type="tel" name="client_phone" value="<%= editMember ? editMember.client_phone : '' %>" required />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              Email <span class="muted small">(optional)</span>
+              <input type="email" name="client_email" value="<%= editMember ? editMember.client_email : '' %>" />
+            </label>
+            <label>
+              Membership Plan
+              <select name="plan_id" required>
+                <option value="">— Select Plan —</option>
+                <% plans.filter(function(p) { return p.active; }).forEach(function(p) { %>
+                <option value="<%= p.id %>" <%= editMember && editMember.plan_id === p.id ? 'selected' : '' %>><%= p.name %> ($<%= p.monthly_price %>/mo)</option>
+                <% }); %>
+              </select>
+            </label>
+          </div>
+          <% if (!editMember) { %>
+          <label>
+            Start Date
+            <input type="date" name="start_date" value="<%= new Date().toISOString().slice(0, 10) %>" />
+          </label>
+          <% } else { %>
+          <label>
+            Status
+            <select name="status">
+              <option value="active" <%= editMember.status === 'active' ? 'selected' : '' %>>Active</option>
+              <option value="paused" <%= editMember.status === 'paused' ? 'selected' : '' %>>Paused</option>
+              <option value="cancelled" <%= editMember.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+            </select>
+          </label>
+          <% } %>
+          <label>
+            Square Subscription ID <span class="muted small">(optional — link to Square billing)</span>
+            <input type="text" name="square_subscription_id" value="<%= editMember ? editMember.square_subscription_id : '' %>" placeholder="From Square dashboard" />
+          </label>
+          <label>
+            Notes <span class="muted small">(optional)</span>
+            <input type="text" name="notes" value="<%= editMember ? editMember.notes : '' %>" />
+          </label>
+          <div style="display:flex; gap:.5rem;">
+            <button class="btn btn-primary" type="submit"><%= editMember ? 'Save Changes' : 'Add Member' %></button>
+            <% if (editMember) { %>
+            <a class="btn btn-ghost" href="/admin/memberships#members">Cancel</a>
+            <% } %>
+          </div>
+        </form>
+    </div>
+
+    <!-- Members Table -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Plan</th>
+            <th>Visits Left</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(function(m) { %>
+          <tr class="<%= m.status !== 'active' ? 'inactive-row' : '' %>">
+            <td><strong><%= m.client_name %></strong></td>
+            <td><%= m.client_phone %></td>
+            <td><%= m.plan_name || '—' %> <span class="muted small">($<%= m.monthly_price ? m.monthly_price.toFixed(0) : '0' %>/mo)</span></td>
+            <td>
+              <strong style="font-size: 1.1rem; color: <%= m.visits_remaining > 0 ? 'var(--brand)' : '#c0392b' %>;"><%= m.visits_remaining %></strong>
+              / <%= m.visits_per_month || '—' %>
+            </td>
+            <td>
+              <span class="admin-badge <%= m.status === 'active' ? 'online' : 'offline' %>"><%= m.status %></span>
+            </td>
+            <td class="action-cell">
+              <a class="btn btn-small btn-ghost" href="/admin/memberships?editMember=<%= m.id %>#members">Edit</a>
+              <% if (m.status === 'active') { %>
+                <form method="POST" action="/admin/memberships/members/<%= m.id %>/use-visit" style="display:inline;" onsubmit="return confirm('Use 1 visit for <%= m.client_name %>?')">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color: var(--brand);">Use Visit</button>
+                </form>
+                <form method="POST" action="/admin/memberships/members/<%= m.id %>/pause" style="display:inline;">
+                  <button class="btn btn-small btn-ghost" type="submit">Pause</button>
+                </form>
+                <form method="POST" action="/admin/memberships/members/<%= m.id %>/renew" style="display:inline;" onsubmit="return confirm('Reset visits to full for this month?')">
+                  <button class="btn btn-small btn-ghost" type="submit">Renew</button>
+                </form>
+              <% } else if (m.status === 'paused') { %>
+                <form method="POST" action="/admin/memberships/members/<%= m.id %>/reactivate" style="display:inline;">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color: var(--brand);">Reactivate</button>
+                </form>
+              <% } else { %>
+                <form method="POST" action="/admin/memberships/members/<%= m.id %>/reactivate" style="display:inline;">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color: var(--brand);">Reactivate</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (members.length === 0) { %>
+          <tr><td colspan="6" class="muted">No members yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,108 @@
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+<%- include('../partials/fd-header') %>
+<% } else { %>
+<%- include('../partials/admin-header', { activePage: 'admin-memberships' }) %>
+<% } %>
+
+<main class="admin-main">
+  <div class="container" style="max-width: 700px;">
+    <h1>Member Lookup</h1>
+    <p class="muted" style="margin-bottom: 1.5rem;">Search by phone number or name to check membership status.</p>
+
+    <!-- Search Box -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <form id="member-search-form" class="form" onsubmit="return false;">
+        <label style="font-weight: 700; font-size: 1.1rem;">
+          Phone Number or Name
+          <input type="text" id="member-search" placeholder="(303) 555-1234 or Jane" autofocus
+            style="font-size: 1.3rem; padding: .8rem 1rem; margin-top: .3rem;" />
+        </label>
+      </form>
+    </div>
+
+    <!-- Search Results -->
+    <div id="search-results"></div>
+
+    <!-- All Active Members -->
+    <h2 style="margin-top: 2rem;">All Active Members (<%= members.length %>)</h2>
+    <div class="admin-table-wrap" style="margin-top: 1rem;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Plan</th>
+            <th>Visits Left</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(function(m) { %>
+          <tr data-name="<%= m.client_name.toLowerCase() %>" data-phone="<%= (m.client_phone || '').replace(/[\s\-\(\)\.]/g, '') %>">
+            <td><strong><%= m.client_name %></strong></td>
+            <td><%= m.client_phone %></td>
+            <td>
+              <span class="admin-badge online"><%= m.plan_name || '—' %></span>
+              <% if (m.discount_percent) { %>
+              <br><span class="muted small"><%= m.discount_percent %>% off services</span>
+              <% } %>
+            </td>
+            <td>
+              <strong style="font-size: 1.3rem; color: <%= m.visits_remaining > 0 ? 'var(--brand)' : '#c0392b' %>;"><%= m.visits_remaining %></strong>
+              <span class="muted">/ <%= m.visits_per_month || '—' %></span>
+            </td>
+            <td class="action-cell">
+              <% if (m.visits_remaining > 0) { %>
+              <form method="POST" action="/admin/memberships/members/<%= m.id %>/use-visit" style="display:inline;" onsubmit="return confirm('Use 1 visit for <%= m.client_name %>?')">
+                <button class="btn btn-small btn-primary" type="submit" style="font-size: .95rem; padding: .5rem 1rem;">Use Visit</button>
+              </form>
+              <% } else { %>
+              <span class="muted small" style="color: #c0392b; font-weight: 700;">No visits left</span>
+              <% } %>
+              <a class="btn btn-small btn-ghost" href="/admin/memberships/members/<%= m.id %>/card" target="_blank" title="Print Member Card">Print Card</a>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (members.length === 0) { %>
+          <tr><td colspan="5" class="muted">No active members yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  var searchInput = document.getElementById('member-search');
+  var rows = document.querySelectorAll('tbody tr[data-name]');
+  var resultsDiv = document.getElementById('search-results');
+
+  searchInput.addEventListener('input', function() {
+    var q = searchInput.value.trim().toLowerCase().replace(/[\s\-\(\)\.]/g, '');
+    if (q.length < 2) {
+      rows.forEach(function(r) { r.style.display = ''; });
+      resultsDiv.innerHTML = '';
+      return;
+    }
+
+    var found = 0;
+    rows.forEach(function(r) {
+      var name = r.getAttribute('data-name');
+      var phone = r.getAttribute('data-phone');
+      var match = name.indexOf(q) > -1 || phone.indexOf(q) > -1;
+      r.style.display = match ? '' : 'none';
+      if (match) found++;
+    });
+
+    if (found === 0) {
+      resultsDiv.innerHTML = '<div class="card" style="text-align: center; padding: 1.5rem; color: #888;"><strong>No member found</strong><br>Try a different phone number or name.</div>';
+    } else {
+      resultsDiv.innerHTML = '<p class="muted small" style="margin-bottom: .5rem;">Showing ' + found + ' result' + (found !== 1 ? 's' : '') + '</p>';
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,224 @@
+<%- include('../partials/admin-header', { activePage: 'admin-therapists' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Manage Therapists</h1>
+
+    <!-- Add / Edit Therapist Form -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <% if (editTherapist) { %>
+      <h2>Edit Therapist — <%= editTherapist.name %></h2>
+      <form class="form" method="POST" action="/admin/therapists/<%= editTherapist.id %>/edit" enctype="multipart/form-data">
+      <% } else { %>
+      <h2>Add Therapist</h2>
+      <form class="form" method="POST" action="/admin/therapists" enctype="multipart/form-data">
+      <% } %>
+
+        <div class="grid two">
+          <label>
+            Name
+            <input type="text" name="name" placeholder="Therapist name" required
+              value="<%= editTherapist ? editTherapist.name : '' %>" />
+          </label>
+          <label>
+            Gender
+            <select name="gender" required>
+              <option value="female" <%= editTherapist && editTherapist.gender === 'female' ? 'selected' : (!editTherapist ? 'selected' : '') %>>Female</option>
+              <option value="male" <%= editTherapist && editTherapist.gender === 'male' ? 'selected' : '' %>>Male</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          Short Bio / Specialties <span class="muted small">(shown on About page)</span>
+          <input type="text" name="specialties" placeholder="e.g., Swedish, Deep Tissue, Hot Stone"
+            value="<%= editTherapist ? editTherapist.specialties : '' %>" />
+        </label>
+
+        <label>
+          About / Bio <span class="muted small">(longer description for the therapist page)</span>
+          <textarea name="bio" rows="3" placeholder="Tell clients about this therapist's background, experience, approach..."><%= editTherapist ? (editTherapist.bio || '') : '' %></textarea>
+        </label>
+
+        <div class="grid two">
+          <label>
+            Photo
+            <input type="file" name="photo" accept="image/*" style="padding: .5rem;" />
+            <% if (editTherapist && editTherapist.photo) { %>
+              <input type="hidden" name="existing_photo" value="<%= editTherapist.photo %>" />
+              <div style="margin-top: .5rem; display: flex; align-items: center; gap: .5rem;">
+                <img src="<%= editTherapist.photo %>" alt="Current photo" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover;" />
+                <span class="muted small">Current photo (upload new to replace)</span>
+              </div>
+            <% } else { %>
+              <span class="muted small">JPG or PNG, max 5 MB</span>
+            <% } %>
+          </label>
+          <div></div>
+        </div>
+
+        <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin-bottom: 1rem;">
+          <legend style="font-weight: 700;">Employee PIN</legend>
+          <p class="muted small" style="margin-bottom: .5rem;">Used to identify this employee when they do gift cards, payments, etc. Each employee should have a unique PIN.</p>
+          <label>
+            PIN <span class="muted small">(4-6 digits)</span>
+            <input type="text" name="pin" placeholder="e.g. 1111" maxlength="6"
+              value="<%= editTherapist ? (editTherapist.pin || '') : '' %>"
+              style="font-size: 1.3rem; letter-spacing: .2em; font-family: monospace; max-width: 200px;" />
+          </label>
+        </fieldset>
+
+        <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin-bottom: 1rem;">
+          <legend style="font-weight: 700;">Work Schedule</legend>
+          <div class="grid two" style="margin-bottom: .8rem;">
+            <label>
+              Start Time
+              <input type="time" name="start_time" value="<%= editTherapist ? (editTherapist.start_time || '09:00') : '09:00' %>" />
+            </label>
+            <label>
+              End Time
+              <input type="time" name="end_time" value="<%= editTherapist ? (editTherapist.end_time || '19:00') : '19:00' %>" />
+            </label>
+          </div>
+          <label style="font-weight: 700; margin-bottom: .4rem; display: block;">Work Days</label>
+          <div style="display: flex; flex-wrap: wrap; gap: .6rem;">
+            <%
+              var dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+              var editWdays = editTherapist ? (editTherapist.work_days || '1,2,3,4,5,6').split(',') : ['1','2','3','4','5','6'];
+            %>
+            <% dayNames.forEach(function(day, idx) { %>
+            <label style="display: inline-flex; align-items: center; gap: .3rem; font-weight: normal;">
+              <input type="checkbox" name="work_days" value="<%= idx + 1 %>"
+                <%= editWdays.indexOf(String(idx + 1)) > -1 ? 'checked' : '' %> />
+              <%= day %>
+            </label>
+            <% }); %>
+          </div>
+        </fieldset>
+
+        <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem;">
+          <legend style="font-weight: 700;">Services This Therapist Can Perform</legend>
+          <div style="display: flex; flex-wrap: wrap; gap: .6rem;">
+            <% var editSids = editTherapist ? (editTherapist.service_ids || '').split(',') : []; %>
+            <% services.forEach(function(svc) { %>
+            <label style="display: inline-flex; align-items: center; gap: .4rem; font-weight: normal; min-width: 200px;">
+              <input type="checkbox" name="service_ids" value="<%= svc.id %>"
+                <%= editSids.indexOf(String(svc.id)) > -1 ? 'checked' : '' %> />
+              <%= svc.name %> (<%= svc.duration %>min)
+            </label>
+            <% }); %>
+          </div>
+        </fieldset>
+
+        <div style="display: flex; gap: .5rem;">
+          <button class="btn btn-primary" type="submit"><%= editTherapist ? 'Save Changes' : 'Add Therapist' %></button>
+          <% if (editTherapist) { %>
+          <a class="btn btn-ghost" href="/admin/therapists">Cancel</a>
+          <% } %>
+        </div>
+      </form>
+    </div>
+
+    <!-- Therapist List — Card layout -->
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <% therapists.forEach(function(t) { %>
+      <%
+        var tServiceNames = '';
+        if (t.service_ids) {
+          var sids = t.service_ids.split(',');
+          var names = [];
+          sids.forEach(function(sid) {
+            var svc = services.find(function(s) { return String(s.id) === sid.trim(); });
+            if (svc) names.push(svc.name);
+          });
+          tServiceNames = names.join(', ');
+        }
+        var empStatus = t.employment_status || 'active';
+        var dayAbbr = ['','M','Tu','W','Th','F','Sa','Su'];
+        var wdArr = (t.work_days || '1,2,3,4,5,6').split(',');
+        var wdNames = wdArr.map(function(d) { return dayAbbr[parseInt(d)] || ''; }).filter(Boolean).join(' ');
+      %>
+      <div class="card" style="<%= empStatus !== 'active' ? 'opacity: .65;' : '' %><%= !t.active && empStatus === 'active' ? 'border-left: 4px solid #e67e22;' : empStatus !== 'active' ? 'border-left: 4px solid #c0392b;' : 'border-left: 4px solid var(--brand);' %> padding: 1rem 1.2rem;">
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+
+          <!-- Photo -->
+          <div style="flex-shrink: 0;">
+            <% if (t.photo) { %>
+              <img src="<%= t.photo %>" alt="<%= t.name %>" style="width: 56px; height: 56px; border-radius: 14px; object-fit: cover;" />
+            <% } else { %>
+              <div style="width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; font-weight: 900; color: #fff; background: linear-gradient(135deg, var(--accent), var(--brand)); font-size: 1.2rem;"><%= t.name.charAt(0) %></div>
+            <% } %>
+          </div>
+
+          <!-- Info -->
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .3rem;">
+              <strong style="font-size: 1.1rem;"><%= t.name %></strong>
+              <span class="muted small"><%= t.gender === 'male' ? 'Male' : 'Female' %></span>
+
+              <% if (empStatus === 'left') { %>
+                <span class="admin-badge offline" style="background: #fff3cd; color: #856404; font-size: .7rem;">Left<%= t.departure_date ? ' ' + t.departure_date : '' %></span>
+              <% } else if (empStatus === 'fired') { %>
+                <span class="admin-badge offline" style="background: #f8d7da; color: #721c24; font-size: .7rem;">Fired<%= t.departure_date ? ' ' + t.departure_date : '' %></span>
+              <% } else if (!t.active) { %>
+                <span class="admin-badge offline" style="font-size: .7rem;">Off Schedule</span>
+              <% } else { %>
+                <span class="admin-badge online" style="font-size: .7rem;">On Schedule</span>
+              <% } %>
+
+              <% if (t.pin) { %>
+                <span style="font-family: monospace; font-size: .75rem; background: #f0f0f0; padding: .1rem .4rem; border-radius: 4px;" title="Employee PIN">PIN: <%= t.pin %></span>
+              <% } %>
+            </div>
+
+            <% if (t.specialties) { %>
+            <div class="muted small" style="margin-bottom: .2rem;"><%= t.specialties %></div>
+            <% } %>
+
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: .8rem; color: #666;">
+              <span title="Schedule"><%= wdNames %> &middot; <%= t.start_time || '09:00' %>–<%= t.end_time || '19:00' %></span>
+              <% if (tServiceNames) { %>
+              <span title="Services" style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><%= tServiceNames %></span>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="flex-shrink: 0; display: flex; gap: .4rem; align-items: flex-start; flex-wrap: wrap;">
+            <% if (empStatus === 'active') { %>
+              <a class="btn btn-small btn-ghost" href="/admin/therapists?edit=<%= t.id %>">Edit</a>
+              <form method="POST" action="/admin/therapists/<%= t.id %>/toggle" style="display:inline;">
+                <button class="btn btn-small btn-ghost" type="submit"><%= t.active ? 'Off Schedule' : 'On Schedule' %></button>
+              </form>
+              <details style="display: inline-block; position: relative;">
+                <summary class="btn btn-small btn-ghost" style="color: #c0392b;">Remove Employee</summary>
+                <div style="position: absolute; right: 0; top: 100%; z-index: 10; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,.15);">
+                  <p style="font-weight: 700; margin-bottom: .6rem; font-size: .9rem;">Why are they leaving?</p>
+                  <form method="POST" action="/admin/therapists/<%= t.id %>/departed" style="display: flex; flex-direction: column; gap: .5rem;">
+                    <button class="btn btn-primary" type="submit" name="departure_status" value="left" style="width: 100%; background: #e67e22;">They Left / Quit</button>
+                    <button class="btn btn-primary" type="submit" name="departure_status" value="fired" style="width: 100%; background: #c0392b;">Fired / Let Go</button>
+                  </form>
+                </div>
+              </details>
+            <% } else { %>
+              <a class="btn btn-small btn-ghost" href="/admin/therapists?edit=<%= t.id %>">View</a>
+              <form method="POST" action="/admin/therapists/<%= t.id %>/rehire" style="display:inline;" onsubmit="return confirm('Re-hire <%= t.name %>?')">
+                <button class="btn btn-small btn-ghost" style="color: #27ae60;" type="submit">Re-hire</button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <% }); %>
+
+      <% if (therapists.length === 0) { %>
+      <div class="card" style="text-align: center; padding: 2rem;">
+        <p class="muted">No therapists added yet. Use the form above to add your first therapist.</p>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

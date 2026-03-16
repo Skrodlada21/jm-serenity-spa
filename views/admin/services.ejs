@@ -1,0 +1,214 @@
+<%- include('../partials/admin-header', { activePage: 'admin-services' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Manage Services</h1>
+
+    <!-- Add / Edit Service -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <% if (editService) { %>
+        <h2>Edit Service — <%= editService.name %></h2>
+        <form class="form" method="POST" action="/admin/services/<%= editService.id %>/edit">
+          <label>
+            Name
+            <input type="text" name="name" value="<%= editService.name %>" required />
+          </label>
+          <label>
+            Description
+            <textarea name="description" rows="2"><%= editService.description %></textarea>
+          </label>
+          <label>
+            Good For <span class="muted small">(shown on homepage, e.g. "stress relief, tired feet")</span>
+            <input type="text" name="good_for" value="<%= editService.good_for || '' %>" placeholder="e.g. relaxation, pain relief" />
+          </label>
+          <div class="grid two">
+            <label>
+              Duration (minutes)
+              <input type="number" name="duration" value="<%= editService.duration %>" min="15" step="15" required />
+            </label>
+            <label>
+              Price ($)
+              <input type="number" name="price" value="<%= editService.price %>" min="0" step="5" required />
+            </label>
+          </div>
+          <label>
+            Category
+            <select name="category" required>
+              <option value="full_body" <%= editService.category === 'full_body' ? 'selected' : '' %>>Full Body (room)</option>
+              <option value="couples" <%= editService.category === 'couples' ? 'selected' : '' %>>Couples (room)</option>
+              <option value="chair" <%= editService.category === 'chair' ? 'selected' : '' %>>Chair Station</option>
+              <option value="foot" <%= editService.category === 'foot' ? 'selected' : '' %>>Foot Chair</option>
+              <option value="combo" <%= editService.category === 'combo' ? 'selected' : '' %>>Combo (room + foot)</option>
+              <option value="four_hands" <%= editService.category === 'four_hands' ? 'selected' : '' %>>Four Hands (room, 2 therapists)</option>
+            </select>
+          </label>
+          <div style="display:flex; gap:.5rem;">
+            <button class="btn btn-primary" type="submit">Save Changes</button>
+            <a class="btn btn-ghost" href="/admin/services">Cancel</a>
+          </div>
+        </form>
+      <% } else { %>
+        <h2>Add Service</h2>
+        <form class="form" method="POST" action="/admin/services">
+          <label>
+            Name
+            <input type="text" name="name" placeholder="Service name" required />
+          </label>
+          <label>
+            Description
+            <textarea name="description" rows="2" placeholder="Short description"></textarea>
+          </label>
+          <label>
+            Good For <span class="muted small">(shown on homepage, e.g. "stress relief, tired feet")</span>
+            <input type="text" name="good_for" placeholder="e.g. relaxation, pain relief" />
+          </label>
+          <div class="grid two">
+            <label>
+              Duration (minutes)
+              <input type="number" name="duration" placeholder="60" min="15" step="15" required />
+            </label>
+            <label>
+              Price ($)
+              <input type="number" name="price" placeholder="80" min="0" step="5" required />
+            </label>
+          </div>
+          <label>
+            Category
+            <select name="category" required>
+              <option value="full_body">Full Body (room)</option>
+              <option value="couples">Couples (room)</option>
+              <option value="chair">Chair Station</option>
+              <option value="foot">Foot Chair</option>
+              <option value="combo">Combo (room + foot)</option>
+              <option value="four_hands">Four Hands (room, 2 therapists)</option>
+            </select>
+          </label>
+          <button class="btn btn-primary" type="submit">Add Service</button>
+        </form>
+      <% } %>
+    </div>
+
+    <!-- Service List -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Duration</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% services.forEach(function(s) { %>
+          <tr class="<%= s.active ? '' : 'inactive-row' %>">
+            <td><strong><%= s.name %></strong></td>
+            <td><%= s.duration %> min</td>
+            <td>$<%= s.price %></td>
+            <td><%= s.category %></td>
+            <td><span class="admin-badge <%= s.active ? 'online' : 'offline' %>"><%= s.active ? 'Active' : 'Hidden' %></span></td>
+            <td class="action-cell">
+              <a class="btn btn-small btn-ghost" href="/admin/services?edit=<%= s.id %>">Edit</a>
+              <form method="POST" action="/admin/services/<%= s.id %>/toggle" style="display:inline;">
+                <button class="btn btn-small btn-ghost" type="submit"><%= s.active ? 'Hide' : 'Show' %></button>
+              </form>
+              <form method="POST" action="/admin/services/<%= s.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete <%= s.name %>?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <!-- ============================================================
+         Add-Ons Section
+         ============================================================ -->
+    <h2 id="addons" style="margin-top: 2.5rem;">Add-Ons</h2>
+
+    <!-- Add / Edit Add-On -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <% if (editAddon) { %>
+        <h3>Edit Add-On — <%= editAddon.name %></h3>
+        <form class="form" method="POST" action="/admin/addons/<%= editAddon.id %>/edit">
+          <div class="grid" style="grid-template-columns: 2fr 1fr;">
+            <label>
+              Name
+              <input type="text" name="name" value="<%= editAddon.name %>" required />
+            </label>
+            <label>
+              Price ($)
+              <input type="number" name="price" value="<%= editAddon.price %>" min="0" step="5" required />
+            </label>
+          </div>
+          <label>
+            Description <span class="muted small">(optional)</span>
+            <input type="text" name="description" value="<%= editAddon.description %>" placeholder="Short description" />
+          </label>
+          <div style="display:flex; gap:.5rem;">
+            <button class="btn btn-primary" type="submit">Save Changes</button>
+            <a class="btn btn-ghost" href="/admin/services#addons">Cancel</a>
+          </div>
+        </form>
+      <% } else { %>
+        <h3>Add New Add-On</h3>
+        <form class="form" method="POST" action="/admin/addons">
+          <div class="grid" style="grid-template-columns: 2fr 1fr;">
+            <label>
+              Name
+              <input type="text" name="name" placeholder="e.g., Hot Stone" required />
+            </label>
+            <label>
+              Price ($)
+              <input type="number" name="price" placeholder="20" min="0" step="5" required />
+            </label>
+          </div>
+          <label>
+            Description <span class="muted small">(optional)</span>
+            <input type="text" name="description" placeholder="Short description" />
+          </label>
+          <button class="btn btn-primary" type="submit">Add Add-On</button>
+        </form>
+      <% } %>
+    </div>
+
+    <!-- Add-On List -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% addons.forEach(function(a) { %>
+          <tr class="<%= a.active ? '' : 'inactive-row' %>">
+            <td><strong><%= a.name %></strong></td>
+            <td><%= a.description || '—' %></td>
+            <td>$<%= a.price %></td>
+            <td><span class="admin-badge <%= a.active ? 'online' : 'offline' %>"><%= a.active ? 'Active' : 'Hidden' %></span></td>
+            <td class="action-cell">
+              <a class="btn btn-small btn-ghost" href="/admin/services?editAddon=<%= a.id %>#addons">Edit</a>
+              <form method="POST" action="/admin/addons/<%= a.id %>/toggle" style="display:inline;">
+                <button class="btn btn-small btn-ghost" type="submit"><%= a.active ? 'Hide' : 'Show' %></button>
+              </form>
+              <form method="POST" action="/admin/addons/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete <%= a.name %>?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

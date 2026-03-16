@@ -1,0 +1,52 @@
+<%- include('../partials/admin-header', { activePage: 'admin-waitlist' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Waitlist</h1>
+    <p class="muted" style="margin-bottom: 1.5rem;">Clients who requested a time slot that was fully booked. Contact them when openings become available.</p>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Service</th>
+            <th>Therapist</th>
+            <th>Preferred Date</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% waitlist.forEach(function(w) { %>
+          <tr>
+            <td><strong><%= w.client_name %></strong></td>
+            <td><a href="tel:<%= w.client_phone %>"><%= w.client_phone %></a></td>
+            <td><%= w.client_email || '—' %></td>
+            <td><%= w.service_name || '—' %></td>
+            <td><%= w.therapist_name || 'Any' %></td>
+            <td><%= w.preferred_date %></td>
+            <td><%= w.notes || '—' %></td>
+            <td class="action-cell">
+              <form method="POST" action="/admin/waitlist/<%= w.id %>/contacted" style="display: inline;">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #155724;">Contacted</button>
+              </form>
+              <form method="POST" action="/admin/waitlist/<%= w.id %>/delete" style="display: inline;" onsubmit="return confirm('Remove?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Remove</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (waitlist.length === 0) { %>
+          <tr><td colspan="8" class="muted">No one on the waitlist.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

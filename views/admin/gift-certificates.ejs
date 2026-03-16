@@ -1,0 +1,246 @@
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+<%- include('../partials/fd-header') %>
+<% } else { %>
+<%- include('../partials/admin-header', { activePage: 'admin-gifts' }) %>
+<% } %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Gift Certificates</h1>
+
+    <% if (typeof not_paid !== 'undefined' && not_paid) { %>
+    <div class="admin-alert" style="background: #fff3cd; color: #856404; border-color: #ffc107;">Payment must be collected before printing.</div>
+    <% } %>
+    <% if (typeof pin_error !== 'undefined' && pin_error) { %>
+    <div class="admin-alert" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">Invalid employee PIN. Please try again.</div>
+    <% } %>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2>Issue New Gift Certificate</h2>
+      <form class="form" method="POST" action="/admin/gift-certificates">
+        <div class="grid two">
+          <label>
+            Purchaser Name
+            <input type="text" name="purchaser_name" placeholder="Who is buying?" required />
+          </label>
+          <label>
+            Purchaser Email <span class="muted small">(optional)</span>
+            <input type="email" name="purchaser_email" placeholder="email@example.com" />
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            Recipient Name <span class="muted small">(optional)</span>
+            <input type="text" name="recipient_name" placeholder="Who is it for?" />
+          </label>
+          <label>
+            Amount ($)
+            <input type="number" name="amount" min="10" step="5" placeholder="100" required />
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            Personal Message <span class="muted small">(optional)</span>
+            <input type="text" name="message" placeholder="Happy Birthday!" />
+          </label>
+          <label>
+            Payment Method
+            <select name="payment_method" required>
+              <option value="">— How are they paying? —</option>
+              <option value="Cash">Cash</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Zelle">Zelle</option>
+              <option value="Venmo">Venmo</option>
+              <option value="Square Terminal">Send to Square Terminal</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            Your Employee PIN <span class="muted small" style="color: #c0392b;">(required)</span>
+            <input type="password" name="employee_pin" placeholder="Enter your PIN" required maxlength="6" style="font-size: 1.2rem; letter-spacing: .2em; font-family: monospace;" />
+          </label>
+          <div style="display: flex; align-items: flex-end;">
+            <span id="pin-check-result" style="font-size: .85rem; padding-bottom: .6rem;"></span>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Create &amp; Record Payment</button>
+      </form>
+      <script>
+      (function(){
+        var pinInput = document.querySelector('input[name="employee_pin"]');
+        var result = document.getElementById('pin-check-result');
+        if (!pinInput) return;
+        var timer;
+        pinInput.addEventListener('input', function() {
+          clearTimeout(timer);
+          var pin = pinInput.value.trim();
+          if (pin.length < 4) { result.textContent = ''; return; }
+          timer = setTimeout(function() {
+            fetch('/api/admin/pin-check?pin=' + encodeURIComponent(pin))
+              .then(function(r) { return r.json(); })
+              .then(function(data) {
+                if (data.employee) {
+                  result.innerHTML = '<span style="color: #27ae60; font-weight: 700;">&#10003; ' + data.employee.name + '</span>';
+                } else {
+                  result.innerHTML = '<span style="color: #c0392b; font-weight: 700;">&#10007; Unknown PIN</span>';
+                }
+              }).catch(function() { result.textContent = ''; });
+          }, 300);
+        });
+      })();
+      </script>
+    </div>
+
+    <!-- Certificates Table -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Purchaser</th>
+            <th>Recipient</th>
+            <th>Amount</th>
+            <th>Balance</th>
+            <th>Payment</th>
+            <th>Created By</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% certificates.forEach(function(c) { %>
+          <tr>
+            <td><strong style="font-family: monospace;"><%= c.code %></strong></td>
+            <td><%= c.purchaser_name %></td>
+            <td><%= c.recipient_name || '—' %></td>
+            <td>$<%= c.amount.toFixed(2) %></td>
+            <td>$<%= c.balance.toFixed(2) %></td>
+            <td>
+              <% if (c.paid) { %>
+                <span class="admin-badge online"><%= c.payment_method || 'Paid' %></span>
+              <% } else { %>
+                <span class="admin-badge offline" style="background: #fff3cd; color: #856404;">NOT PAID</span>
+              <% } %>
+            </td>
+            <td><%= c.created_by || '—' %></td>
+            <td><span class="admin-badge <%= c.status === 'active' ? 'online' : 'offline' %>"><%= c.status %></span></td>
+            <td>
+              <div style="display: flex; flex-wrap: wrap; gap: .3rem; align-items: center;">
+                <% if (c.paid) { %>
+                  <!-- Only show Print if paid -->
+                  <a class="btn btn-small btn-primary" href="/admin/gift-certificates/<%= c.id %>/print" target="_blank" title="Print">Print</a>
+                <% } else { %>
+                  <!-- Payment required before printing -->
+                  <details class="complete-dropdown">
+                    <summary class="btn btn-small btn-primary" style="background: #e67e22;">Collect Payment</summary>
+                    <div class="complete-form card" style="min-width: 250px;">
+                      <p style="font-weight: 700; margin-bottom: .5rem;">Payment for $<%= c.amount.toFixed(2) %></p>
+
+                      <!-- Cash / Zelle / Venmo — quick mark paid -->
+                      <form method="POST" action="/admin/gift-certificates/<%= c.id %>/mark-paid" style="margin-bottom: .5rem;">
+                        <label style="font-size: .85rem;">
+                          Payment Method
+                          <select name="payment_method" required style="font-size: .85rem; padding: .5rem .6rem;">
+                            <option value="">— Select —</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Credit Card">Credit Card (manual)</option>
+                            <option value="Debit Card">Debit Card</option>
+                            <option value="Zelle">Zelle</option>
+                            <option value="Venmo">Venmo</option>
+                          </select>
+                        </label>
+                        <label style="font-size: .85rem;">
+                          Your PIN
+                          <input type="password" name="employee_pin" required maxlength="6" placeholder="PIN" style="font-size: .85rem; padding: .5rem .6rem; letter-spacing: .15em; font-family: monospace;" />
+                        </label>
+                        <button class="btn btn-small btn-primary" type="submit" style="width: 100%; margin-top: .4rem;">Mark as Paid</button>
+                      </form>
+
+                      <!-- Or send to Square Terminal -->
+                      <form method="POST" action="/admin/gift-certificates/<%= c.id %>/charge">
+                        <button class="btn btn-small btn-ghost" type="submit" style="width: 100%; color: var(--brand);">Send to Square Terminal</button>
+                      </form>
+                    </div>
+                  </details>
+                <% } %>
+
+                <% if (c.status === 'active') { %>
+                <details class="complete-dropdown">
+                  <summary class="btn btn-small btn-ghost">Redeem</summary>
+                  <form class="complete-form card" method="POST" action="/admin/gift-certificates/<%= c.id %>/redeem" style="min-width: 220px;">
+                    <label style="font-size: .85rem;">
+                      Amount to Redeem
+                      <input type="number" name="amount" min="1" step="1" max="<%= c.balance %>" placeholder="$" required style="font-size: .85rem; padding: .5rem .6rem;" />
+                    </label>
+                    <label style="font-size: .85rem;">
+                      Client Name
+                      <input type="text" name="redeemed_by" placeholder="Who is using it?" style="font-size: .85rem; padding: .5rem .6rem;" />
+                    </label>
+                    <label style="font-size: .85rem;">
+                      Notes
+                      <input type="text" name="notes" placeholder="Optional" style="font-size: .85rem; padding: .5rem .6rem;" />
+                    </label>
+                    <label style="font-size: .85rem;">
+                      Your PIN
+                      <input type="password" name="employee_pin" required maxlength="6" placeholder="PIN" style="font-size: .85rem; padding: .5rem .6rem; letter-spacing: .15em; font-family: monospace;" />
+                    </label>
+                    <button class="btn btn-small btn-primary" type="submit">Redeem</button>
+                  </form>
+                </details>
+                <% } else { %>
+                <span class="muted small">Fully used</span>
+                <% } %>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (certificates.length === 0) { %>
+          <tr><td colspan="9" class="muted">No gift certificates issued yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Redemption History -->
+    <h2 id="history" style="margin-top: 2.5rem;">Redemption History</h2>
+    <p class="muted small" style="margin-bottom: 1rem;">Every time a certificate is used, it's logged here with the date, amount, and who used it.</p>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Certificate</th>
+            <th>Amount Used</th>
+            <th>Redeemed By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% redemptions.forEach(function(r) { %>
+          <tr>
+            <td><%= r.redeemed_at ? r.redeemed_at.slice(0, 16).replace('T', ' ') : '—' %></td>
+            <td>
+              <strong style="font-family: monospace;"><%= r.code %></strong>
+              <% if (r.recipient_name) { %>
+              <span class="muted small">(<%= r.recipient_name %>)</span>
+              <% } %>
+            </td>
+            <td style="font-weight: 600; color: var(--accent);">$<%= r.amount.toFixed(2) %></td>
+            <td><%= r.redeemed_by || '—' %></td>
+            <td class="muted small"><%= r.notes || '—' %></td>
+          </tr>
+          <% }); %>
+          <% if (redemptions.length === 0) { %>
+          <tr><td colspan="5" class="muted">No redemptions yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

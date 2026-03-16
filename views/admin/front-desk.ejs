@@ -1,0 +1,332 @@
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+<%- include('../partials/fd-header') %>
+<% } else { %>
+<%- include('../partials/admin-header', { activePage: 'admin-dashboard' }) %>
+<% } %>
+
+<main class="admin-main front-desk-mode">
+  <div class="container">
+
+    <!-- ============================================================
+         Quick Action Buttons — Big, colorful, easy to tap
+         ============================================================ -->
+    <div class="fd-quick-actions">
+      <% var baseUrl = (typeof deskMode !== 'undefined' && deskMode) ? '/desk' : '/admin'; %>
+      <a class="fd-action-btn fd-action-booking" href="<%= baseUrl %><%= baseUrl === '/desk' ? '/booking' : '/phone-booking' %>">
+        <span class="fd-action-icon">&#128222;</span>
+        <span>New Booking</span>
+      </a>
+      <a class="fd-action-btn fd-action-walkin" href="<%= baseUrl %><%= baseUrl === '/desk' ? '/booking' : '/phone-booking' %>">
+        <span class="fd-action-icon">&#128694;</span>
+        <span>Walk-In</span>
+      </a>
+      <a class="fd-action-btn fd-action-gift" href="<%= baseUrl %>/gift-certificates">
+        <span class="fd-action-icon">&#127873;</span>
+        <span>Gift Card</span>
+      </a>
+      <a class="fd-action-btn fd-action-members" href="<%= baseUrl === '/desk' ? '/desk/members' : '/admin/memberships' %>">
+        <span class="fd-action-icon">&#11088;</span>
+        <span>Members</span>
+      </a>
+    </div>
+
+    <!-- ============================================================
+         Today's Date — Big and clear
+         ============================================================ -->
+    <div class="fd-date-bar">
+      <h1 class="fd-today-label">
+        Today — <%= new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>
+      </h1>
+      <div class="fd-stats-row">
+        <div class="fd-stat">
+          <span class="fd-stat-num"><%= todayBookings.length %></span>
+          <span class="fd-stat-label">Total</span>
+        </div>
+        <div class="fd-stat fd-stat-pending">
+          <span class="fd-stat-num"><%= todayBookings.filter(function(b){ return b.status === 'confirmed'; }).length %></span>
+          <span class="fd-stat-label">Upcoming</span>
+        </div>
+        <div class="fd-stat fd-stat-done">
+          <span class="fd-stat-num"><%= todayBookings.filter(function(b){ return b.status === 'completed'; }).length %></span>
+          <span class="fd-stat-label">Done</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Today's Appointments — BIG cards, one per booking
+         ============================================================ -->
+    <% if (todayBookings.length === 0) { %>
+    <div class="fd-empty">
+      <p>No appointments today.</p>
+    </div>
+    <% } else { %>
+    <div class="fd-bookings">
+      <% todayBookings.forEach(function(b) { %>
+      <div class="fd-booking-card fd-status-<%= b.status %>">
+        <div class="fd-booking-top">
+          <div class="fd-time"><%= b.time %></div>
+          <div class="fd-status-badge fd-badge-<%= b.status %>">
+            <% if (b.status === 'completed') { %>
+              &#10003; DONE
+            <% } else if (b.status === 'no_show') { %>
+              &#10007; NO SHOW
+            <% } else if (b.status === 'cancelled') { %>
+              &#10007; CANCELLED
+            <% } else { %>
+              &#9679; UPCOMING
+            <% } %>
+          </div>
+        </div>
+
+        <div class="fd-booking-info">
+          <div class="fd-client-name">
+            <%= b.client_name %>
+            <% if (b.is_member) { %>
+              <span class="fd-member-badge">MEMBER</span>
+            <% } %>
+          </div>
+          <div class="fd-service"><%= b.service_name %></div>
+          <div class="fd-therapist">
+            <% if (b.therapist_name) { %>
+              with <%= b.therapist_name %><%= b.therapist2_name ? ' + ' + b.therapist2_name : '' %>
+            <% } else { %>
+              No therapist assigned
+            <% } %>
+          </div>
+          <% if (b.client_phone) { %>
+          <div class="fd-phone"><%= b.client_phone %></div>
+          <% } %>
+          <% if (b.addon_ids) { %>
+            <% var aids = b.addon_ids.split(','); var addonNames = []; aids.forEach(function(aid) { var a = allAddons.find(function(x) { return String(x.id) === aid.trim(); }); if (a) addonNames.push(a.name); }); %>
+            <% if (addonNames.length > 0) { %>
+            <div class="fd-addons">Add-ons: <%= addonNames.join(', ') %></div>
+            <% } %>
+          <% } %>
+          <% if (b.notes) { %>
+          <div class="fd-notes">Note: <%= b.notes %></div>
+          <% } %>
+        </div>
+
+        <!-- Action buttons — BIG and obvious -->
+        <% if (b.status === 'confirmed') { %>
+        <div class="fd-booking-actions">
+          <!-- Charge to Terminal — THE BIG BUTTON -->
+          <form method="POST" action="/admin/bookings/<%= b.id %>/charge" style="display:inline; flex: 2; min-width: 200px;">
+            <button class="fd-btn fd-btn-charge" type="submit" style="width:100%;">
+              &#128179; Send to Terminal
+            </button>
+          </form>
+
+          <!-- Quick Cash Complete — one tap for cash payments -->
+          <form method="POST" action="/admin/bookings/<%= b.id %>/complete" style="display:inline;" onsubmit="return confirm('Complete with Cash?')">
+            <input type="hidden" name="payment_method" value="Cash" />
+            <input type="hidden" name="tip_amount" value="0" />
+            <input type="hidden" name="completed_by" value="" />
+            <button class="fd-btn fd-btn-complete" type="submit">&#128176; Cash Done</button>
+          </form>
+
+          <!-- Gift Certificate Button -->
+          <details class="fd-complete-details">
+            <summary class="fd-btn" style="background: #b68b5a; color: #fff;">&#127873; Gift Card</summary>
+            <form class="fd-complete-form" method="POST" action="/admin/bookings/<%= b.id %>/complete">
+              <input type="hidden" name="payment_method" value="Gift Certificate" />
+              <label class="fd-form-label">
+                Gift Certificate Code
+                <input type="text" name="gift_cert_code" placeholder="JMS-XXXXXXXX" required class="fd-input" style="text-transform: uppercase; font-family: monospace; font-size: 1.1rem; letter-spacing: .08em;" />
+              </label>
+              <label class="fd-form-label">
+                Tip ($)
+                <input type="number" name="tip_amount" placeholder="0" min="0" step="1" class="fd-input" />
+              </label>
+              <button class="fd-btn fd-btn-save" type="submit">Pay with Gift Card</button>
+            </form>
+          </details>
+
+          <!-- Full Complete Form -->
+          <details class="fd-complete-details">
+            <summary class="fd-btn fd-btn-complete" style="background: #1a6b2b;">&#10003; Other Payment</summary>
+            <form class="fd-complete-form" method="POST" action="/admin/bookings/<%= b.id %>/complete">
+              <label class="fd-form-label">
+                Payment Method
+                <select name="payment_method" required class="fd-select">
+                  <option value="">— Pick One —</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Debit Card">Debit Card</option>
+                  <option value="Zelle">Zelle</option>
+                  <option value="Venmo">Venmo</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label class="fd-form-label">
+                Discount Code <span style="font-weight:400; color: var(--muted);">(if any)</span>
+                <input type="text" name="discount_code" placeholder="e.g. DEALER10" class="fd-input" style="text-transform: uppercase;" />
+              </label>
+              <label class="fd-form-label">
+                Tip ($)
+                <input type="number" name="tip_amount" placeholder="0" min="0" step="1" class="fd-input" />
+              </label>
+              <label class="fd-form-label">
+                Done By
+                <select name="completed_by" class="fd-select">
+                  <option value="">— Same —</option>
+                  <% therapists.forEach(function(t) { %>
+                    <option value="<%= t.name %>"><%= t.name %></option>
+                  <% }); %>
+                </select>
+              </label>
+              <button class="fd-btn fd-btn-save" type="submit">Save</button>
+            </form>
+          </details>
+
+          <!-- No Show -->
+          <form method="POST" action="/admin/bookings/<%= b.id %>/noshow" style="display:inline;" onsubmit="return confirm('Mark as no-show?')">
+            <button class="fd-btn fd-btn-noshow" type="submit">No Show</button>
+          </form>
+
+          <!-- Cancel -->
+          <form method="POST" action="/admin/bookings/<%= b.id %>/cancel" style="display:inline;" onsubmit="return confirm('Cancel this booking?')">
+            <button class="fd-btn fd-btn-cancel" type="submit">Cancel</button>
+          </form>
+        </div>
+        <% } else if (b.status === 'completed' && b.payment_method) { %>
+        <div class="fd-booking-done-info">
+          Paid: <strong><%= b.payment_method %></strong>
+          <% if (b.tip_amount) { %> &middot; Tip: <strong>$<%= b.tip_amount %></strong><% } %>
+          <% if (b.completed_by) { %> &middot; By: <%= b.completed_by %><% } %>
+        </div>
+        <% } %>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+    <!-- ============================================================
+         Next Few Upcoming (tomorrow+)
+         ============================================================ -->
+    <% if (upcoming.length > 0) { %>
+    <h2 class="fd-section-title">Coming Up Next</h2>
+    <div class="fd-upcoming">
+      <% upcoming.slice(0, 8).forEach(function(b) { %>
+      <div class="fd-upcoming-row">
+        <span class="fd-upcoming-date"><%= b.date %></span>
+        <span class="fd-upcoming-time"><%= b.time %></span>
+        <span class="fd-upcoming-client"><%= b.client_name %></span>
+        <span class="fd-upcoming-service"><%= b.service_name %></span>
+      </div>
+      <% }); %>
+      <% if (typeof deskMode === 'undefined' || !deskMode) { %>
+      <a href="/admin" class="fd-link-more">See all in full dashboard &rarr;</a>
+      <% } %>
+    </div>
+    <% } %>
+
+    <div class="fd-footer-links">
+      <% if (typeof deskMode !== 'undefined' && deskMode) { %>
+        <a href="/desk">Refresh</a>
+        <a href="/desk/booking">New Booking</a>
+        <a href="/desk/gift-certificates">Gift Cards</a>
+      <% } else { %>
+        <a href="/admin">Full Dashboard</a>
+        <a href="/admin/reports">Reports</a>
+        <a href="/admin/settings">Settings</a>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<script>
+// Auto-refresh the front desk every 60 seconds so it stays current
+setTimeout(function(){ location.reload(); }, 60000);
+
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+// ===== INACTIVITY TIMEOUT — locks desk after 10 minutes of no activity =====
+(function(){
+  var TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+  var timer;
+
+  function resetTimer() {
+    clearTimeout(timer);
+    // Hide the lock screen if it's showing
+    var lock = document.getElementById('fd-lock-screen');
+    if (lock) lock.style.display = 'none';
+
+    timer = setTimeout(showLockScreen, TIMEOUT_MS);
+  }
+
+  function showLockScreen() {
+    var lock = document.getElementById('fd-lock-screen');
+    if (lock) {
+      lock.style.display = 'flex';
+      var pinInput = document.getElementById('fd-lock-pin');
+      if (pinInput) { pinInput.value = ''; pinInput.focus(); }
+    }
+  }
+
+  // Listen for any activity
+  ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(evt) {
+    document.addEventListener(evt, resetTimer, { passive: true });
+  });
+
+  // Start the timer
+  resetTimer();
+
+  // Handle unlock
+  window.fdUnlock = function() {
+    var pinInput = document.getElementById('fd-lock-pin');
+    var errMsg = document.getElementById('fd-lock-error');
+    var pin = (pinInput ? pinInput.value : '').trim();
+    if (!pin) return;
+
+    fetch('/api/admin/pin-check?pin=' + encodeURIComponent(pin))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.employee) {
+          resetTimer();
+        } else {
+          // Also try the desk password
+          fetch('/desk/verify-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: pin })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.ok) {
+              resetTimer();
+            } else {
+              if (errMsg) errMsg.style.display = 'block';
+              if (pinInput) { pinInput.value = ''; pinInput.focus(); }
+            }
+          });
+        }
+      })
+      .catch(function() {
+        if (errMsg) errMsg.style.display = 'block';
+        if (pinInput) { pinInput.value = ''; pinInput.focus(); }
+      });
+  };
+})();
+<% } %>
+</script>
+
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+<!-- Lock Screen Overlay -->
+<div id="fd-lock-screen" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(20,50,55,.97); flex-direction:column; align-items:center; justify-content:center; gap:1.2rem;">
+  <div style="text-align:center; color:#fff;">
+    <div style="font-size:3rem; margin-bottom:.5rem;">&#128274;</div>
+    <h2 style="font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; color:#fff; margin-bottom:.3rem;">Screen Locked</h2>
+    <p style="color:rgba(255,255,255,.5); font-size:.95rem;">Enter your employee PIN or desk PIN to unlock</p>
+  </div>
+  <form onsubmit="event.preventDefault(); fdUnlock();" style="display:flex; flex-direction:column; align-items:center; gap:.8rem; width:280px;">
+    <input type="password" id="fd-lock-pin" placeholder="Enter PIN" maxlength="6" autocomplete="off"
+      style="width:100%; font-size:1.8rem; text-align:center; padding:.8rem; border:2px solid rgba(255,255,255,.2); border-radius:12px; background:rgba(255,255,255,.08); color:#fff; letter-spacing:.3em; font-family:monospace;" />
+    <button type="submit" style="width:100%; padding:.8rem; font-size:1.1rem; font-weight:700; border:none; border-radius:12px; background:#1f6f78; color:#fff; cursor:pointer;">Unlock</button>
+    <p id="fd-lock-error" style="display:none; color:#e74c3c; font-weight:700; font-size:.9rem;">Wrong PIN — try again</p>
+  </form>
+</div>
+<% } %>
+
+</body>
+</html>

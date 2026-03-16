@@ -1,0 +1,66 @@
+<%- include('partials/header', {
+  title: 'Booking Confirmed | J&M Serenity Spa',
+  description: 'Your appointment has been confirmed.',
+  activePage: 'book'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Confirmed</p>
+      <h1 class="reveal">You're All Set!</h1>
+      <p class="lead muted reveal" style="max-width: 60ch;">
+        Your appointment has been booked. Here are your details.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <div class="card reveal">
+        <h2>Appointment Details</h2>
+        <ul class="contact-list">
+          <li><strong>Name:</strong> <%= booking.client_name %></li>
+          <li><strong>Phone:</strong> <%= booking.client_phone %></li>
+          <li><strong>Service:</strong> <%= booking.service_name %></li>
+          <li><strong>Therapist:</strong> <%= booking.therapist_name || 'No preference (assigned at arrival)' %></li>
+          <% if (booking.therapist2_name) { %>
+          <li><strong>Second Therapist:</strong> <%= booking.therapist2_name %></li>
+          <% } %>
+          <% if (booking.gender_pref) { %>
+          <li><strong>Gender Preference:</strong> <%= booking.gender_pref === 'female' ? 'Female' : 'Male' %></li>
+          <% } %>
+          <li><strong>Date:</strong> <%= booking.date %></li>
+          <li><strong>Time:</strong> <%= booking.time %></li>
+          <li><strong>Duration:</strong> <%= booking.duration %> minutes</li>
+          <% if (bookingAddons && bookingAddons.length > 0) { %>
+          <li><strong>Add-Ons:</strong> <%= bookingAddons.map(function(a) { return a.name + ' (+$' + a.price + ')'; }).join(', ') %></li>
+          <% } %>
+          <% if (booking.areas) { %>
+          <li><strong>Focus Areas:</strong> <%= booking.areas %></li>
+          <% } %>
+          <% if (booking.notes) { %>
+          <li><strong>Notes:</strong> <%= booking.notes %></li>
+          <% } %>
+        </ul>
+      </div>
+
+      <div class="card reveal">
+        <h2>Reminders</h2>
+        <ul class="bullets">
+          <li>Please arrive 5–10 minutes early for your appointment.</li>
+          <li>Payment is due at your appointment — no online payment required.</li>
+          <li>To cancel or reschedule, please give at least 24 hours' notice.</li>
+          <li>If you have any questions, <a href="/contact">contact us</a>.</li>
+        </ul>
+      </div>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="/">Back to Home</a>
+        <a class="btn btn-ghost" href="/book">Book Another</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

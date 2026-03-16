@@ -1,0 +1,91 @@
+<%- include('../partials/admin-header', { activePage: 'admin-clients' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Client Lookup</h1>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <form class="form" method="GET" action="/admin/clients" style="flex-direction: row; display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <label style="flex: 1;">
+          Search by name, phone, or email
+          <input type="text" name="q" value="<%= query %>" placeholder="Search clients..." />
+        </label>
+        <button class="btn btn-primary" type="submit">Search</button>
+      </form>
+    </div>
+
+    <% if (query && clients.length > 0) { %>
+    <div class="admin-table-wrap" style="margin-bottom: 1.5rem;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Visits</th>
+            <th>Last Visit</th>
+            <th>Total Tips</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% clients.forEach(function(c) { %>
+          <tr>
+            <td><strong><%= c.client_name %></strong></td>
+            <td><%= c.client_phone %></td>
+            <td><%= c.client_email || '—' %></td>
+            <td><%= c.visit_count %></td>
+            <td><%= c.last_visit %></td>
+            <td>$<%= (c.total_tips || 0).toFixed(2) %></td>
+            <td>
+              <a class="btn btn-small btn-ghost" href="/admin/clients?q=<%= encodeURIComponent(query) %>&phone=<%= encodeURIComponent(c.client_phone) %>">History</a>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } else if (query) { %>
+    <div class="callout" style="margin-bottom: 1.5rem;">
+      <p class="muted">No clients found matching "<%= query %>".</p>
+    </div>
+    <% } %>
+
+    <% if (phone && history.length > 0) { %>
+    <div class="card">
+      <h2>Booking History — <%= history[0].client_name %> (<%= phone %>)</h2>
+      <div class="admin-table-wrap" style="border: none; box-shadow: none;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Service</th>
+              <th>Therapist</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Tip</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% history.forEach(function(h) { %>
+            <tr class="<%= h.status === 'completed' ? 'completed-row' : '' %>">
+              <td><%= h.date %></td>
+              <td><%= h.time %></td>
+              <td><%= h.service_name %></td>
+              <td><%= h.therapist_name || '—' %></td>
+              <td><span class="admin-badge <%= h.status === 'completed' ? 'completed' : h.status === 'cancelled' ? 'offline' : 'online' %>"><%= h.status %></span></td>
+              <td><%= h.payment_method || '—' %></td>
+              <td>$<%= (h.tip_amount || 0).toFixed(2) %></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</main>
+
+</body>
+</html>

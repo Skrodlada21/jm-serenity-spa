@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Member Card — <%= member.client_name %></title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f0eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    /* ===== SCREEN-ONLY CONTROLS ===== */
+    .print-controls {
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+    }
+    .print-controls button {
+      padding: .7rem 1.6rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-print { background: #1f6f78; color: #fff; }
+    .btn-print:hover { background: #185a61; }
+    .btn-back { background: #e0dcd7; color: #333; }
+    .btn-back:hover { background: #d0ccc7; }
+    .print-tip {
+      font-size: .85rem;
+      color: #888;
+      max-width: 350px;
+      line-height: 1.4;
+    }
+
+    /* ===== PRINT SETTINGS ===== */
+    @media print {
+      .print-controls, .print-tip { display: none !important; }
+      body { background: #fff; padding: 0; margin: 0; }
+      .card { box-shadow: none !important; margin: 0 !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+      @page {
+        size: 3.375in 2.125in;
+        margin: 0;
+      }
+    }
+
+    /* ===== THE CARD — standard credit card size 3.375 x 2.125 inches ===== */
+    .card {
+      width: 3.375in;
+      height: 2.125in;
+      background: linear-gradient(145deg, #1a3a3f 0%, #1f6f78 40%, #2a8a94 100%);
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.15);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color: #fff;
+    }
+
+    /* ===== GOLD ACCENT LINE ===== */
+    .card-gold-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #b68b5a, #d4a76a, #b68b5a, transparent);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ===== DECORATIVE PATTERN ===== */
+    .card-pattern {
+      position: absolute;
+      inset: 0;
+      opacity: .06;
+      background-image:
+        repeating-linear-gradient(45deg, #fff 0px, #fff 0.3px, transparent 0.3px, transparent 8px);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== CARD BODY ===== */
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: .18in .22in .15in;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== HEADER ===== */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: .08in;
+    }
+
+    .card-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: .55rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .card-brand-tag {
+      font-size: .32rem;
+      color: #b68b5a;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-weight: 600;
+    }
+
+    .card-member-label {
+      font-size: .32rem;
+      color: #b68b5a;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      font-weight: 700;
+      text-align: right;
+      line-height: 1.3;
+    }
+    .card-plan-name {
+      font-size: .42rem;
+      color: #d4a76a;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    /* ===== GOLD DIVIDER ===== */
+    .card-divider {
+      height: 1px;
+      background: linear-gradient(90deg, #b68b5a, #d4a76a, transparent);
+      opacity: .4;
+      margin-bottom: .1in;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ===== MEMBER NAME ===== */
+    .card-member-name {
+      font-family: 'Playfair Display', serif;
+      font-size: .65rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .03em;
+      margin-bottom: .06in;
+    }
+
+    /* ===== DETAILS ===== */
+    .card-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: .03in;
+    }
+
+    .card-detail-row {
+      display: flex;
+      gap: .15in;
+      font-size: .36rem;
+      line-height: 1.3;
+    }
+    .card-detail-label {
+      color: rgba(255,255,255,.5);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: .3rem;
+      min-width: .55in;
+      flex-shrink: 0;
+    }
+    .card-detail-value {
+      color: rgba(255,255,255,.9);
+      font-weight: 500;
+    }
+
+    /* ===== FOOTER ===== */
+    .card-footer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: .06in;
+      border-top: 1px solid rgba(182, 139, 90, .2);
+    }
+
+    .card-phone {
+      font-family: 'Courier New', monospace;
+      font-size: .36rem;
+      color: rgba(255,255,255,.6);
+      letter-spacing: .08em;
+    }
+
+    .card-footer-note {
+      font-size: .28rem;
+      color: rgba(255,255,255,.35);
+      text-align: right;
+      max-width: 1.4in;
+      line-height: 1.3;
+    }
+
+    /* ===== BOTTOM GOLD LINE ===== */
+    .card-gold-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #b68b5a, #d4a76a, #b68b5a, transparent);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ===== STAR EMBLEM ===== */
+    .card-star {
+      position: absolute;
+      bottom: .2in;
+      right: .2in;
+      font-size: .5in;
+      opacity: .06;
+      color: #b68b5a;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-controls">
+  <button class="btn-print" onclick="window.print()">Print Member Card</button>
+  <button class="btn-back" onclick="window.close(); window.history.back();">Back</button>
+  <div class="print-tip">
+    Tip: Use a standard business card paper sheet (3.5" x 2") or print on cardstock and cut to size. Set printer to "Actual Size."
+  </div>
+</div>
+
+<div class="card">
+  <!-- Gold accent top -->
+  <div class="card-gold-line"></div>
+
+  <!-- Subtle diagonal pattern -->
+  <div class="card-pattern"></div>
+
+  <!-- Star emblem -->
+  <div class="card-star">&#11088;</div>
+
+  <div class="card-body">
+    <!-- Header: Brand + Member Badge -->
+    <div class="card-header">
+      <div>
+        <div class="card-brand"><%= settings.spa_name || 'J&M Serenity Spa' %></div>
+        <div class="card-brand-tag">Wellness Member</div>
+      </div>
+      <div>
+        <div class="card-member-label">Member</div>
+        <div class="card-plan-name"><%= member.plan_name || 'Membership' %></div>
+      </div>
+    </div>
+
+    <div class="card-divider"></div>
+
+    <!-- Member Name - big and clear -->
+    <div class="card-member-name"><%= member.client_name %></div>
+
+    <!-- Details -->
+    <div class="card-details">
+      <div class="card-detail-row">
+        <span class="card-detail-label">Since</span>
+        <span class="card-detail-value"><%= member.start_date || '—' %></span>
+      </div>
+      <div class="card-detail-row">
+        <span class="card-detail-label">Visits</span>
+        <span class="card-detail-value"><%= member.visits_per_month || '—' %> per month</span>
+      </div>
+      <% if (member.discount_percent) { %>
+      <div class="card-detail-row">
+        <span class="card-detail-label">Discount</span>
+        <span class="card-detail-value"><%= member.discount_percent %>% off all services</span>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer">
+      <div class="card-phone"><%= member.client_phone || '' %></div>
+      <div class="card-footer-note">
+        Present this card at check-in.<br>
+        Staff will verify membership.
+      </div>
+    </div>
+  </div>
+
+  <!-- Gold accent bottom -->
+  <div class="card-gold-bottom"></div>
+</div>
+
+</body>
+</html>

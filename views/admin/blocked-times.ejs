@@ -1,0 +1,83 @@
+<%- include('../partials/admin-header', { activePage: 'admin-blocked' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Blocked Times / Days Off</h1>
+    <p class="muted" style="margin-bottom: 1.5rem;">Block off times for therapist breaks, lunch, or entire days off. Blocked times prevent bookings during those hours.</p>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2>Add Blocked Time</h2>
+      <form class="form" method="POST" action="/admin/blocked-times">
+        <div class="grid two">
+          <label>
+            Therapist
+            <select name="therapist_id" required>
+              <option value="">— Select —</option>
+              <% therapists.forEach(function(t) { %>
+              <option value="<%= t.id %>"><%= t.name %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label>
+            Date
+            <input type="date" name="date" required />
+          </label>
+        </div>
+        <label style="flex-direction: row; display: flex; gap: .5rem; align-items: center;">
+          <input type="checkbox" name="all_day" value="on" onchange="document.getElementById('time-fields').style.display = this.checked ? 'none' : 'grid';" />
+          All Day (day off)
+        </label>
+        <div id="time-fields" class="grid two">
+          <label>
+            Start Time
+            <input type="time" name="start_time" value="12:00" />
+          </label>
+          <label>
+            End Time
+            <input type="time" name="end_time" value="13:00" />
+          </label>
+        </div>
+        <label>
+          Reason <span class="muted small">(optional)</span>
+          <input type="text" name="reason" placeholder="e.g., Lunch break, Day off, Vacation" />
+        </label>
+        <button class="btn btn-primary" type="submit">Add Block</button>
+      </form>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Therapist</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Reason</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% blockedTimes.forEach(function(bt) { %>
+          <tr>
+            <td><strong><%= bt.therapist_name %></strong></td>
+            <td><%= bt.date %></td>
+            <td><%= bt.all_day ? 'All Day' : (bt.start_time + ' – ' + bt.end_time) %></td>
+            <td><%= bt.reason || '—' %></td>
+            <td>
+              <form method="POST" action="/admin/blocked-times/<%= bt.id %>/delete" style="display: inline;" onsubmit="return confirm('Remove this block?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Remove</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (blockedTimes.length === 0) { %>
+          <tr><td colspan="5" class="muted">No blocked times scheduled.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

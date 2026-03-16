@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gift Certificate — J&M Serenity Spa</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f0eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    /* ===== SCREEN-ONLY CONTROLS ===== */
+    .print-controls {
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+    }
+    .print-controls button {
+      padding: .7rem 1.6rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-print { background: #1f6f78; color: #fff; }
+    .btn-print:hover { background: #185a61; }
+    .btn-back { background: #e0dcd7; color: #333; }
+    .btn-back:hover { background: #d0ccc7; }
+    .print-tip {
+      font-size: .85rem;
+      color: #888;
+      max-width: 350px;
+      line-height: 1.4;
+    }
+
+    /* ===== PRINT SETTINGS ===== */
+    @media print {
+      .print-controls, .print-tip { display: none !important; }
+      body { background: #fff; padding: 0; margin: 0; }
+      .card { box-shadow: none !important; margin: 0 !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+      @page {
+        size: 6in 4in;
+        margin: 0;
+      }
+    }
+
+    /* ===== THE CARD — 6x4 inches (4x6 landscape) ===== */
+    .card {
+      width: 6in;
+      height: 4in;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ===== TOP ACCENT BAR ===== */
+    .card-accent {
+      height: 8px;
+      background: linear-gradient(90deg, #1f6f78, #b68b5a, #1f6f78);
+      flex-shrink: 0;
+    }
+
+    /* ===== DECORATIVE BACKGROUND PATTERN (hard to photocopy cleanly) ===== */
+    .card-bg-pattern {
+      position: absolute;
+      inset: 0;
+      opacity: .08;
+      background-image:
+        repeating-linear-gradient(45deg, #1f6f78 0px, #1f6f78 0.5px, transparent 0.5px, transparent 10px),
+        repeating-linear-gradient(-45deg, #b68b5a 0px, #b68b5a 0.5px, transparent 0.5px, transparent 10px);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== WATERMARK TEXT (shows "GIFT" faintly — degrades on copies) ===== */
+    .card-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-25deg);
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05in;
+      font-weight: 800;
+      color: rgba(31, 111, 120, .06);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 0;
+      letter-spacing: .05em;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ===== CARD BODY ===== */
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: .5in .55in .4in;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== HEADER ROW ===== */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: .15in;
+    }
+
+    .card-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: .95rem;
+      font-weight: 700;
+      color: #1f6f78;
+      line-height: 1.2;
+    }
+    .card-brand-tag {
+      font-family: 'Inter', sans-serif;
+      font-size: .55rem;
+      color: #b68b5a;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      font-weight: 600;
+    }
+
+    .card-amount {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #1f6f78;
+      line-height: 1;
+    }
+
+    /* ===== DIVIDER ===== */
+    .card-divider {
+      height: 1px;
+      background: linear-gradient(90deg, #1f6f78, #b68b5a, transparent);
+      opacity: .3;
+      margin-bottom: .15in;
+    }
+
+    /* ===== TITLE ===== */
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #b68b5a;
+      letter-spacing: .05em;
+      margin-bottom: .12in;
+    }
+
+    /* ===== DETAILS ===== */
+    .card-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: .06in;
+    }
+
+    .card-detail-row {
+      display: flex;
+      gap: .3in;
+      font-size: .72rem;
+      line-height: 1.3;
+    }
+    .card-detail-label {
+      color: #999;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: .6rem;
+      min-width: .85in;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .card-detail-value {
+      color: #333;
+      font-weight: 500;
+    }
+
+    /* ===== MESSAGE (if any) ===== */
+    .card-message {
+      margin-top: .08in;
+      font-size: .65rem;
+      font-style: italic;
+      color: #777;
+      border-left: 2px solid #b68b5a;
+      padding-left: .12in;
+      line-height: 1.4;
+      max-height: .55in;
+      overflow: hidden;
+    }
+
+    /* ===== FOOTER — CODE + VERIFICATION ===== */
+    .card-footer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: .12in;
+      border-top: 1px solid rgba(0,0,0,.06);
+    }
+
+    .card-code-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .card-code-label {
+      font-size: .5rem;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-weight: 600;
+    }
+    .card-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      color: #1f6f78;
+      background: rgba(31, 111, 120, .07);
+      padding: .12rem .4rem;
+      border-radius: 4px;
+      border: 1px dashed rgba(31, 111, 120, .25);
+    }
+
+    .card-verify {
+      text-align: right;
+      font-size: .5rem;
+      color: #aaa;
+      line-height: 1.5;
+      max-width: 2in;
+    }
+    .card-verify strong {
+      color: #777;
+      font-weight: 700;
+    }
+
+    /* ===== BOTTOM ACCENT BAR ===== */
+    .card-accent-bottom {
+      height: 5px;
+      background: linear-gradient(90deg, #b68b5a, #1f6f78, #b68b5a);
+      flex-shrink: 0;
+    }
+
+    /* ===== MICRO-TEXT SECURITY LINE (very small — disappears on photocopies) ===== */
+    .card-micro-security {
+      position: absolute;
+      bottom: .28in;
+      left: .55in;
+      right: .55in;
+      font-size: 3.5px;
+      color: rgba(31, 111, 120, .2);
+      letter-spacing: .5px;
+      line-height: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-controls">
+  <button class="btn-print" onclick="window.print()">Print Gift Card</button>
+  <button class="btn-back" onclick="window.close(); window.history.back();">Back</button>
+  <div class="print-tip">
+    Tip: Use 4x6 photo paper or cardstock. Set your printer to "4x6" or "Borderless 4x6" for best results.
+  </div>
+</div>
+
+<div class="card">
+  <!-- Top color bar -->
+  <div class="card-accent"></div>
+
+  <!-- Background pattern (degrades on copies) -->
+  <div class="card-bg-pattern"></div>
+
+  <!-- Watermark (very faint — disappears on photocopy) -->
+  <div class="card-watermark">GIFT</div>
+
+  <!-- Card content -->
+  <div class="card-body">
+
+    <!-- Header: Brand + Amount -->
+    <div class="card-header">
+      <div>
+        <div class="card-brand"><%= settings.spa_name || 'J&amp;M Serenity Spa' %></div>
+        <div class="card-brand-tag">Signature Treatments</div>
+      </div>
+      <div class="card-amount">$<%= cert.amount.toFixed(0) %></div>
+    </div>
+
+    <div class="card-divider"></div>
+
+    <div class="card-title">Gift Certificate</div>
+
+    <!-- Details -->
+    <div class="card-details">
+      <% if (cert.recipient_name) { %>
+      <div class="card-detail-row">
+        <span class="card-detail-label">To</span>
+        <span class="card-detail-value"><%= cert.recipient_name %></span>
+      </div>
+      <% } %>
+      <div class="card-detail-row">
+        <span class="card-detail-label">From</span>
+        <span class="card-detail-value"><%= cert.purchaser_name %></span>
+      </div>
+      <div class="card-detail-row">
+        <span class="card-detail-label">Issued</span>
+        <span class="card-detail-value"><%= cert.created_at ? cert.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10) %></span>
+      </div>
+
+      <% if (cert.message) { %>
+      <div class="card-message">"<%= cert.message %>"</div>
+      <% } %>
+    </div>
+
+    <!-- Micro-text security line (too small to survive photocopying) -->
+    <div class="card-micro-security">
+      AUTHENTIC J&amp;M SERENITY SPA GIFT CERTIFICATE &middot; <%= cert.code %> &middot; AUTHENTIC J&amp;M SERENITY SPA GIFT CERTIFICATE &middot; <%= cert.code %> &middot; AUTHENTIC J&amp;M SERENITY SPA GIFT CERTIFICATE &middot; <%= cert.code %> &middot; AUTHENTIC J&amp;M SERENITY SPA GIFT CERTIFICATE &middot; <%= cert.code %> &middot; AUTHENTIC J&amp;M SERENITY SPA GIFT CERTIFICATE
+    </div>
+
+    <!-- Footer: Code + Verification note -->
+    <div class="card-footer">
+      <div class="card-code-block">
+        <span class="card-code-label">Certificate Code</span>
+        <span class="card-code"><%= cert.code %></span>
+      </div>
+      <div class="card-verify">
+        Staff must verify code &amp; balance<br>
+        in system before redeeming.<br>
+        <strong>No cash value. Non-transferable.</strong>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom color bar -->
+  <div class="card-accent-bottom"></div>
+</div>
+
+</body>
+</html>

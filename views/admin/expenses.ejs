@@ -1,0 +1,311 @@
+<%- include('../partials/admin-header', { activePage: 'admin-expenses' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Expense Tracking</h1>
+
+    <!-- Summary Cards -->
+    <% if (summary) { %>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .8rem; margin-bottom: 1.5rem;">
+      <div class="card" style="text-align: center; border-top: 3px solid #e67e22;">
+        <p class="muted small" style="margin-bottom: .2rem;">Monthly Recurring</p>
+        <p style="font-size: 1.4rem; font-weight: 700; color: #e67e22;">$<%= summary.monthlyTotal.toFixed(2) %></p>
+      </div>
+      <div class="card" style="text-align: center; border-top: 3px solid #3498db;">
+        <p class="muted small" style="margin-bottom: .2rem;">Yearly Recurring</p>
+        <p style="font-size: 1.4rem; font-weight: 700; color: #3498db;">$<%= summary.yearlyTotal.toFixed(2) %></p>
+      </div>
+      <div class="card" style="text-align: center; border-top: 3px solid #9b59b6;">
+        <p class="muted small" style="margin-bottom: .2rem;">Startup Costs</p>
+        <p style="font-size: 1.4rem; font-weight: 700; color: #9b59b6;">$<%= summary.startupTotal.toFixed(2) %></p>
+      </div>
+      <div class="card" style="text-align: center; border-top: 3px solid #27ae60;">
+        <p class="muted small" style="margin-bottom: .2rem;">Est. Monthly Total</p>
+        <p style="font-size: 1.4rem; font-weight: 700; color: #27ae60;">$<%= summary.estimatedMonthly.toFixed(2) %></p>
+        <p class="muted small">(monthly + yearly/12)</p>
+      </div>
+      <% if (summary.dueTotal > 0 || summary.reimburseTotal > 0) { %>
+      <div class="card" style="text-align: center; border-top: 3px solid #e74c3c;">
+        <p class="muted small" style="margin-bottom: .2rem;">Outstanding</p>
+        <p style="font-size: 1.4rem; font-weight: 700; color: #e74c3c;">$<%= (summary.dueTotal + summary.reimburseTotal).toFixed(2) %></p>
+        <p class="muted small">
+          <% if (summary.dueTotal > 0) { %>$<%= summary.dueTotal.toFixed(2) %> due<% } %>
+          <% if (summary.dueTotal > 0 && summary.reimburseTotal > 0) { %> · <% } %>
+          <% if (summary.reimburseTotal > 0) { %>$<%= summary.reimburseTotal.toFixed(2) %> owed back<% } %>
+        </p>
+      </div>
+      <% } %>
+    </div>
+
+    <% if (summary && summary.owedByPerson && summary.owedByPerson.length > 0) { %>
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #e74c3c;">
+      <h2 style="font-size: 1rem; margin-bottom: .5rem;">Who's Owed Money</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+        <% summary.owedByPerson.forEach(function(p) { %>
+        <div style="background: #fff8f0; border: 1px solid #f5cba7; border-radius: 10px; padding: .6rem 1rem; min-width: 160px;">
+          <strong style="color: #333;"><%= p.person %></strong>
+          <span style="display: block; font-size: 1.2rem; font-weight: 700; color: #e74c3c;">$<%= p.total.toFixed(2) %></span>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+    <% } %>
+
+    <!-- Filters -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div style="display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end;">
+        <form class="form" method="GET" action="/admin/expenses" style="display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end; margin: 0;">
+          <label style="margin: 0;">
+            Month
+            <input type="month" name="month" value="<%= month %>" style="min-width: 160px;" />
+          </label>
+          <label style="margin: 0;">
+            Filter
+            <select name="filter" style="min-width: 160px;">
+              <option value="" <%= filter === '' ? 'selected' : '' %>>All Expenses</option>
+              <option value="monthly" <%= filter === 'monthly' ? 'selected' : '' %>>Monthly Only</option>
+              <option value="yearly" <%= filter === 'yearly' ? 'selected' : '' %>>Yearly Only</option>
+              <option value="recurring" <%= filter === 'recurring' ? 'selected' : '' %>>All Recurring</option>
+              <option value="startup" <%= filter === 'startup' ? 'selected' : '' %>>Startup Costs</option>
+              <option value="due" <%= filter === 'due' ? 'selected' : '' %>>Bills Due</option>
+              <option value="reimburse" <%= filter === 'reimburse' ? 'selected' : '' %>>Needs Reimbursement</option>
+              <option value="unpaid" <%= filter === 'unpaid' ? 'selected' : '' %>>All Unpaid</option>
+            </select>
+          </label>
+          <button class="btn btn-primary btn-small" type="submit" style="height: 40px;">Filter</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Expense -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2>Add Expense</h2>
+      <form class="form" method="POST" action="/admin/expenses">
+        <label>
+          Description
+          <input type="text" name="description" placeholder="What was the expense?" required />
+        </label>
+        <div class="grid two">
+          <label>
+            Amount ($)
+            <input type="number" name="amount" placeholder="0.00" min="0" step="0.01" required />
+          </label>
+          <label>
+            Date
+            <input type="date" name="date" value="<%= new Date().toISOString().slice(0,10) %>" required />
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            Category
+            <select name="category" required>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Supplies">Supplies</option>
+              <option value="Linens">Linens</option>
+              <option value="Insurance">Insurance</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Payroll">Payroll</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Software">Software</option>
+              <option value="Licensing">Licensing</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Build-Out">Build-Out</option>
+              <option value="Signage">Signage</option>
+              <option value="General" selected>General</option>
+            </select>
+          </label>
+          <label>
+            Frequency
+            <select name="frequency">
+              <option value="one-time">One-Time</option>
+              <option value="monthly">Monthly Recurring</option>
+              <option value="yearly">Yearly Recurring</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            Payment Status
+            <select name="payment_status" id="payment-status-select">
+              <option value="paid">Paid — All settled</option>
+              <option value="due">Due — Bill not paid yet</option>
+              <option value="reimburse">Owe Someone Back — They paid out of pocket</option>
+            </select>
+          </label>
+          <label>
+            Vendor / Where <span class="muted small">(where was it purchased?)</span>
+            <input type="text" name="vendor" placeholder="e.g., Home Depot, Costco, Amazon" />
+          </label>
+        </div>
+        <div id="reimbursement-fields" style="display: none; background: #fff8f0; border: 1px solid #f5cba7; border-radius: 10px; padding: 1rem; margin-bottom: .5rem;">
+          <p style="font-weight: 600; font-size: .85rem; color: #e67e22; margin-bottom: .5rem;">Who needs to be paid back?</p>
+          <div class="grid two">
+            <label>
+              Paid By <span class="muted small">(who spent the money?)</span>
+              <input type="text" name="paid_by" placeholder="e.g., Nick, Maria, John" />
+            </label>
+            <label>
+              Owe To <span class="muted small">(who gets reimbursed?)</span>
+              <input type="text" name="due_to" placeholder="Same person, or someone else" />
+            </label>
+          </div>
+        </div>
+        <div id="due-fields" style="display: none; background: #fef0f0; border: 1px solid #f5c6cb; border-radius: 10px; padding: 1rem; margin-bottom: .5rem;">
+          <p style="font-weight: 600; font-size: .85rem; color: #e74c3c; margin-bottom: .5rem;">Who is this owed to?</p>
+          <div class="grid two">
+            <label>
+              Due To <span class="muted small">(company or person)</span>
+              <input type="text" name="due_to_bill" placeholder="e.g., Xcel Energy, Landlord" />
+            </label>
+            <label>
+              Due Date <span class="muted small">(optional)</span>
+              <input type="date" name="due_date" />
+            </label>
+          </div>
+        </div>
+        <div class="grid two">
+          <label style="display: flex; align-items: center; gap: .5rem; padding-top: .3rem;">
+            <input type="checkbox" name="is_startup" value="1" style="width: 20px; height: 20px;" />
+            <span>Startup Cost</span>
+          </label>
+        </div>
+        <label>
+          Notes <span class="muted small">(optional)</span>
+          <input type="text" name="notes" placeholder="Extra details, receipt #, etc." />
+        </label>
+        <button class="btn btn-primary" type="submit">Add Expense</button>
+      </form>
+    </div>
+
+    <!-- Totals by Category -->
+    <% if (totals.length > 0) { %>
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2>Totals for <%= month %><%= filter ? ' (' + filter + ')' : '' %></h2>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>Category</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            <% totals.forEach(function(t) { %>
+            <tr>
+              <td><%= t.category %></td>
+              <td><strong>$<%= t.total.toFixed(2) %></strong></td>
+            </tr>
+            <% }); %>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td><strong>Grand Total</strong></td>
+              <td><strong>$<%= grandTotal.toFixed(2) %></strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Expense List -->
+    <h2>Expenses — <%= month %><%= filter ? ' (' + filter + ')' : '' %></h2>
+    <% if (expenses.length === 0) { %>
+    <div class="card"><p class="muted">No expenses match your filters.</p></div>
+    <% } else { %>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Vendor</th>
+            <th>Frequency</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% expenses.forEach(function(e) { %>
+          <tr style="<%= e.payment_status === 'due' || e.payment_status === 'reimburse' ? 'background: #fff8f0;' : '' %>">
+            <td><%= e.date %></td>
+            <td>
+              <%= e.description %>
+              <% if (e.is_startup) { %>
+                <span style="display: inline-block; font-size: .7rem; background: #9b59b6; color: #fff; padding: .1rem .4rem; border-radius: 4px; margin-left: .3rem;">STARTUP</span>
+              <% } %>
+              <% if (e.due_to) { %>
+                <br /><span style="font-size: .8rem; color: #e74c3c; font-weight: 600;">Owe: <%= e.due_to %></span>
+              <% } %>
+              <% if (e.paid_by) { %>
+                <br /><span class="muted small">Paid by: <strong><%= e.paid_by %></strong></span>
+              <% } %>
+              <% if (e.due_date) { %>
+                <br /><span class="muted small">Due by: <%= e.due_date %></span>
+              <% } %>
+              <% if (e.notes) { %>
+                <br /><span class="muted small"><%= e.notes %></span>
+              <% } %>
+            </td>
+            <td><%= e.category %></td>
+            <td class="muted"><%= e.vendor || '—' %></td>
+            <td>
+              <% if (e.frequency === 'monthly') { %>
+                <span style="display: inline-block; font-size: .75rem; background: #e67e22; color: #fff; padding: .15rem .5rem; border-radius: 4px;">Monthly</span>
+              <% } else if (e.frequency === 'yearly') { %>
+                <span style="display: inline-block; font-size: .75rem; background: #3498db; color: #fff; padding: .15rem .5rem; border-radius: 4px;">Yearly</span>
+              <% } else { %>
+                <span class="muted small">One-time</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (e.payment_status === 'due') { %>
+                <span style="display: inline-block; font-size: .75rem; background: #e74c3c; color: #fff; padding: .15rem .5rem; border-radius: 4px;">Due</span>
+              <% } else if (e.payment_status === 'reimburse') { %>
+                <span style="display: inline-block; font-size: .75rem; background: #e67e22; color: #fff; padding: .15rem .5rem; border-radius: 4px;">Owed Back</span>
+              <% } else { %>
+                <span style="display: inline-block; font-size: .75rem; background: #27ae60; color: #fff; padding: .15rem .5rem; border-radius: 4px;">Paid</span>
+                <% if (e.paid_date) { %><br /><span class="muted small"><%= e.paid_date %></span><% } %>
+              <% } %>
+            </td>
+            <td><strong>$<%= e.amount.toFixed(2) %></strong></td>
+            <td style="white-space: nowrap;">
+              <% if (e.payment_status === 'due' || e.payment_status === 'reimburse') { %>
+              <form method="POST" action="/admin/expenses/<%= e.id %>/mark-paid" style="display: inline;">
+                <button class="btn btn-small" type="submit" style="background: #27ae60; color: #fff; margin-bottom: .3rem;">Mark Paid</button>
+              </form>
+              <% } %>
+              <form method="POST" action="/admin/expenses/<%= e.id %>/delete" style="display: inline;" onsubmit="return confirm('Delete this expense?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</main>
+
+<script>
+// Show/hide reimbursement or due fields based on payment status
+(function(){
+  var sel = document.getElementById('payment-status-select');
+  var reimFields = document.getElementById('reimbursement-fields');
+  var dueFields = document.getElementById('due-fields');
+  if (!sel) return;
+  function toggle() {
+    reimFields.style.display = sel.value === 'reimburse' ? 'block' : 'none';
+    dueFields.style.display = sel.value === 'due' ? 'block' : 'none';
+  }
+  sel.addEventListener('change', toggle);
+  toggle();
+})();
+</script>
+
+</body>
+</html>

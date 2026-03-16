@@ -1,0 +1,79 @@
+<%- include('partials/header', {
+  title: 'About | J&M Serenity Spa',
+  description: 'About J&M Serenity Spa — a calm, professional spa experience featuring Signature Treatments and therapist-first booking.',
+  activePage: 'about'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">About</p>
+      <h1 class="reveal">Welcome to J&amp;M Serenity Spa</h1>
+      <p class="lead muted reveal" style="max-width: 70ch;">
+        A calm, elevated space offering Signature Treatments — with the convenience of choosing your therapist every time.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <div class="grid two">
+        <div class="card reveal">
+          <h2>Our Philosophy</h2>
+          <p>
+            We believe relaxation should feel effortless — from the moment you book to the moment you leave.
+            Every session is personalized to your comfort level and goals.
+          </p>
+          <p class="muted small">
+            Our menu stays focused on what we do best: Signature Treatments that deliver a serene, consistent experience.
+          </p>
+        </div>
+
+        <div class="card reveal">
+          <h2>Our Facility</h2>
+          <ul class="bullets">
+            <li>6 full-body massage rooms (including 2 couples rooms)</li>
+            <li>4 chair massage stations</li>
+            <li>4 foot massage chairs</li>
+          </ul>
+          <p class="muted small">Located in Highlands Ranch, CO — by appointment only.</p>
+        </div>
+      </div>
+
+      <div class="section-head reveal" style="margin-top: 2rem;">
+        <h2>Meet Our Therapists</h2>
+        <p class="muted">Choose your therapist when you book. You can also select a gender preference.</p>
+      </div>
+
+      <div class="grid therapist-profiles">
+        <% therapists.forEach(function(t) { %>
+        <article class="card therapist-profile reveal">
+          <div class="therapist-profile-top">
+            <% if (t.photo) { %>
+              <img class="therapist-profile-photo" src="<%= t.photo %>" alt="<%= t.name %>" />
+            <% } else { %>
+              <div class="therapist-profile-avatar" aria-hidden="true"><%= t.name.charAt(0) %></div>
+            <% } %>
+            <div>
+              <h3><%= t.name %></h3>
+              <p class="muted small"><%= t.gender === 'male' ? 'Male' : 'Female' %> Therapist</p>
+              <p class="muted small">Focus: <%= t.specialties %></p>
+            </div>
+          </div>
+          <% if (t.bio) { %>
+            <p class="therapist-bio"><%= t.bio %></p>
+          <% } %>
+          <a class="btn btn-small btn-primary" href="/book?therapist=<%= t.id %>" style="margin-top: auto;">Book with <%= t.name.split(' ')[0] %></a>
+        </article>
+        <% }); %>
+      </div>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="/book">Choose Your Therapist &amp; Book</a>
+        <a class="btn btn-ghost" href="/treatments">View Treatments</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

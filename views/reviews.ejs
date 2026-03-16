@@ -1,0 +1,87 @@
+<%- include('partials/header', {
+  title: 'Reviews | J&M Serenity Spa',
+  description: 'Read what clients say about J&M Serenity Spa.',
+  activePage: 'reviews'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Testimonials</p>
+      <h1 class="reveal">What Our Clients Say</h1>
+      <p class="lead muted reveal" style="max-width: 60ch;">
+        Real reviews from real clients — hear about their experiences at J&M Serenity Spa.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <% if (submitted) { %>
+      <div class="callout reveal" style="background: #d4edda; border-color: #c3e6cb; margin-bottom: 1.5rem;">
+        <p style="color: #155724; font-weight: 600;">Thank you for your review! It will appear here after approval.</p>
+      </div>
+      <% } %>
+
+      <% if (reviews.length > 0) { %>
+      <div class="grid two" style="margin-bottom: 2rem;">
+        <% reviews.forEach(function(r) { %>
+        <div class="card reveal<%= r.featured ? ' featured-review' : '' %>">
+          <div style="display: flex; gap: .4rem; margin-bottom: .5rem;">
+            <% for (var i = 0; i < 5; i++) { %>
+              <span style="color: <%= i < r.rating ? '#f4b942' : '#ddd' %>; font-size: 1.2rem;">&#9733;</span>
+            <% } %>
+          </div>
+          <p>"<%= r.text %>"</p>
+          <p class="muted small" style="margin-top: .5rem;">
+            — <%= r.client_name %>
+            <% if (r.therapist_name) { %> &bull; Therapist: <%= r.therapist_name %><% } %>
+          </p>
+        </div>
+        <% }); %>
+      </div>
+      <% } else { %>
+      <div class="callout reveal" style="margin-bottom: 2rem;">
+        <p class="muted">No reviews yet. Be the first to share your experience!</p>
+      </div>
+      <% } %>
+
+      <!-- Submit a review -->
+      <div class="card reveal">
+        <h2>Leave a Review</h2>
+        <form class="form" method="POST" action="/reviews">
+          <label>
+            Your Name <span class="muted small">(required)</span>
+            <input type="text" name="client_name" placeholder="Your name" required />
+          </label>
+          <label>
+            Rating
+            <select name="rating">
+              <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; (5 stars)</option>
+              <option value="4">&#9733;&#9733;&#9733;&#9733; (4 stars)</option>
+              <option value="3">&#9733;&#9733;&#9733; (3 stars)</option>
+              <option value="2">&#9733;&#9733; (2 stars)</option>
+              <option value="1">&#9733; (1 star)</option>
+            </select>
+          </label>
+          <label>
+            Therapist <span class="muted small">(optional)</span>
+            <select name="therapist_id">
+              <option value="">— Select —</option>
+              <% therapists.forEach(function(t) { %>
+              <option value="<%= t.id %>"><%= t.name %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label>
+            Your Review
+            <textarea name="text" rows="4" placeholder="Tell us about your experience..." required></textarea>
+          </label>
+          <button class="btn btn-primary" type="submit">Submit Review</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

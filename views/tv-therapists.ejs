@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="refresh" content="30" />
+  <title><%= settings.spa_name || 'J&M Serenity Spa' %> — Our Team</title>
+  <style>
+    *{ box-sizing:border-box; margin:0; padding:0; }
+
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      padding: 2vw;
+    }
+
+    .tv-header{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 1vw 0 2vw;
+    }
+    .tv-logo{
+      max-height: 70px;
+      width: auto;
+      filter: drop-shadow(0 0 16px rgba(78,205,196,.3));
+    }
+    .tv-title{
+      font-size: clamp(1.8rem, 3.5vw, 3.5rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #4ecdc4, #b68b5a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .team-grid{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5vw;
+      padding: 1vw 0;
+    }
+
+    .therapist-card{
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .3s;
+    }
+    .therapist-card.available{ border-color: #238636; }
+    .therapist-card.busy{ border-color: #da3633; }
+
+    .therapist-photo{
+      width: clamp(80px, 10vw, 140px);
+      height: clamp(80px, 10vw, 140px);
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #30363d;
+      margin-bottom: 1rem;
+    }
+    .therapist-card.available .therapist-photo{ border-color: #238636; }
+    .therapist-card.busy .therapist-photo{ border-color: #da3633; opacity: .8; }
+
+    .therapist-avatar{
+      width: clamp(80px, 10vw, 140px);
+      height: clamp(80px, 10vw, 140px);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: clamp(2rem, 4vw, 4rem);
+      color: #fff;
+      background: linear-gradient(135deg, #b68b5a, #1f6f78);
+      border: 3px solid #30363d;
+      margin-bottom: 1rem;
+    }
+    .therapist-card.available .therapist-avatar{ border-color: #238636; }
+    .therapist-card.busy .therapist-avatar{ border-color: #da3633; opacity: .8; }
+
+    .therapist-name{
+      font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+      font-weight: 800;
+      margin-bottom: .3rem;
+    }
+
+    .therapist-specialties{
+      font-size: clamp(.8rem, 1.2vw, 1rem);
+      color: #7d8590;
+      margin-bottom: .8rem;
+    }
+
+    .status-badge{
+      display: inline-block;
+      padding: .4rem 1rem;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: clamp(.85rem, 1.3vw, 1.1rem);
+      letter-spacing: .03em;
+    }
+    .status-badge.available{
+      background: rgba(35,134,54,.2);
+      color: #3fb950;
+    }
+    .status-badge.busy{
+      background: rgba(218,54,51,.2);
+      color: #f85149;
+    }
+
+    .status-detail{
+      font-size: clamp(.8rem, 1.1vw, 1rem);
+      color: #8b949e;
+      margin-top: .5rem;
+    }
+    .status-detail strong{ color: #e6edf3; }
+
+    .next-booking{
+      font-size: clamp(.75rem, 1vw, .9rem);
+      color: #484f58;
+      margin-top: .4rem;
+    }
+
+    .tv-footer{
+      text-align: center;
+      padding: 2vw 0 1vw;
+      color: #484f58;
+      font-size: clamp(.8rem, 1.1vw, 1rem);
+    }
+
+    .pulse{
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: .4rem;
+      vertical-align: middle;
+    }
+    .pulse.green{ background: #3fb950; box-shadow: 0 0 8px #3fb950; animation: pulse 2s infinite; }
+    .pulse.red{ background: #f85149; box-shadow: 0 0 8px #f85149; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+
+    @media (max-width: 500px){
+      .team-grid{ grid-template-columns: 1fr 1fr; gap: .8rem; }
+      body{ padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="tv-header">
+    <img src="/images/logo.png" alt="" class="tv-logo" />
+    <h1 class="tv-title">Our Therapists</h1>
+  </header>
+
+  <div class="team-grid">
+    <% statuses.forEach(function(t) { %>
+    <div class="therapist-card <%= t.status %>">
+      <% if (t.photo) { %>
+        <img class="therapist-photo" src="<%= t.photo %>" alt="<%= t.name %>" />
+      <% } else { %>
+        <div class="therapist-avatar"><%= t.name.charAt(0) %></div>
+      <% } %>
+      <div class="therapist-name"><%= t.name %></div>
+      <div class="therapist-specialties"><%= t.specialties || (t.gender === 'male' ? 'Male' : 'Female') + ' Therapist' %></div>
+
+      <% if (t.status === 'busy') { %>
+        <span class="status-badge busy"><span class="pulse red"></span> In Session</span>
+        <p class="status-detail">
+          <%= t.currentService %><br/>
+          Available at <strong><%= t.availableAt %></strong>
+        </p>
+      <% } else { %>
+        <span class="status-badge available"><span class="pulse green"></span> Available</span>
+        <% if (t.nextBooking) { %>
+          <p class="next-booking">Next: <%= t.nextBooking.service %> at <%= t.nextBooking.time %></p>
+        <% } %>
+      <% } %>
+    </div>
+    <% }); %>
+  </div>
+
+  <footer class="tv-footer">
+    <p><%= settings.spa_name || 'J&M Serenity Spa' %> &middot; <%= settings.address || 'Highlands Ranch, CO' %> &middot; Walk-ins welcome based on availability</p>
+  </footer>
+
+</body>
+</html>

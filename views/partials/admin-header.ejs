@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — J&amp;M Serenity Spa</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body class="admin-body">
+
+<header class="admin-header">
+  <div class="container admin-header-inner">
+    <a class="admin-brand" href="/admin">
+      <strong>J&amp;M Spa</strong> <span class="muted small">Admin</span>
+    </a>
+
+    <nav class="admin-nav">
+      <a class="admin-link <%= activePage === 'admin-dashboard' ? 'is-active' : '' %>" href="/admin">Dashboard</a>
+      <a class="admin-link fd-easy-link" href="/admin/front-desk" title="Simple view for front desk">Easy Mode</a>
+      <a class="admin-link <%= activePage === 'admin-phone' ? 'is-active' : '' %>" href="/admin/phone-booking">+ Phone Booking</a>
+      <a class="admin-link <%= activePage === 'admin-therapists' ? 'is-active' : '' %>" href="/admin/therapists">Therapists</a>
+      <a class="admin-link <%= activePage === 'admin-services' ? 'is-active' : '' %>" href="/admin/services">Services</a>
+      <a class="admin-link <%= activePage === 'admin-clients' ? 'is-active' : '' %>" href="/admin/clients">Clients</a>
+      <a class="admin-link <%= activePage === 'admin-reports' ? 'is-active' : '' %>" href="/admin/reports">Reports</a>
+      <a class="admin-link <%= activePage === 'admin-blocked' ? 'is-active' : '' %>" href="/admin/blocked-times">Blocked</a>
+      <a class="admin-link <%= activePage === 'admin-waitlist' ? 'is-active' : '' %>" href="/admin/waitlist">Waitlist</a>
+      <a class="admin-link <%= activePage === 'admin-gifts' ? 'is-active' : '' %>" href="/admin/gift-certificates">Gifts</a>
+      <a class="admin-link <%= activePage === 'admin-reviews' ? 'is-active' : '' %>" href="/admin/reviews">Reviews</a>
+      <a class="admin-link <%= activePage === 'admin-gallery' ? 'is-active' : '' %>" href="/admin/gallery">Gallery</a>
+      <a class="admin-link <%= activePage === 'admin-memberships' ? 'is-active' : '' %>" href="/admin/memberships">Memberships</a>
+      <a class="admin-link <%= activePage === 'admin-discounts' ? 'is-active' : '' %>" href="/admin/discounts">Discounts</a>
+      <a class="admin-link <%= activePage === 'admin-expenses' ? 'is-active' : '' %>" href="/admin/expenses">Expenses</a>
+      <a class="admin-link <%= activePage === 'admin-settings' ? 'is-active' : '' %>" href="/admin/settings">Settings</a>
+      <a class="admin-link" href="/admin/logout">Logout</a>
+    </nav>
+  </div>
+</header>

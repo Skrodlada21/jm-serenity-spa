@@ -1,0 +1,85 @@
+<%- include('../partials/admin-header', { activePage: 'admin-settings' }) %>
+
+<main class="admin-main">
+  <div class="container" style="max-width: 640px;">
+    <h1>Reset Test Data</h1>
+
+    <% if (typeof success !== 'undefined' && success) { %>
+    <div class="admin-alert" style="background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32;">
+      All test data has been cleared! Your expenses, settings, therapists, and services are still intact.
+    </div>
+    <% } %>
+
+    <div class="card" style="margin-bottom: 1.5rem; border: 2px solid #e74c3c;">
+      <h2 style="color: #e74c3c;">&#9888; Danger Zone</h2>
+      <p style="margin-bottom: 1rem;">
+        Use this when you're done testing and ready to go live. This will permanently delete all test data so you start fresh with real customers.
+      </p>
+
+      <div style="background: #fef9f9; border: 1px solid #f5c6cb; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+        <p style="font-weight: 700; margin-bottom: .5rem; color: #c0392b;">This will DELETE:</p>
+        <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.8; color: #555;">
+          <li>All bookings (past, upcoming, cancelled)</li>
+          <li>All client profiles (phone lookups, intake forms)</li>
+          <li>All gift certificates & redemptions</li>
+          <li>All members & visit history</li>
+          <li>All discount codes</li>
+          <li>All reviews</li>
+          <li>All gallery images</li>
+          <li>All waitlist entries</li>
+          <li>All blocked time slots</li>
+        </ul>
+      </div>
+
+      <div style="background: #f0faf0; border: 1px solid #a5d6a7; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+        <p style="font-weight: 700; margin-bottom: .5rem; color: #27ae60;">This will KEEP:</p>
+        <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.8; color: #555;">
+          <li><strong>All expenses</strong> (startup costs, recurring, everything)</li>
+          <li><strong>All settings</strong> (business info, hours, passwords, Square config)</li>
+          <li><strong>All therapists</strong> (staff, PINs, schedules)</li>
+          <li><strong>All services & add-ons</strong> (menu, pricing)</li>
+          <li><strong>All membership plans</strong> (plan definitions, not members)</li>
+        </ul>
+      </div>
+
+      <form method="POST" action="/admin/reset" id="reset-form">
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600;">
+            Type <strong style="color: #e74c3c;">RESET</strong> to confirm:
+            <input type="text" name="confirm" id="confirm-input" placeholder="Type RESET here" autocomplete="off"
+              style="font-size: 1.2rem; letter-spacing: .1em; text-transform: uppercase; font-family: monospace; margin-top: .3rem;" />
+          </label>
+        </div>
+        <button class="btn" type="submit" id="reset-btn" disabled
+          style="background: #e74c3c; color: #fff; width: 100%; padding: .8rem; font-size: 1rem; font-weight: 700; opacity: .5; cursor: not-allowed;">
+          Clear All Test Data & Start Fresh
+        </button>
+      </form>
+    </div>
+
+    <a href="/admin/settings" class="btn btn-ghost">&larr; Back to Settings</a>
+  </div>
+</main>
+
+<script>
+document.getElementById('confirm-input').addEventListener('input', function() {
+  var btn = document.getElementById('reset-btn');
+  if (this.value.trim().toUpperCase() === 'RESET') {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+    btn.style.cursor = 'not-allowed';
+  }
+});
+document.getElementById('reset-form').addEventListener('submit', function(e) {
+  if (!confirm('Are you ABSOLUTELY sure? This cannot be undone!')) {
+    e.preventDefault();
+  }
+});
+</script>
+
+</body>
+</html>

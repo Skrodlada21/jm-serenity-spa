@@ -1,0 +1,199 @@
+<%- include('partials/header', {
+  title: 'Book | J&M Serenity Spa',
+  description: 'Book online with J&M Serenity Spa. Choose your therapist and schedule a Signature Treatment.',
+  activePage: 'book'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Booking</p>
+      <h1 class="reveal">Book a Signature Treatment</h1>
+      <p class="lead muted reveal" style="max-width: 70ch;">
+        Fill in your details, choose a service and therapist, then pick an available time. No payment required online — pay at your appointment.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <div class="card reveal">
+        <h2>Schedule Your Appointment</h2>
+
+        <form class="form" method="POST" action="/book" id="booking-form">
+          <label>
+            Phone Number <span class="muted small">(required — we'll look you up)</span>
+            <input type="tel" name="client_phone" id="client-phone" placeholder="(555) 555-5555" required autofocus />
+          </label>
+
+          <div id="returning-banner" style="display:none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: .8rem 1rem; margin-bottom: .5rem;">
+            <strong style="color: #2e7d32;">Welcome back!</strong>
+            <span id="returning-name" style="color: #2e7d32;"></span>
+          </div>
+
+          <label>
+            Your Name <span class="muted small">(optional — we'll fill it in when you arrive if needed)</span>
+            <input type="text" name="client_name" id="client-name" placeholder="Full name" />
+          </label>
+
+          <label>
+            Email <span class="muted small">(optional — for confirmation email)</span>
+            <input type="email" name="client_email" id="client-email" placeholder="you@example.com" />
+          </label>
+
+          <label>
+            Service
+            <select name="service_id" id="service-select" required>
+              <option value="">— Choose a service —</option>
+              <% services.forEach(function(svc) { %>
+              <option value="<%= svc.id %>"
+                data-duration="<%= svc.duration %>"
+                data-category="<%= svc.category %>"
+                <%= preselect == svc.id ? 'selected' : '' %>>
+                <%= svc.name %> — <%= svc.duration %> min ($<%= svc.price %>)
+              </option>
+              <% }); %>
+            </select>
+          </label>
+
+          <label>
+            Therapist Preference
+            <select name="gender_pref" id="gender-pref-select">
+              <option value="">No preference</option>
+              <option value="female">Female therapist</option>
+              <option value="male">Male therapist</option>
+            </select>
+          </label>
+
+          <label>
+            Preferred Therapist <span class="muted small">(optional — or leave as "No preference")</span>
+            <select name="therapist_id" id="therapist-select">
+              <option value="">No preference</option>
+              <% therapists.forEach(function(t) { %>
+              <option value="<%= t.id %>" data-gender="<%= t.gender %>">
+                <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
+              </option>
+              <% }); %>
+            </select>
+          </label>
+
+          <!-- Second therapist for Four Hands -->
+          <div id="therapist2-container" style="display: none;">
+            <label>
+              Second Therapist <span class="muted small">(for Four Hands massage)</span>
+              <select name="therapist2_id" id="therapist2-select">
+                <option value="">No preference</option>
+                <% therapists.forEach(function(t) { %>
+                <option value="<%= t.id %>" data-gender="<%= t.gender %>">
+                  <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
+                </option>
+                <% }); %>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Date
+            <input type="date" name="date" id="date-input" required />
+          </label>
+
+          <div id="slots-container" style="display:none;">
+            <p class="small" style="font-weight:700; margin-bottom:.5rem;">Available Times</p>
+            <div id="slots-grid" class="slots-grid"></div>
+            <input type="hidden" name="time" id="time-input" required />
+          </div>
+
+          <% if (addons.length > 0) { %>
+          <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem;">
+            <legend style="font-weight: 700;">Add-Ons <span class="muted small">(optional)</span></legend>
+            <div style="display: flex; flex-wrap: wrap; gap: .8rem;">
+              <% addons.forEach(function(a) { %>
+              <label style="display: inline-flex; align-items: center; gap: .4rem; font-weight: normal; min-width: 200px;">
+                <input type="checkbox" name="addon_ids" value="<%= a.id %>" />
+                <%= a.name %> (+$<%= a.price %>)
+                <% if (a.description) { %><span class="muted small">— <%= a.description %></span><% } %>
+              </label>
+              <% }); %>
+            </div>
+          </fieldset>
+          <% } %>
+
+          <label>
+            Areas to Focus On <span class="muted small">(e.g., lower back, shoulders, neck)</span>
+            <input type="text" name="areas" placeholder="Any specific areas?" />
+          </label>
+
+          <label>
+            Notes for Therapist <span class="muted small">(optional)</span>
+            <textarea name="notes" rows="3" placeholder="Anything your therapist should know — injuries, pressure preference, etc."></textarea>
+          </label>
+
+          <button class="btn btn-primary btn-block" type="submit" id="submit-btn" disabled>
+            Select a time to continue
+          </button>
+        </form>
+      </div>
+
+      <div class="card reveal">
+        <h2>Policies</h2>
+        <h3>Cancellation</h3>
+        <p class="muted">Please provide at least <strong>24 hours' notice</strong> to cancel or reschedule.</p>
+
+        <h3>Late arrivals</h3>
+        <p class="muted">Late arrivals may result in a shortened session to accommodate other clients.</p>
+
+        <h3>Payment</h3>
+        <p class="muted">No online payment required. Payment is due at your appointment.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// Auto-fill client info when phone number is entered
+(function(){
+  var phoneInput = document.getElementById('client-phone');
+  var nameInput = document.getElementById('client-name');
+  var emailInput = document.getElementById('client-email');
+  var banner = document.getElementById('returning-banner');
+  var bannerName = document.getElementById('returning-name');
+  if (!phoneInput) return;
+
+  var timer;
+  phoneInput.addEventListener('input', function() {
+    clearTimeout(timer);
+    var phone = phoneInput.value.replace(/\D/g, '');
+    if (phone.length < 7) { banner.style.display = 'none'; return; }
+
+    timer = setTimeout(function() {
+      fetch('/api/client-lookup?phone=' + encodeURIComponent(phoneInput.value))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.client) {
+            if (data.client.name) {
+              nameInput.value = data.client.name;
+              banner.style.display = 'block';
+              bannerName.textContent = data.client.name;
+            }
+            if (data.client.email && !emailInput.value) emailInput.value = data.client.email;
+            if (data.client.areas_to_focus) {
+              var areasInput = document.querySelector('input[name="areas"]');
+              if (areasInput && !areasInput.value) areasInput.value = data.client.areas_to_focus;
+            }
+            if (data.client.notes || data.client.pressure_pref) {
+              var notesInput = document.querySelector('textarea[name="notes"]');
+              var prefill = [];
+              if (data.client.pressure_pref) prefill.push('Pressure: ' + data.client.pressure_pref);
+              if (data.client.areas_to_avoid) prefill.push('Avoid: ' + data.client.areas_to_avoid);
+              if (notesInput && !notesInput.value && prefill.length) notesInput.value = prefill.join('. ');
+            }
+          } else {
+            banner.style.display = 'none';
+          }
+        }).catch(function() {});
+    }, 500);
+  });
+})();
+</script>
+
+<%- include('partials/footer') %>

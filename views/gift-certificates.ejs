@@ -1,0 +1,53 @@
+<%- include('partials/header', {
+  title: 'Gift Certificates | J&M Serenity Spa',
+  description: 'Check your J&M Serenity Spa gift certificate balance.',
+  activePage: 'gift'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Gift Certificates</p>
+      <h1 class="reveal">Give the Gift of Relaxation</h1>
+      <p class="lead muted reveal" style="max-width: 60ch;">
+        J&M Serenity Spa gift certificates are available — contact us to purchase one for someone special.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content" style="max-width: 640px;">
+      <div class="card reveal">
+        <h2>Check Your Balance</h2>
+        <form class="form" method="GET" action="/gift-certificates">
+          <label>
+            Certificate Code
+            <input type="text" name="code" placeholder="e.g., JMS-A1B2C3D4" value="<%= code %>" required style="text-transform: uppercase;" />
+          </label>
+          <button class="btn btn-primary" type="submit">Look Up</button>
+        </form>
+
+        <% if (code && cert) { %>
+        <div style="margin-top: 1.5rem; padding: 1rem; border-radius: 14px; background: #d4edda; border: 1px solid #c3e6cb;">
+          <p><strong>Certificate:</strong> <%= cert.code %></p>
+          <p><strong>Original Amount:</strong> $<%= cert.amount.toFixed(2) %></p>
+          <p><strong>Remaining Balance:</strong> $<%= cert.balance.toFixed(2) %></p>
+          <p><strong>Status:</strong> <%= cert.status === 'active' ? 'Active' : 'Fully Redeemed' %></p>
+          <% if (cert.recipient_name) { %><p><strong>Recipient:</strong> <%= cert.recipient_name %></p><% } %>
+        </div>
+        <% } else if (code && !cert) { %>
+        <div style="margin-top: 1.5rem; padding: 1rem; border-radius: 14px; background: #f8d7da; border: 1px solid #f5c6cb;">
+          <p style="color: #721c24;">No certificate found with that code. Please check and try again.</p>
+        </div>
+        <% } %>
+      </div>
+
+      <div class="callout reveal" style="margin-top: 1.5rem;">
+        <h3>Want to Purchase a Gift Certificate?</h3>
+        <p class="muted">Call us at <strong><%= settings.phone || '[phone]' %></strong> or <a href="/contact">send us a message</a> to purchase a gift certificate for any amount.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

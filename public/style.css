@@ -1,0 +1,606 @@
+/* ==========================================================================
+   J&M Serenity Spa — style.css
+   Clean, organized, and ready for Express/EJS (public/style.css)
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1) Design Tokens (Colors, Radius, Shadows)
+   ========================================================================== */
+:root{
+  --bg: #fbfbfc;
+  --bg-alt: #f3f5f7;
+  --card: #ffffff;
+
+  --text: #14161a;
+  --muted: #5b6470;
+  --line: #e6e9ee;
+
+  --shadow: 0 10px 28px rgba(20,22,26,.08);
+  --shadow-soft: 0 8px 18px rgba(20,22,26,.05);
+
+  --radius: 18px;
+
+  --brand: #1f6f78;   /* teal */
+  --brand-2: #114a50; /* deep teal */
+  --accent: #b68b5a;  /* warm gold */
+}
+
+
+/* ==========================================================================
+   2) Base / Reset
+   ========================================================================== */
+*{ box-sizing:border-box; }
+
+html, body{ height:100%; }
+
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background: var(--bg);
+  color: var(--text);
+  line-height:1.6;
+}
+
+img{ max-width:100%; display:block; }
+
+a{ color:inherit; text-decoration:none; }
+a:hover{ text-decoration:underline; }
+
+
+/* ==========================================================================
+   3) Layout Helpers
+   ========================================================================== */
+.container{
+  width: min(1100px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.section{ padding: 2.4rem 0; }
+.section.alt{
+  background: var(--bg-alt);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.section-head{ margin-bottom: 1.2rem; }
+
+.grid{ display:grid; gap:1rem; }
+.grid.cards{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid.two{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.three{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.service-cards{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.split{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 1rem;
+}
+.split-actions{ display:flex; gap:.8rem; flex-wrap:wrap; }
+
+
+/* ==========================================================================
+   4) Typography Utilities
+   ========================================================================== */
+h1{
+  font-size: clamp(2rem, 3.3vw, 3rem);
+  line-height:1.15;
+  margin:.6rem 0;
+}
+h2{
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  margin:.2rem 0 .6rem;
+}
+h3{ margin:.15rem 0 .35rem; }
+
+.lead{ font-size:1.1rem; }
+.muted{ color: var(--muted); }
+.small{ font-size:.92rem; }
+
+.eyebrow{
+  display:inline-block;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  font-size:.8rem;
+  color: var(--brand-2);
+  background: rgba(31,111,120,.10);
+  padding: .35rem .6rem;
+  border-radius: 999px;
+}
+
+
+/* ==========================================================================
+   5) Buttons
+   ========================================================================== */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.5rem;
+
+  border-radius: 14px;
+  padding: .85rem 1.05rem;
+
+  font-weight:700;
+  border:1px solid transparent;
+  cursor:pointer;
+
+  text-decoration:none !important;
+}
+
+.btn-small{
+  padding:.6rem .85rem;
+  border-radius: 12px;
+  font-size:.92rem;
+}
+
+.btn-block{ width:100%; }
+
+.btn-primary{
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color:#fff;
+  box-shadow: 0 10px 22px rgba(31,111,120,.18);
+}
+.btn-primary:hover{ filter: brightness(1.03); }
+
+.btn-ghost{
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line);
+}
+.btn-ghost:hover{ background:#fff; }
+
+
+/* ==========================================================================
+   6) Header + Navigation (Desktop + Mobile Dropdown)
+   ========================================================================== */
+.site-header{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(251,251,252,.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.header-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 1rem;
+  padding: .9rem 0;
+  position: relative; /* helps dropdown positioning */
+}
+
+/* Brand */
+.brand{
+  display:flex;
+  align-items:center;
+  gap: .8rem;
+  min-width: 0;
+  text-decoration:none !important;
+}
+
+.brand-logo{
+  height: 44px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  display:block;
+}
+
+.brand-wordmark{
+  display:flex;
+  flex-direction:column;
+  line-height:1.1;
+}
+
+.brand-name{ font-weight:800; }
+.brand-tag{ font-size:.85rem; color: var(--muted); }
+
+/* Nav */
+.nav{
+  display:flex;
+  gap:.9rem;
+  align-items:center;
+  margin-left:auto;
+}
+
+.nav-link{
+  font-size:.95rem;
+  color: var(--muted);
+  padding:.4rem .55rem;
+  border-radius: 10px;
+}
+
+.nav-link:hover{
+  background: rgba(31,111,120,.08);
+  text-decoration:none;
+  color: var(--text);
+}
+
+.nav-link.is-active{
+  color: var(--text);
+  background: #eef3f4;
+  text-decoration:none;
+}
+
+/* CTA behavior */
+.header-cta{ display:inline-flex; }
+.nav-cta{ display:none; }
+
+/* Mobile toggle button */
+.nav-toggle{
+  display:none;
+  border:1px solid var(--line);
+  background:#fff;
+  padding:.55rem .7rem;
+  border-radius: 12px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+
+/* ==========================================================================
+   7) Hero (Home)
+   ========================================================================== */
+.hero{
+  padding: 3.2rem 0 2.2rem;
+  background:
+    radial-gradient(900px 400px at 20% 15%, rgba(31,111,120,.10), transparent 60%),
+    radial-gradient(900px 420px at 85% 0%, rgba(182,139,90,.10), transparent 55%);
+}
+
+.hero-inner{
+  display:grid;
+  grid-template-columns: 1.25fr .75fr;
+  gap: 1.3rem;
+  align-items:stretch;
+}
+
+.hero-actions{
+  display:flex;
+  gap:.8rem;
+  flex-wrap:wrap;
+  margin-top:1.1rem;
+}
+
+.hero-notes{
+  display:flex;
+  gap: .9rem;
+  flex-wrap:wrap;
+  margin-top:1.3rem;
+}
+
+.note{
+  flex: 1 1 220px;
+  background: rgba(255,255,255,.7);
+  border:1px solid var(--line);
+  border-radius: 16px;
+  padding: .9rem;
+}
+.note strong{ display:block; }
+
+/* Hero card */
+.hero-card{
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255,255,255,.85), #fff);
+  border:1px solid var(--line);
+  box-shadow: var(--shadow);
+  display:flex;
+}
+.hero-card-inner{
+  padding:1.2rem;
+  display:flex;
+  flex-direction:column;
+  gap:.8rem;
+  width:100%;
+}
+.hero-card-title{ font-weight:800; margin:.2rem 0; }
+
+.checklist{ margin:0; padding-left: 1.1rem; }
+.checklist li{ margin:.2rem 0; }
+
+
+/* ==========================================================================
+   8) Page Hero (Internal pages)
+   ========================================================================== */
+.page-hero{
+  padding: 2.4rem 0 1.2rem;
+  background:
+    radial-gradient(800px 380px at 25% 10%, rgba(31,111,120,.10), transparent 60%);
+  border-bottom: 1px solid var(--line);
+}
+
+
+/* ==========================================================================
+   9) Cards + Content Blocks
+   ========================================================================== */
+.card{
+  background: var(--card);
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.15rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.card.service h2{ font-size:1.3rem; }
+
+.pill{
+  background: rgba(255,255,255,.8);
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+}
+
+.callout{
+  margin-top: 1.2rem;
+  padding: 1.2rem;
+  border-radius: var(--radius);
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.callout.subtle{ background: rgba(255,255,255,.7); }
+
+.cta-row{
+  display:flex;
+  gap:.8rem;
+  flex-wrap:wrap;
+  margin-top: 1.4rem;
+}
+
+
+/* ==========================================================================
+   10) Lists / Steps
+   ========================================================================== */
+.bullets{ margin:.7rem 0 0; padding-left:1.15rem; }
+.bullets li{ margin:.25rem 0; }
+
+.steps{ margin:.8rem 0 0; padding-left: 1.2rem; }
+.steps li{ margin:.35rem 0; }
+
+
+/* ==========================================================================
+   11) Booking Embed Placeholder / Map Placeholder
+   ========================================================================== */
+.fake-iframe{
+  height: 420px;
+  border-radius: 16px;
+  border: 2px dashed var(--line);
+  display:grid;
+  place-items:center;
+  color: var(--muted);
+  font-weight:800;
+  letter-spacing:.08em;
+}
+
+.map-placeholder{
+  height: 280px;
+  border-radius: 16px;
+  border: 2px dashed var(--line);
+  display:grid;
+  place-items:center;
+  color: var(--muted);
+  font-weight:800;
+  letter-spacing:.08em;
+}
+
+
+/* ==========================================================================
+   12) Profiles (Therapists)
+   ========================================================================== */
+.profile .avatar{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  color:#fff;
+  background: linear-gradient(135deg, var(--accent), var(--brand));
+  margin-bottom:.6rem;
+}
+
+/* Therapist profile cards (public About page) */
+.grid.therapist-profiles{
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.therapist-profile{
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.therapist-profile-top{
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.therapist-profile-photo{
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--line);
+}
+
+.therapist-profile-avatar{
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 1.8rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--brand));
+  flex-shrink: 0;
+}
+
+.therapist-bio{
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.5;
+}
+
+
+/* ==========================================================================
+   13) Forms
+   ========================================================================== */
+.form{ display:grid; gap:.75rem; margin-top:.8rem; }
+
+label{ display:grid; gap:.35rem; font-weight:700; }
+
+input, textarea{
+  font: inherit;
+  padding: .75rem .85rem;
+  border-radius: 14px;
+  border:1px solid var(--line);
+  background:#fff;
+}
+
+input:focus, textarea:focus{
+  outline: 3px solid rgba(31,111,120,.18);
+  border-color: rgba(31,111,120,.35);
+}
+
+.contact-list{ list-style:none; padding:0; margin:.9rem 0 0; }
+.contact-list li{ margin:.5rem 0; }
+
+
+/* ==========================================================================
+   14) Footer
+   ========================================================================== */
+.site-footer{
+  padding: 1.4rem 0;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+
+.footer-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 1rem;
+  flex-wrap:wrap;
+}
+
+.footer-logo{
+  max-height: 44px;
+  width: auto;
+}
+
+.footer-links{ display:flex; gap:1rem; }
+.footer-links a{ color: var(--muted); }
+.footer-links a:hover{ color: var(--text); text-decoration:none; }
+
+
+/* ==========================================================================
+   15) Animations (Soft Reveal)
+   ========================================================================== */
+.reveal{
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 600ms ease, transform 600ms ease;
+  will-change: opacity, transform;
+}
+.reveal.is-visible{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Reduce motion accessibility */
+@media (prefers-reduced-motion: reduce){
+  .reveal{
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ==========================================================================
+   16) Responsive (Layout + Mobile Nav)
+   ========================================================================== */
+@media (max-width: 980px){
+  /* Header */
+  .brand-wordmark{ display:none; }
+  .nav-toggle{ display:inline-flex; }
+  .header-cta{ display:none; }
+  .nav-cta{
+    display:inline-flex;
+    width:100%;
+    justify-content:center;
+    margin-top:.35rem;
+  }
+
+  /* Mobile dropdown nav */
+  .nav{
+    display:none;
+    position:absolute;
+    top: 74px;
+    left: 1rem;
+    right: 1rem;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius: 16px;
+    padding: .65rem;
+    box-shadow: var(--shadow);
+    flex-direction:column;
+    align-items:stretch;
+    gap:.25rem;
+    z-index: 60;
+  }
+  .nav.is-open{ display:flex; }
+
+  /* Page layout */
+  .hero-inner{ grid-template-columns: 1fr; }
+  .grid.cards{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .service-cards{ grid-template-columns: 1fr; }
+  .grid.three{ grid-template-columns: 1fr; }
+  .grid.therapist-profiles{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .split{ flex-direction:column; align-items:flex-start; }
+}
+
+/* Small phones */
+@media (max-width: 520px){
+  .grid.cards{ grid-template-columns: 1fr; }
+  .grid.therapist-profiles{ grid-template-columns: 1fr; }
+}
+
+
+/* ==========================================================================
+   17) Gallery
+   ========================================================================== */
+.gallery-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.gallery-item img{
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  transition: transform .2s ease;
+}
+
+.gallery-item img:hover{
+  transform: scale(1.02);
+}
+
+.gallery-caption{
+  text-align: center;
+  padding: .4rem 0;
+}
+
+/* Featured review highlight */
+.featured-review{
+  border-left: 4px solid var(--accent);
+}

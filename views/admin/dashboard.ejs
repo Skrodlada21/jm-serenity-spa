@@ -1,0 +1,349 @@
+<%- include('../partials/admin-header', { activePage: 'admin-dashboard' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Dashboard</h1>
+
+    <% if (typeof booked !== 'undefined') { %>
+    <div class="admin-alert">Phone booking added successfully.</div>
+    <% } %>
+
+    <div class="grid three" style="margin-bottom: 1.5rem;">
+      <div class="card admin-stat">
+        <p class="admin-stat-number"><%= stats.todayCount %></p>
+        <p class="muted small">Today</p>
+      </div>
+      <div class="card admin-stat">
+        <p class="admin-stat-number"><%= stats.weekCount %></p>
+        <p class="muted small">This Week</p>
+      </div>
+      <div class="card admin-stat">
+        <p class="admin-stat-number"><%= stats.monthCount %></p>
+        <p class="muted small">This Month</p>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Daily Summary by Therapist
+         ============================================================ -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="split" style="margin-bottom: 1rem;">
+        <h2 style="margin: 0;">Daily Summary</h2>
+        <form method="GET" action="/admin" style="display: flex; align-items: center; gap: .5rem;">
+          <input type="date" name="date" value="<%= viewDate %>" style="padding: .45rem .6rem; border-radius: 10px; border: 1px solid var(--line); font-size: .9rem;" />
+          <button class="btn btn-small btn-ghost" type="submit">View</button>
+          <% if (viewDate !== today) { %>
+            <a class="btn btn-small btn-ghost" href="/admin">Today</a>
+          <% } %>
+        </form>
+      </div>
+
+      <% if (viewDate !== today) { %>
+        <p class="muted small" style="margin-bottom: .8rem;">Showing: <strong><%= viewDate %></strong></p>
+      <% } %>
+
+      <!-- Summary stats row -->
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: 1.2rem;">
+        <div style="text-align: center; padding: .8rem; background: var(--bg-alt); border-radius: 12px;">
+          <p style="font-size: 1.6rem; font-weight: 900; color: var(--brand); margin: 0;"><%= summary.totalBookings %></p>
+          <p class="muted small" style="margin: 0;">Total</p>
+        </div>
+        <div style="text-align: center; padding: .8rem; background: var(--bg-alt); border-radius: 12px;">
+          <p style="font-size: 1.6rem; font-weight: 900; color: #238636; margin: 0;"><%= summary.totalCompleted %></p>
+          <p class="muted small" style="margin: 0;">Completed</p>
+        </div>
+        <div style="text-align: center; padding: .8rem; background: var(--bg-alt); border-radius: 12px;">
+          <p style="font-size: 1.6rem; font-weight: 900; color: var(--accent); margin: 0;">$<%= summary.totalRevenue.toFixed(0) %></p>
+          <p class="muted small" style="margin: 0;">Revenue</p>
+        </div>
+        <div style="text-align: center; padding: .8rem; background: var(--bg-alt); border-radius: 12px;">
+          <p style="font-size: 1.6rem; font-weight: 900; color: var(--accent); margin: 0;">$<%= summary.totalTips.toFixed(0) %></p>
+          <p class="muted small" style="margin: 0;">Tips</p>
+        </div>
+      </div>
+
+      <% if (summary.byTherapist.length === 0) { %>
+        <p class="muted">No massages recorded for this day.</p>
+      <% } else { %>
+        <!-- Per-therapist breakdown -->
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Therapist</th>
+                <th>Massages</th>
+                <th>Completed</th>
+                <th>Tips</th>
+                <th>Sessions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% summary.byTherapist.forEach(function(t) { %>
+              <tr>
+                <td><strong><%= t.name %></strong></td>
+                <td><%= t.total %></td>
+                <td><%= t.completed %></td>
+                <td>$<%= t.tips.toFixed(0) %></td>
+                <td class="small">
+                  <% t.services.forEach(function(svc, i) { %>
+                    <span class="summary-session <%= svc.status %>">
+                      <%= svc.time %> — <%= svc.service %>
+                      <% if (svc.status === 'completed') { %><span class="muted"> &#10003;</span><% } %>
+                    </span><% if (i < t.services.length - 1) { %><br/><% } %>
+                  <% }); %>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td><strong>Total</strong></td>
+                <td><strong><%= summary.totalBookings %></strong></td>
+                <td><strong><%= summary.totalCompleted %></strong></td>
+                <td><strong>$<%= summary.totalTips.toFixed(0) %></strong></td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- ============================================================
+         Today's Appointments
+         ============================================================ -->
+    <div class="split" style="margin-bottom: 1rem;">
+      <h2><%= viewDate === today ? "Today's Appointments" : "Appointments" %> — <%= viewDate %></h2>
+      <a class="btn btn-primary btn-small" href="/admin/phone-booking">+ Phone Booking</a>
+    </div>
+
+    <% if (todayBookings.length === 0) { %>
+    <div class="card"><p class="muted">No appointments for this date.</p></div>
+    <% } else { %>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Client</th>
+            <th>Phone</th>
+            <th>Service</th>
+            <th>Therapist(s)</th>
+            <th>Add-Ons</th>
+            <th>Areas</th>
+            <th>Notes</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% todayBookings.forEach(function(b) { %>
+          <tr class="<%= b.status === 'completed' ? 'completed-row' : (b.status === 'no_show' ? 'inactive-row' : '') %>">
+            <td><strong><%= b.time %></strong></td>
+            <td>
+              <%= b.client_name %>
+              <% if (b.is_member) { %>
+                <br><span class="admin-badge online" style="font-size: .65rem;">Member</span>
+              <% } %>
+            </td>
+            <td><%= b.client_phone %></td>
+            <td><%= b.service_name %></td>
+            <td><%= b.therapist_name || '—' %><%= b.therapist2_name ? ' + ' + b.therapist2_name : '' %></td>
+            <td>
+              <% if (b.addon_ids) { %>
+                <% var aids = b.addon_ids.split(','); var addonNames = []; aids.forEach(function(aid) { var a = allAddons.find(function(x) { return String(x.id) === aid.trim(); }); if (a) addonNames.push(a.name); }); %>
+                <%= addonNames.join(', ') %>
+              <% } else { %>—<% } %>
+            </td>
+            <td><%= b.areas || '—' %></td>
+            <td><%= b.notes || '—' %></td>
+            <td><span class="admin-badge <%= b.source %>"><%= b.source %></span></td>
+            <td>
+              <% if (b.status === 'completed') { %>
+                <span class="admin-badge completed">Completed</span>
+                <% if (b.payment_method) { %>
+                  <br><span class="muted small"><%= b.payment_method %><%= b.tip_amount ? ' · Tip $' + b.tip_amount : '' %></span>
+                <% } %>
+                <% if (b.completed_by) { %>
+                  <br><span class="muted small">By: <%= b.completed_by %></span>
+                <% } %>
+              <% } else if (b.status === 'no_show') { %>
+                <span class="admin-badge offline">No Show</span>
+              <% } else if (b.status === 'cancelled') { %>
+                <span class="admin-badge offline">Cancelled</span>
+              <% } else { %>
+                <span class="admin-badge online">Confirmed</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (b.status === 'completed' || b.status === 'no_show' || b.status === 'cancelled') { %>
+                <% if (b.client_phone) { %>
+                <details class="complete-dropdown">
+                  <summary class="btn btn-small btn-ghost" title="Send text">Text</summary>
+                  <form class="complete-form card" method="POST" action="/admin/send-text">
+                    <input type="hidden" name="phone" value="<%= b.client_phone %>" />
+                    <label>
+                      To: <%= b.client_name %> (<%= b.client_phone %>)
+                      <textarea name="message" rows="3" placeholder="Type your message..." required style="margin-top: .3rem;"></textarea>
+                    </label>
+                    <button class="btn btn-small btn-primary" type="submit">Send</button>
+                  </form>
+                </details>
+                <% } %>
+              <% } else { %>
+                <details class="complete-dropdown">
+                  <summary class="btn btn-small btn-primary">Complete</summary>
+                  <form class="complete-form card" method="POST" action="/admin/bookings/<%= b.id %>/complete">
+                    <label>
+                      Payment
+                      <select name="payment_method" required onchange="var gc=this.closest('form').querySelector('.gc-field'); if(gc) gc.style.display=this.value==='Gift Certificate'?'grid':'none';">
+                        <option value="">— Select —</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Gift Certificate">Gift Certificate</option>
+                        <option value="Zelle">Zelle</option>
+                        <option value="Venmo">Venmo</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </label>
+                    <label class="gc-field" style="display:none;">
+                      Gift Cert Code
+                      <input type="text" name="gift_cert_code" placeholder="JMS-XXXXXXXX" style="text-transform: uppercase;" />
+                      <small class="gc-status" style="color: var(--muted);"></small>
+                    </label>
+                    <label>
+                      Discount Code <span style="font-weight:400; color: var(--muted);">(if any)</span>
+                      <input type="text" name="discount_code" placeholder="e.g. DEALER10" style="text-transform: uppercase;" />
+                    </label>
+                    <label>
+                      Tip ($)
+                      <input type="number" name="tip_amount" placeholder="0" min="0" step="1" />
+                    </label>
+                    <label>
+                      Completed By
+                      <select name="completed_by">
+                        <option value="">— Same as booked —</option>
+                        <% therapists.forEach(function(t) { %>
+                          <option value="<%= t.name %>"><%= t.name %></option>
+                        <% }); %>
+                      </select>
+                    </label>
+                    <div style="display:flex; gap:.5rem;">
+                      <button class="btn btn-small btn-primary" type="submit">Save</button>
+                    </div>
+                  </form>
+                </details>
+                <form method="POST" action="/admin/bookings/<%= b.id %>/charge" style="display:inline;" onsubmit="return confirm('Send payment to Square Terminal?')">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color: var(--brand);" title="Charge via Square Terminal">Charge</button>
+                </form>
+                <form method="POST" action="/admin/bookings/<%= b.id %>/noshow" style="display:inline;" onsubmit="return confirm('Mark as no-show?')">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color: #e67e22;">No Show</button>
+                </form>
+                <form method="POST" action="/admin/bookings/<%= b.id %>/cancel" style="display:inline;" onsubmit="return confirm('Cancel this booking?')">
+                  <button class="btn btn-small btn-ghost" type="submit">Cancel</button>
+                </form>
+                <% if (b.client_phone) { %>
+                <details class="complete-dropdown" style="display: inline-block;">
+                  <summary class="btn btn-small btn-ghost" title="Send text">Text</summary>
+                  <form class="complete-form card" method="POST" action="/admin/send-text">
+                    <input type="hidden" name="phone" value="<%= b.client_phone %>" />
+                    <label>
+                      To: <%= b.client_name %> (<%= b.client_phone %>)
+                      <textarea name="message" rows="3" placeholder="Type your message..." required style="margin-top: .3rem;"></textarea>
+                    </label>
+                    <button class="btn btn-small btn-primary" type="submit">Send</button>
+                  </form>
+                </details>
+                <% } %>
+              <% } %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <h2 style="margin-top: 2rem;">Upcoming Appointments</h2>
+    <% if (upcoming.length === 0) { %>
+    <div class="card"><p class="muted">No upcoming appointments.</p></div>
+    <% } else { %>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Client</th>
+            <th>Phone</th>
+            <th>Service</th>
+            <th>Therapist(s)</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% upcoming.forEach(function(b) { %>
+          <tr class="<%= b.status === 'completed' ? 'completed-row' : '' %>">
+            <td><%= b.date %></td>
+            <td><strong><%= b.time %></strong></td>
+            <td><%= b.client_name %></td>
+            <td><%= b.client_phone %></td>
+            <td><%= b.service_name %></td>
+            <td><%= b.therapist_name || '—' %><%= b.therapist2_name ? ' + ' + b.therapist2_name : '' %></td>
+            <td><span class="admin-badge <%= b.source %>"><%= b.source %></span></td>
+            <td>
+              <% if (b.status === 'completed') { %>
+                <span class="admin-badge completed">Completed</span>
+              <% } else { %>
+                <span class="admin-badge online">Confirmed</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (b.status !== 'completed') { %>
+              <form method="POST" action="/admin/bookings/<%= b.id %>/cancel" onsubmit="return confirm('Cancel this booking?')">
+                <button class="btn btn-small btn-ghost" type="submit">Cancel</button>
+              </form>
+              <% } %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</main>
+
+<script>
+// Live gift cert code lookup
+document.querySelectorAll('input[name="gift_cert_code"]').forEach(function(input) {
+  var timer;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    var code = input.value.trim();
+    var status = input.closest('label').querySelector('.gc-status');
+    if (!status) return;
+    if (code.length < 5) { status.textContent = ''; return; }
+    timer = setTimeout(function() {
+      fetch('/api/admin/gift-cert-check?code=' + encodeURIComponent(code))
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.cert) {
+            status.style.color = '#238636';
+            status.textContent = 'Balance: $' + d.cert.balance.toFixed(2);
+          } else {
+            status.style.color = '#c0392b';
+            status.textContent = d.error || 'Not found';
+          }
+        }).catch(function() { status.textContent = ''; });
+    }, 400);
+  });
+});
+</script>
+
+</body>
+</html>

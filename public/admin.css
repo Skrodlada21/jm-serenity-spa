@@ -1,0 +1,800 @@
+/* ==========================================================================
+   J&M Serenity Spa — Admin Panel Styles
+   ========================================================================== */
+
+.admin-body {
+  background: var(--bg-alt);
+}
+
+/* Admin Header */
+.admin-header {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  padding: .7rem 0;
+}
+
+.admin-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-brand {
+  text-decoration: none !important;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.admin-nav {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.admin-link {
+  font-size: .88rem;
+  padding: .4rem .6rem;
+  border-radius: 10px;
+  color: var(--muted);
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.admin-link:hover {
+  background: rgba(31,111,120,.08);
+  color: var(--text);
+}
+
+.admin-link.is-active {
+  background: #eef3f4;
+  color: var(--text);
+}
+
+/* "Easy Mode" link — stands out */
+.fd-easy-link {
+  background: linear-gradient(135deg, #1f6f78, #114a50);
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: .4rem .8rem;
+}
+.fd-easy-link:hover {
+  filter: brightness(1.15);
+  background: linear-gradient(135deg, #1f6f78, #114a50);
+}
+
+/* Admin Main */
+.admin-main {
+  padding: 2rem 0;
+}
+
+.admin-main h1 {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+}
+
+.admin-main h2 {
+  font-size: 1.2rem;
+  margin-bottom: .6rem;
+}
+
+/* Stats */
+.admin-stat {
+  text-align: center;
+  padding: 1.2rem;
+}
+
+.admin-stat-number {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--brand);
+  margin: 0;
+}
+
+/* Alert */
+.admin-alert {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 12px;
+  padding: .8rem 1rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+/* Tables */
+.admin-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #fff;
+  margin-bottom: 1rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .92rem;
+}
+
+.admin-table th {
+  background: var(--bg-alt);
+  text-align: left;
+  padding: .65rem .75rem;
+  font-size: .82rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: .65rem .75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tfoot td {
+  background: var(--bg-alt);
+  border-top: 2px solid var(--line);
+  border-bottom: none;
+}
+
+.inactive-row {
+  opacity: .55;
+}
+
+.action-cell {
+  white-space: nowrap;
+  display: flex;
+  gap: .3rem;
+}
+
+/* Badges */
+.admin-badge {
+  display: inline-block;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.admin-badge.online {
+  background: #d4edda;
+  color: #155724;
+}
+
+.admin-badge.offline {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.admin-badge.phone {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.admin-badge.completed {
+  background: #c3e6cb;
+  color: #0b5729;
+}
+
+/* Completed booking row */
+.completed-row {
+  background: #f6fdf7;
+}
+
+/* Complete dropdown */
+.complete-dropdown {
+  display: inline-block;
+  position: relative;
+}
+.complete-dropdown summary {
+  list-style: none;
+  cursor: pointer;
+}
+.complete-dropdown summary::-webkit-details-marker { display: none; }
+
+.complete-dropdown .complete-form {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  min-width: 220px;
+  display: grid;
+  gap: .5rem;
+  margin-top: .3rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+.complete-dropdown .complete-form label { font-size: .85rem; }
+.complete-dropdown .complete-form input,
+.complete-dropdown .complete-form select { font-size: .85rem; padding: .5rem .6rem; }
+
+/* Daily Summary sessions */
+.summary-session {
+  display: inline-block;
+  line-height: 1.5;
+}
+.summary-session.completed {
+  color: #238636;
+}
+.summary-session.confirmed {
+  color: var(--text);
+}
+
+/* Slots Grid (booking forms) */
+.slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.slot-btn {
+  padding: .5rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 600;
+  transition: all .15s;
+}
+
+.slot-btn:hover {
+  border-color: var(--brand);
+  background: rgba(31,111,120,.05);
+}
+
+.slot-btn.selected {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+/* Form select styling */
+select {
+  font: inherit;
+  padding: .75rem .85rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235b6470' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .85rem center;
+  padding-right: 2.2rem;
+}
+
+select:focus {
+  outline: 3px solid rgba(31,111,120,.18);
+  border-color: rgba(31,111,120,.35);
+}
+
+
+/* ==========================================================================
+   FRONT DESK — "Easy Mode" Styles
+   Big buttons, big text, touch-friendly, color-coded
+   ========================================================================== */
+
+.front-desk-mode {
+  padding: 1rem 0 2rem;
+}
+
+/* Quick Action Buttons */
+.fd-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .8rem;
+  margin-bottom: 1.5rem;
+}
+
+.fd-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: 1.2rem .8rem;
+  border-radius: 16px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-decoration: none !important;
+  color: #fff;
+  transition: transform .1s, box-shadow .1s;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  min-height: 90px;
+}
+.fd-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+.fd-action-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.fd-action-booking { background: linear-gradient(135deg, #1f6f78, #155a62); }
+.fd-action-walkin  { background: linear-gradient(135deg, #2e86ab, #1b6a8a); }
+.fd-action-gift    { background: linear-gradient(135deg, #b68b5a, #946f42); }
+.fd-action-members { background: linear-gradient(135deg, #7b2d8e, #5a1d6a); }
+
+/* Date Bar */
+.fd-date-bar {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.fd-today-label {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.fd-stats-row {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.fd-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.fd-stat-num {
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--brand);
+}
+
+.fd-stat-pending .fd-stat-num { color: #e67e22; }
+.fd-stat-done .fd-stat-num { color: #238636; }
+
+.fd-stat-label {
+  font-size: .8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+
+/* Booking Cards */
+.fd-bookings {
+  display: grid;
+  gap: .8rem;
+}
+
+.fd-booking-card {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 1.2rem 1.5rem;
+  transition: box-shadow .15s;
+}
+
+.fd-booking-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+}
+
+/* Color-coded left border by status */
+.fd-status-confirmed {
+  border-left: 6px solid #1f6f78;
+}
+.fd-status-completed {
+  border-left: 6px solid #238636;
+  background: #f6fdf7;
+}
+.fd-status-no_show {
+  border-left: 6px solid #e67e22;
+  opacity: .7;
+}
+.fd-status-cancelled {
+  border-left: 6px solid #c0392b;
+  opacity: .55;
+}
+
+.fd-booking-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .6rem;
+}
+
+.fd-time {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--brand);
+}
+
+.fd-status-badge {
+  font-size: .85rem;
+  font-weight: 800;
+  padding: .35rem .8rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.fd-badge-confirmed { background: #d4edda; color: #155724; }
+.fd-badge-completed { background: #c3e6cb; color: #0b5729; }
+.fd-badge-no_show   { background: #fdebd0; color: #a04000; }
+.fd-badge-cancelled  { background: #f8d7da; color: #721c24; }
+
+/* Booking Info */
+.fd-booking-info {
+  margin-bottom: .8rem;
+}
+
+.fd-client-name {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: .15rem;
+}
+
+.fd-member-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #7b2d8e, #5a1d6a);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 800;
+  padding: .15rem .5rem;
+  border-radius: 999px;
+  vertical-align: middle;
+  margin-left: .4rem;
+}
+
+.fd-service {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fd-therapist {
+  color: var(--muted);
+  font-size: .95rem;
+}
+
+.fd-phone {
+  color: var(--muted);
+  font-size: .9rem;
+  margin-top: .2rem;
+}
+
+.fd-addons {
+  font-size: .88rem;
+  color: var(--brand);
+  margin-top: .2rem;
+}
+
+.fd-notes {
+  font-size: .88rem;
+  color: #e67e22;
+  font-style: italic;
+  margin-top: .2rem;
+}
+
+/* BIG action buttons for each booking */
+.fd-booking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  padding-top: .8rem;
+  border-top: 1px solid var(--line);
+}
+
+.fd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: .75rem 1.2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: all .15s;
+  min-height: 48px; /* touch-friendly */
+}
+
+.fd-btn-charge {
+  background: linear-gradient(135deg, #1f6f78, #114a50);
+  color: #fff;
+  flex: 1;
+  min-width: 180px;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(31,111,120,.25);
+}
+.fd-btn-charge:hover {
+  filter: brightness(1.08);
+}
+
+.fd-btn-complete {
+  background: #238636;
+  color: #fff;
+  list-style: none;
+  flex: 1;
+  min-width: 160px;
+}
+.fd-btn-complete:hover { filter: brightness(1.1); }
+
+.fd-btn-noshow {
+  background: #fff;
+  color: #e67e22;
+  border-color: #e67e22;
+}
+.fd-btn-noshow:hover { background: #fef5ec; }
+
+.fd-btn-cancel {
+  background: #fff;
+  color: #c0392b;
+  border-color: #ddd;
+}
+.fd-btn-cancel:hover { background: #fef0ef; border-color: #c0392b; }
+
+.fd-btn-save {
+  background: #238636;
+  color: #fff;
+  width: 100%;
+}
+
+/* Complete form in front desk */
+.fd-complete-details {
+  display: inline-flex;
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+.fd-complete-details summary { width: 100%; }
+.fd-complete-details summary::-webkit-details-marker { display: none; }
+
+.fd-complete-form {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: .4rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+  display: grid;
+  gap: .6rem;
+  min-width: 240px;
+}
+
+.fd-form-label {
+  display: grid;
+  gap: .3rem;
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.fd-select, .fd-input {
+  font: inherit;
+  padding: .65rem .8rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 1rem;
+}
+
+/* Done info for completed */
+.fd-booking-done-info {
+  padding-top: .6rem;
+  border-top: 1px solid var(--line);
+  font-size: .95rem;
+  color: var(--muted);
+}
+
+/* Empty state */
+.fd-empty {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+/* Section titles */
+.fd-section-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 1.5rem 0 .8rem;
+  color: var(--text);
+}
+
+/* Upcoming compact list */
+.fd-upcoming {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.fd-upcoming-row {
+  display: flex;
+  gap: 1rem;
+  padding: .8rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  font-size: .95rem;
+  align-items: center;
+}
+.fd-upcoming-row:last-of-type {
+  border-bottom: none;
+}
+
+.fd-upcoming-date {
+  font-weight: 700;
+  min-width: 90px;
+  color: var(--brand);
+}
+.fd-upcoming-time {
+  font-weight: 800;
+  min-width: 55px;
+}
+.fd-upcoming-client {
+  font-weight: 600;
+  flex: 1;
+}
+.fd-upcoming-service {
+  color: var(--muted);
+}
+
+.fd-link-more {
+  display: block;
+  padding: .8rem 1.2rem;
+  text-align: center;
+  font-weight: 700;
+  color: var(--brand);
+  border-top: 1px solid var(--line);
+}
+
+/* Footer links */
+.fd-footer-links {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.fd-footer-links a {
+  color: var(--muted);
+  font-size: .9rem;
+  text-decoration: none;
+}
+.fd-footer-links a:hover { color: var(--brand); }
+
+
+/* ==========================================================================
+   GENERAL ADMIN UX IMPROVEMENTS
+   Bigger touch targets, clearer spacing
+   ========================================================================== */
+
+/* Make all admin buttons bigger (min 44px touch target) */
+.admin-main .btn {
+  min-height: 44px;
+}
+
+/* Admin action buttons in tables — slightly bigger */
+.admin-main .btn-small {
+  padding: .55rem .9rem;
+  font-size: .9rem;
+  min-height: 40px;
+}
+
+/* Make form inputs bigger in admin for easier tapping */
+.admin-main input,
+.admin-main textarea,
+.admin-main select {
+  font-size: 1rem;
+  padding: .8rem .9rem;
+  min-height: 44px;
+}
+
+/* Bigger checkboxes */
+.admin-main input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: auto;
+}
+
+/* Better table row hover */
+.admin-table tbody tr:hover {
+  background: rgba(31,111,120,.03);
+}
+
+
+/* ==========================================================================
+   Responsive — Front Desk
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .admin-header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-nav {
+    margin-left: 0;
+  }
+
+  .admin-table {
+    font-size: .82rem;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: .5rem;
+  }
+
+  /* Front Desk responsive */
+  .fd-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fd-date-bar {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .fd-today-label {
+    font-size: 1.1rem;
+  }
+
+  .fd-booking-actions {
+    flex-direction: column;
+  }
+
+  .fd-btn {
+    width: 100%;
+  }
+
+  .fd-complete-details {
+    width: 100%;
+  }
+
+  .fd-upcoming-row {
+    flex-wrap: wrap;
+    gap: .4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .fd-quick-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+  }
+
+  .fd-action-btn {
+    padding: .8rem .5rem;
+    font-size: .9rem;
+    min-height: 75px;
+  }
+
+  .fd-action-icon { font-size: 1.5rem; }
+}

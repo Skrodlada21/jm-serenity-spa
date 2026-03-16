@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Check In | J&M Serenity Spa</title>
+  <!-- PWA / Kiosk meta tags — makes it behave like a standalone app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Spa Check-In" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="/images/logo.png" />
+  <link rel="manifest" href="/checkin-manifest.json" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body { background: #f5f1eb; min-height: 100vh; }
+    .checkin-wrap { max-width: 600px; margin: 0 auto; padding: 2rem 1.2rem 4rem; }
+    .checkin-logo { text-align: center; margin-bottom: 1.5rem; }
+    .checkin-logo img { height: 60px; }
+    .checkin-title { text-align: center; font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: .3rem; }
+    .checkin-sub { text-align: center; color: #888; font-size: .95rem; margin-bottom: 1.5rem; }
+    .checkin-card { background: #fff; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 1.2rem; }
+    .checkin-card h2 { font-family: 'Playfair Display', serif; font-size: 1.15rem; margin-bottom: .8rem; padding-bottom: .5rem; border-bottom: 1px solid #eee; }
+    .checkin-field { margin-bottom: .8rem; }
+    .checkin-field label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: .25rem; color: #333; }
+    .checkin-field .hint { font-weight: 400; color: #999; font-size: .8rem; }
+    .checkin-field input, .checkin-field textarea, .checkin-field select {
+      width: 100%; padding: .6rem .8rem; font-size: 1rem; border: 1.5px solid #ddd;
+      border-radius: 10px; font-family: inherit; background: #fafafa;
+    }
+    .checkin-field input:focus, .checkin-field textarea:focus, .checkin-field select:focus {
+      border-color: #1f6f78; outline: none; background: #fff;
+    }
+    .checkin-field textarea { resize: vertical; }
+    .checkin-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .checkin-radio-group { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .checkin-radio-group label { display: inline-flex; align-items: center; gap: .3rem; font-weight: 400; font-size: .95rem; cursor: pointer; }
+    .checkin-consent { background: #f8f6f2; border: 1px solid #e5e0d6; border-radius: 12px; padding: 1rem; margin-bottom: .8rem; max-height: 200px; overflow-y: auto; font-size: .85rem; line-height: 1.5; color: #555; }
+    .checkin-agree { display: flex; align-items: flex-start; gap: .5rem; padding: .8rem 0; }
+    .checkin-agree input { margin-top: .2rem; flex-shrink: 0; width: 20px; height: 20px; }
+    .checkin-agree span { font-size: .95rem; }
+    .btn-checkin { display: block; width: 100%; padding: 1rem; font-size: 1.15rem; font-weight: 700;
+      background: #1f6f78; color: #fff; border: none; border-radius: 12px; cursor: pointer; }
+    .btn-checkin:hover { background: #185a62; }
+    .btn-checkin:disabled { background: #ccc; cursor: not-allowed; }
+    .checkin-success { text-align: center; padding: 3rem 1rem; }
+    .checkin-success h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: #1f6f78; margin-bottom: .5rem; }
+    .checkin-success p { color: #666; font-size: 1.1rem; }
+    .checkin-success .checkmark { font-size: 4rem; margin-bottom: 1rem; }
+    /* Phone lookup section */
+    .phone-lookup { text-align: center; }
+    .phone-lookup input { font-size: 1.4rem; text-align: center; letter-spacing: .05em; max-width: 300px; margin: 0 auto; display: block; }
+    .phone-lookup .btn-lookup { margin-top: .8rem; padding: .7rem 2rem; font-size: 1rem; }
+    #returning-msg { display: none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: .8rem; margin-top: .8rem; color: #2e7d32; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="checkin-wrap">
+  <div class="checkin-logo">
+    <img src="/images/logo.png" alt="J&M Serenity Spa" />
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+  <!-- ===== SUCCESS SCREEN ===== -->
+  <div class="checkin-success">
+    <div class="checkmark">&#10004;</div>
+    <h1>You're All Set!</h1>
+    <p>Thank you, <strong><%= success.name || 'valued guest' %></strong>. Your therapist will be with you shortly.</p>
+    <p style="margin-top: 1.5rem; color: #999; font-size: .9rem;">This screen will reset in a moment.</p>
+  </div>
+  <script>setTimeout(function(){ location.href = '/checkin'; }, 8000);</script>
+
+  <% } else { %>
+
+  <h1 class="checkin-title">Welcome! Let's Check You In</h1>
+  <p class="checkin-sub">Enter your phone number to get started</p>
+
+  <!-- ===== STEP 1: Phone Lookup ===== -->
+  <div id="step-phone" class="checkin-card">
+    <div class="phone-lookup">
+      <div class="checkin-field">
+        <input type="tel" id="phone-input" placeholder="(555) 555-5555" autofocus />
+      </div>
+      <div id="returning-msg"></div>
+      <button class="btn btn-primary btn-lookup" id="btn-continue" type="button">Continue</button>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: Full Intake Form (hidden until phone entered) ===== -->
+  <div id="step-intake" style="display: none;">
+    <form method="POST" action="/checkin" id="checkin-form">
+      <input type="hidden" name="phone" id="form-phone" />
+
+      <div class="checkin-card">
+        <h2>Your Information</h2>
+        <div class="checkin-field">
+          <label>Full Name</label>
+          <input type="text" name="name" id="f-name" placeholder="Your full name" required />
+        </div>
+        <div class="checkin-row">
+          <div class="checkin-field">
+            <label>Email <span class="hint">(optional)</span></label>
+            <input type="email" name="email" id="f-email" placeholder="you@example.com" />
+          </div>
+          <div class="checkin-field">
+            <label>Birthday <span class="hint">(optional)</span></label>
+            <input type="date" name="birthday" id="f-birthday" />
+          </div>
+        </div>
+        <div class="checkin-field">
+          <label>Address <span class="hint">(optional)</span></label>
+          <input type="text" name="address" id="f-address" placeholder="Street address, city, state, zip" />
+        </div>
+      </div>
+
+      <div class="checkin-card">
+        <h2>Emergency Contact</h2>
+        <div class="checkin-row">
+          <div class="checkin-field">
+            <label>Contact Name</label>
+            <input type="text" name="emergency_name" id="f-emerg-name" placeholder="Emergency contact name" />
+          </div>
+          <div class="checkin-field">
+            <label>Contact Phone</label>
+            <input type="tel" name="emergency_phone" id="f-emerg-phone" placeholder="(555) 555-5555" />
+          </div>
+        </div>
+      </div>
+
+      <div class="checkin-card">
+        <h2>Health Information</h2>
+        <p style="color: #888; font-size: .85rem; margin-bottom: .8rem;">This helps your therapist give you the best experience and avoid any issues.</p>
+
+        <div class="checkin-field">
+          <label>Do you have any health conditions? <span class="hint">(e.g., high blood pressure, diabetes, heart condition, recent surgery)</span></label>
+          <textarea name="health_conditions" id="f-health" rows="2" placeholder="List any health conditions, or type 'none'"></textarea>
+        </div>
+
+        <div class="checkin-field">
+          <label>Allergies <span class="hint">(oils, lotions, latex, etc.)</span></label>
+          <input type="text" name="allergies" id="f-allergies" placeholder="List any allergies, or type 'none'" />
+        </div>
+
+        <div class="checkin-field">
+          <label>Current Medications <span class="hint">(optional)</span></label>
+          <input type="text" name="medications" id="f-medications" placeholder="Any medications you're currently taking" />
+        </div>
+
+        <div class="checkin-field">
+          <label>Are you currently pregnant?</label>
+          <div class="checkin-radio-group">
+            <label><input type="radio" name="pregnancy" value="0" checked /> No</label>
+            <label><input type="radio" name="pregnancy" value="1" /> Yes</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkin-card">
+        <h2>Massage Preferences</h2>
+
+        <div class="checkin-field">
+          <label>Pressure Preference</label>
+          <div class="checkin-radio-group">
+            <label><input type="radio" name="pressure_pref" value="Light" /> Light</label>
+            <label><input type="radio" name="pressure_pref" value="Medium" /> Medium</label>
+            <label><input type="radio" name="pressure_pref" value="Firm" /> Firm</label>
+            <label><input type="radio" name="pressure_pref" value="Deep" /> Deep</label>
+          </div>
+        </div>
+
+        <div class="checkin-field">
+          <label>Areas to Focus On <span class="hint">(e.g., lower back, shoulders, neck, feet)</span></label>
+          <input type="text" name="areas_to_focus" id="f-focus" placeholder="Any areas that need extra attention" />
+        </div>
+
+        <div class="checkin-field">
+          <label>Areas to Avoid <span class="hint">(injuries, sensitive areas, etc.)</span></label>
+          <input type="text" name="areas_to_avoid" id="f-avoid" placeholder="Any areas your therapist should avoid" />
+        </div>
+
+        <div class="checkin-field">
+          <label>Additional Notes <span class="hint">(anything else your therapist should know)</span></label>
+          <textarea name="notes" id="f-notes" rows="2" placeholder="Special requests, injuries, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="checkin-card">
+        <h2>Consent & Waiver</h2>
+        <div class="checkin-consent">
+          <p><strong>Informed Consent for Massage Therapy</strong></p>
+          <p>I understand that massage therapy is provided for the purpose of relaxation, stress reduction, relief from muscular tension, and improvement of circulation and energy flow.</p>
+          <p>I understand that massage therapists are not qualified to diagnose illness, disease, or any physical or mental disorder, and that massage therapy is not a substitute for medical examination or treatment.</p>
+          <p>I have stated all known medical conditions and will keep my therapist updated on any changes. I understand that there shall be no liability on the therapist's part should I forget to do so.</p>
+          <p>I understand that if I experience any pain or discomfort during the session, I will immediately inform my therapist so that the treatment can be adjusted.</p>
+          <p>I understand that massage therapy is entirely voluntary, and I may choose to end the session at any time.</p>
+          <p>I consent to the massage therapy treatment provided by J&M Serenity Spa.</p>
+        </div>
+        <div class="checkin-agree">
+          <input type="checkbox" name="consent" id="consent-check" value="1" />
+          <span>I have read and agree to the above consent and waiver</span>
+        </div>
+      </div>
+
+      <button class="btn-checkin" type="submit" id="btn-submit" disabled>Complete Check-In</button>
+    </form>
+  </div>
+
+  <% } %>
+</div>
+
+<script>
+(function(){
+  var phoneInput = document.getElementById('phone-input');
+  var btnContinue = document.getElementById('btn-continue');
+  var stepPhone = document.getElementById('step-phone');
+  var stepIntake = document.getElementById('step-intake');
+  var returningMsg = document.getElementById('returning-msg');
+  var consentCheck = document.getElementById('consent-check');
+  var btnSubmit = document.getElementById('btn-submit');
+
+  if (!phoneInput) return;
+
+  // Enable/disable submit based on consent
+  if (consentCheck && btnSubmit) {
+    consentCheck.addEventListener('change', function() {
+      btnSubmit.disabled = !consentCheck.checked;
+    });
+  }
+
+  // Check for returning client as they type
+  var timer;
+  phoneInput.addEventListener('input', function() {
+    clearTimeout(timer);
+    var phone = phoneInput.value.replace(/\D/g, '');
+    if (phone.length < 7) { returningMsg.style.display = 'none'; return; }
+    timer = setTimeout(function() {
+      fetch('/api/client-lookup?phone=' + encodeURIComponent(phoneInput.value))
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+          if (data.client && data.client.name) {
+            returningMsg.style.display = 'block';
+            returningMsg.innerHTML = 'Welcome back, <strong>' + data.client.name + '</strong>!';
+          } else {
+            returningMsg.style.display = 'none';
+          }
+        }).catch(function(){});
+    }, 500);
+  });
+
+  // Continue button — show intake form
+  btnContinue.addEventListener('click', function() {
+    var phone = phoneInput.value.trim();
+    if (phone.replace(/\D/g, '').length < 7) {
+      phoneInput.style.borderColor = '#e74c3c';
+      phoneInput.focus();
+      return;
+    }
+    phoneInput.style.borderColor = '';
+    document.getElementById('form-phone').value = phone;
+
+    // Pre-fill from existing client data
+    fetch('/api/client-lookup?phone=' + encodeURIComponent(phone))
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data.client) {
+          if (data.client.name) document.getElementById('f-name').value = data.client.name;
+          if (data.client.email) document.getElementById('f-email').value = data.client.email;
+          if (data.client.areas_to_focus) document.getElementById('f-focus').value = data.client.areas_to_focus;
+          if (data.client.areas_to_avoid) document.getElementById('f-avoid').value = data.client.areas_to_avoid;
+          if (data.client.pressure_pref) {
+            var radios = document.querySelectorAll('input[name="pressure_pref"]');
+            radios.forEach(function(r) { if (r.value === data.client.pressure_pref) r.checked = true; });
+          }
+          if (data.client.notes) document.getElementById('f-notes').value = data.client.notes;
+        }
+        showIntakeForm();
+      })
+      .catch(function(){ showIntakeForm(); });
+  });
+
+  // Also allow Enter key on phone input
+  phoneInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); btnContinue.click(); }
+  });
+
+  function showIntakeForm() {
+    stepPhone.style.display = 'none';
+    stepIntake.style.display = 'block';
+    document.getElementById('f-name').focus();
+  }
+})();
+
+// ============================================================
+// KIOSK LOCKDOWN — keeps the tablet on this page only
+// ============================================================
+(function(){
+  // 1. Disable right-click context menu
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+  // 2. Disable text selection (except in form inputs)
+  document.addEventListener('selectstart', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+  });
+
+  // 3. Block back/forward navigation
+  history.pushState(null, '', '/checkin');
+  window.addEventListener('popstate', function() {
+    history.pushState(null, '', '/checkin');
+  });
+
+  // 4. Block keyboard shortcuts (Ctrl+L, Ctrl+T, Ctrl+N, etc.)
+  document.addEventListener('keydown', function(e) {
+    // Allow normal typing in inputs
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      // But still block Ctrl/Cmd shortcuts even in inputs
+      if (e.ctrlKey || e.metaKey) {
+        var allowed = ['a','c','v','x','z']; // Allow select-all, copy, paste, cut, undo
+        if (allowed.indexOf(e.key.toLowerCase()) === -1) { e.preventDefault(); }
+      }
+      return;
+    }
+    // Block F-keys, Ctrl, Meta combos outside inputs
+    if (e.key.startsWith('F') || e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+    }
+  });
+
+  // 5. Auto-reset if idle on the intake form for 5 minutes
+  //    (in case someone walks away mid-form)
+  var idleTimer;
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function() {
+      // Only reset if we're on the intake step (not the phone step or success)
+      var intakeStep = document.getElementById('step-intake');
+      if (intakeStep && intakeStep.style.display !== 'none') {
+        location.href = '/checkin';
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+  ['touchstart', 'mousemove', 'keydown', 'scroll'].forEach(function(evt) {
+    document.addEventListener(evt, resetIdle, { passive: true });
+  });
+  resetIdle();
+
+  // 6. Disable pinch-to-zoom (prevents escaping the page on tablets)
+  document.addEventListener('touchmove', function(e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  // 7. Disable long-press (prevents "Open in new tab" menu on tablets)
+  var longPressTimer;
+  document.addEventListener('touchstart', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    longPressTimer = setTimeout(function() {}, 500);
+  }, { passive: true });
+  document.addEventListener('touchend', function() { clearTimeout(longPressTimer); }, { passive: true });
+
+  // 8. If somehow navigated away, come back
+  window.addEventListener('blur', function() {
+    setTimeout(function() { window.focus(); }, 100);
+  });
+})();
+</script>
+
+</body>
+</html>

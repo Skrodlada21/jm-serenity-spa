@@ -1,0 +1,212 @@
+<%- include('partials/header', {
+  title: 'J&M Serenity Spa — Signature Treatments',
+  description: 'J&M Serenity Spa in Highlands Ranch, CO — Signature Treatments including massage, reflexology, aromatherapy, and more. Book online today.',
+  activePage: 'home'
+}) %>
+
+<main>
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow reveal">J&amp;M Serenity Spa</p>
+        <h1 class="reveal">Signature Treatments for Deep Relaxation &amp; Real Relief</h1>
+        <p class="lead muted reveal" style="max-width: 55ch;">
+          A calm, elevated experience — choose your therapist, select a treatment, and book a time that fits your schedule.
+        </p>
+
+        <div class="hero-actions reveal">
+          <a class="btn btn-primary" href="/book">Choose Therapist &amp; Book</a>
+          <a class="btn btn-ghost" href="/treatments">View Signature Treatments</a>
+        </div>
+
+        <div class="hero-notes reveal">
+          <div class="note">
+            <strong>No online payments</strong>
+            <span>Payment is due at your appointment.</span>
+          </div>
+          <div class="note">
+            <strong>Therapist selection</strong>
+            <span>Pick your therapist every time.</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-card reveal" aria-label="Signature Treatments card">
+        <div class="hero-card-inner">
+          <p class="hero-card-title">Signature Treatments</p>
+          <ul class="checklist">
+            <% services.slice(0, 6).forEach(function(svc) { %>
+            <li><%= svc.name %></li>
+            <% }); %>
+          </ul>
+          <a class="btn btn-primary btn-block" href="/book">Book Now</a>
+          <p class="muted small">Choose your therapist every time.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== TREATMENTS ===== -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>Signature Treatments</h2>
+        <p class="muted">Thoughtfully designed sessions to relax, restore, and recharge.</p>
+      </div>
+
+      <div class="grid cards">
+        <% services.forEach(function(svc) { %>
+        <article class="card reveal">
+          <h3><%= svc.name %></h3>
+          <p class="muted" style="font-weight: 600; margin-bottom: .3rem;"><%= svc.duration %> min &bull; $<%= svc.price %></p>
+          <p><%= svc.description %></p>
+          <% if (svc.good_for) { %>
+          <p class="small muted">Great for: <%= svc.good_for %></p>
+          <% } %>
+        </article>
+        <% }); %>
+      </div>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="/book">Choose Therapist &amp; Book</a>
+        <a class="btn btn-ghost" href="/treatments">See All Details</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ADD-ONS ===== -->
+  <% if (addons && addons.length > 0) { %>
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>Enhancements &amp; Add-Ons</h2>
+        <p class="muted">Elevate any session with these extras — select them when you book.</p>
+      </div>
+      <div class="grid three">
+        <% addons.forEach(function(a) { %>
+        <div class="pill reveal">
+          <h3><%= a.name %> <span style="color: var(--accent); font-weight: 700;">+$<%= a.price %></span></h3>
+          <% if (a.description) { %>
+          <p><%= a.description %></p>
+          <% } %>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- ===== MEET THE TEAM ===== -->
+  <% if (therapists && therapists.length > 0) { %>
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>Meet Our Therapists</h2>
+        <p class="muted">Skilled professionals dedicated to your wellness.</p>
+      </div>
+      <div class="grid three">
+        <% therapists.slice(0, 6).forEach(function(t) { %>
+        <div class="card reveal" style="text-align: center; padding: 1.5rem;">
+          <% if (t.photo) { %>
+          <img src="<%= t.photo %>" alt="<%= t.name %>" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto .75rem; display: block; border: 3px solid var(--line);" />
+          <% } %>
+          <h3><%= t.name %></h3>
+          <% if (t.specialties) { %>
+          <p class="small muted"><%= t.specialties %></p>
+          <% } %>
+        </div>
+        <% }); %>
+      </div>
+      <div class="cta-row reveal">
+        <a class="btn btn-ghost" href="/about">Learn More About the Team</a>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- ===== REVIEWS ===== -->
+  <% if (reviews && reviews.length > 0) { %>
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>What Our Clients Say</h2>
+        <p class="muted">Real feedback from real guests.</p>
+      </div>
+      <div class="grid three">
+        <% reviews.forEach(function(r) { %>
+        <div class="card reveal" style="padding: 1.5rem;">
+          <div style="color: var(--accent); margin-bottom: .4rem;">
+            <% for (var i = 0; i < (r.rating || 5); i++) { %>★<% } %>
+          </div>
+          <p style="font-style: italic; margin-bottom: .75rem;">"<%= r.text %>"</p>
+          <p class="small muted" style="font-weight: 600;">— <%= r.client_name %></p>
+        </div>
+        <% }); %>
+      </div>
+      <div class="cta-row reveal">
+        <a class="btn btn-ghost" href="/reviews">Read More Reviews</a>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- ===== WHY US ===== -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <h2>Why Clients Choose J&amp;M Serenity Spa</h2>
+        <p class="muted">A polished experience — simple booking, calm setting, personalized care.</p>
+      </div>
+
+      <div class="grid three">
+        <div class="pill reveal">
+          <h3>Professional &amp; Caring</h3>
+          <p>Licensed therapists focused on comfort, safety, and results.</p>
+        </div>
+        <div class="pill reveal">
+          <h3>Customized Sessions</h3>
+          <p>We tailor pressure and techniques to your goals each visit.</p>
+        </div>
+        <div class="pill reveal">
+          <h3>Easy Online Booking</h3>
+          <p>Pick your therapist, choose a treatment, and you're set.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GIFT CERTIFICATES + GALLERY TEASERS ===== -->
+  <section class="section alt">
+    <div class="container">
+      <div class="grid two">
+        <div class="card reveal" style="padding: 1.5rem; text-align: center;">
+          <h3>Gift Certificates</h3>
+          <p class="muted" style="margin-bottom: .75rem;">Give the gift of relaxation. Available for any amount — perfect for birthdays, holidays, or just because.</p>
+          <a class="btn btn-ghost" href="/gift-certificates">Check Balance</a>
+        </div>
+        <div class="card reveal" style="padding: 1.5rem; text-align: center;">
+          <h3>Our Space</h3>
+          <p class="muted" style="margin-bottom: .75rem;">Take a peek inside our calm, welcoming spa environment designed for your comfort.</p>
+          <a class="btn btn-ghost" href="/gallery">View Gallery</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FINAL CTA ===== -->
+  <section class="section">
+    <div class="container split reveal">
+      <div>
+        <h2>Ready to unwind?</h2>
+        <p class="lead muted">Choose your therapist and book your next session in minutes.</p>
+      </div>
+      <div class="split-actions">
+        <a class="btn btn-primary" href="/book">Book Now</a>
+        <a class="btn btn-ghost" href="/contact">Questions? Contact Us</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

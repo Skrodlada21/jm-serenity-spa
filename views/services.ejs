@@ -1,0 +1,73 @@
+<%- include('partials/header', {
+  title: 'Signature Treatments | J&M Serenity Spa',
+  description: 'Explore Signature Treatments at J&M Serenity Spa — massage, reflexology, and more in Highlands Ranch, CO.',
+  activePage: 'treatments'
+}) %>
+
+<main>
+  <section class="page-hero">
+    <div class="container">
+      <p class="eyebrow reveal">Signature Treatments</p>
+      <h1 class="reveal">Choose Your Treatment</h1>
+      <p class="lead muted reveal" style="max-width: 68ch;">
+        Every session is customized. You'll choose your therapist during booking, then select the treatment that fits your needs.
+      </p>
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="/book">Choose Therapist &amp; Book</a>
+        <a class="btn btn-ghost" href="/contact">Ask a Question</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <div class="grid service-cards">
+        <% services.forEach(function(svc) { %>
+        <article class="card service reveal">
+          <h2><%= svc.name %></h2>
+          <p class="muted"><strong><%= svc.duration %> minutes</strong> &bull; $<%= svc.price %></p>
+          <p><%= svc.description %></p>
+          <% if (svc.good_for) { %>
+          <p class="small muted">Great for: <%= svc.good_for %></p>
+          <% } %>
+          <a class="btn btn-small btn-ghost" href="/book?service=<%= svc.id %>">Book This</a>
+        </article>
+        <% }); %>
+      </div>
+
+      <% if (addons && addons.length > 0) { %>
+      <div class="callout reveal" style="margin-bottom: 2rem;">
+        <h3>Enhancements &amp; Add-Ons</h3>
+        <p class="muted" style="margin-bottom: .8rem;">
+          Elevate your session with any of these add-ons — select them when you book.
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+          <% addons.forEach(function(a) { %>
+          <div style="background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: .8rem 1.2rem; min-width: 180px; flex: 1;">
+            <strong><%= a.name %></strong>
+            <span style="color: var(--accent); font-weight: 700; margin-left: .5rem;">+$<%= a.price %></span>
+            <% if (a.description) { %>
+            <p class="muted small" style="margin-top: .3rem;"><%= a.description %></p>
+            <% } %>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+
+      <div class="callout reveal">
+        <h3>Signature Treatments</h3>
+        <p class="muted">
+          We keep our menu simple and high-quality. If you're unsure what to book, choose your therapist first — they can help you select the best option.
+        </p>
+      </div>
+
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="/book">Book Now</a>
+        <a class="btn btn-ghost" href="/about">Meet the Team</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

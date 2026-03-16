@@ -1,0 +1,34 @@
+<%- include('../partials/header', {
+  title: 'Admin Login | J&M Serenity Spa',
+  description: 'Admin login',
+  activePage: 'admin'
+}) %>
+
+<main>
+  <section class="section">
+    <div class="container" style="max-width: 420px;">
+      <div class="card">
+        <h2>Admin Login</h2>
+        <p class="muted small">Enter the admin password to manage the spa.</p>
+
+        <% if (error) { %>
+        <p style="color: #c0392b; font-weight: 700; margin-top: .5rem;"><%= error %></p>
+        <% } %>
+
+        <form class="form" method="POST" action="/admin/login">
+          <label>
+            Password
+            <input type="password" name="password" placeholder="Enter admin password" required autofocus />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit">Log In</button>
+        </form>
+      </div>
+
+      <p class="muted small" style="text-align:center; margin-top: 1rem;">
+        <a href="/">← Back to website</a>
+      </p>
+    </div>
+  </section>
+</main>
+
+<%- include('../partials/footer') %>
