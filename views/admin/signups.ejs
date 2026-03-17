@@ -1,0 +1,45 @@
+<%- include('../partials/admin-header', { activePage: 'admin-settings' }) %>
+
+<main class="admin-main">
+  <div class="container" style="max-width: 640px;">
+    <h1>Email Signups</h1>
+    <p class="muted" style="margin-bottom: 1rem;"><%= signups.length %> people signed up for updates from the Coming Soon page.</p>
+
+    <% if (signups.length > 0) { %>
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2>Copy All Emails</h2>
+      <p class="muted small" style="margin-bottom: .5rem;">Use this to paste into an email BCC field or mailing list:</p>
+      <textarea id="all-emails" readonly rows="3" style="width: 100%; font-size: .85rem; padding: .5rem; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9; resize: vertical;"><%= signups.map(s => s.email).join(', ') %></textarea>
+      <button class="btn btn-primary btn-small" style="margin-top: .5rem;" onclick="document.getElementById('all-emails').select(); document.execCommand('copy'); this.textContent='Copied!';">Copy to Clipboard</button>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Signed Up</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% signups.forEach(function(s, i) { %>
+          <tr>
+            <td class="muted"><%= i + 1 %></td>
+            <td><%= s.email %></td>
+            <td class="muted small"><%= s.created_at %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+    <div class="card"><p class="muted">No signups yet. Once people start entering their email on the Coming Soon page, they'll show up here.</p></div>
+    <% } %>
+
+    <a href="/admin/settings" class="btn btn-ghost" style="margin-top: 1rem;">&larr; Back to Settings</a>
+  </div>
+</main>
+
+</body>
+</html>

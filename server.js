@@ -114,6 +114,11 @@ function csrfCheck(req, res, next) {
 app.use((req, res, next) => {
   res.locals.settings = db.getAllSettings();
   res.locals.isAdmin = !!req.session.admin;
+  // Prevent browser caching of HTML pages so setting changes take effect immediately
+  if (!req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$/)) {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("Pragma", "no-cache");
+  }
   next();
 });
 
@@ -170,7 +175,9 @@ app.use((req, res, next) => {
   // Admin, desk staff, and preview sessions bypass
   if (req.session.admin || req.session.desk || req.session.preview) return next();
 
-  // Everyone else sees coming soon
+  // Everyone else sees coming soon — no caching so changes take effect immediately
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.set("Pragma", "no-cache");
   return res.render("coming-soon");
 });
 
@@ -384,6 +391,20 @@ app.get("/api/client-lookup", (req, res) => {
 // Therapists API (for dynamic filtering)
 app.get("/api/therapists", (req, res) => {
   res.json({ therapists: db.getActiveTherapists() });
+});
+
+// Email signup (coming soon page)
+app.post("/api/signup", (req, res) => {
+  const email = (req.body.email || "").trim();
+  if (!email || !email.includes("@")) {
+    return res.json({ ok: false, error: "Please enter a valid email." });
+  }
+  try {
+    db.addEmailSignup(email);
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: false, error: "Something went wrong." });
+  }
 });
 
 /* =========================================================================
@@ -1208,6 +1229,12 @@ app.post("/admin/expenses/:id/mark-paid", requireAdmin, (req, res) => {
 app.post("/admin/expenses/:id/delete", requireAdmin, (req, res) => {
   db.deleteExpense(parseInt(req.params.id, 10));
   res.redirect("/admin/expenses");
+});
+
+// Email signups list
+app.get("/admin/signups", requireAdmin, (req, res) => {
+  const signups = db.getEmailSignups();
+  res.render("admin/signups", { activePage: "admin-settings", signups });
 });
 
 // Settings
