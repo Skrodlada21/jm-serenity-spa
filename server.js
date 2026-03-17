@@ -144,7 +144,8 @@ function requireDesk(req, res, next) {
 
 // Direct route to see the coming soon page (always accessible)
 app.get("/coming-soon", (req, res) => {
-  res.render("coming-soon");
+  const baseUrl = req.protocol + "://" + req.get("host");
+  res.render("coming-soon", { baseUrl });
 });
 
 // Preview mode: sets a session flag so you can browse the real site even when coming-soon is on
@@ -178,7 +179,8 @@ app.use((req, res, next) => {
   // Everyone else sees coming soon — no caching so changes take effect immediately
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.set("Pragma", "no-cache");
-  return res.render("coming-soon");
+  const baseUrl = req.protocol + "://" + req.get("host");
+  return res.render("coming-soon", { baseUrl });
 });
 
 /* =========================================================================
@@ -504,6 +506,7 @@ app.get("/admin", requireAdmin, (req, res) => {
     allAddons: db.getAllAddons(),
     today,
     viewDate,
+    signupCount: db.getEmailSignupCount(),
   });
 });
 
@@ -1235,6 +1238,81 @@ app.post("/admin/expenses/:id/delete", requireAdmin, (req, res) => {
 app.get("/admin/signups", requireAdmin, (req, res) => {
   const signups = db.getEmailSignups();
   res.render("admin/signups", { activePage: "admin-settings", signups });
+});
+
+// Send update to subscribers
+app.get("/admin/send-update", requireAdmin, (req, res) => {
+  const signups = db.getEmailSignups();
+  const settings = db.getAllSettings();
+  const smtpConfigured = !!(settings.smtp_host && settings.smtp_user && settings.smtp_pass);
+  res.render("admin/send-update", {
+    activePage: "admin-settings",
+    signupCount: signups.length,
+    emails: signups.map(s => s.email),
+    smtpConfigured,
+    pastUpdates: db.getSentUpdates(),
+  });
+});
+
+app.post("/admin/send-update", requireAdmin, async (req, res) => {
+  const { subject, message, action } = req.body;
+  const signups = db.getEmailSignups();
+  const settings = db.getAllSettings();
+  const smtpConfigured = !!(settings.smtp_host && settings.smtp_user && settings.smtp_pass);
+  const emails = signups.map(s => s.email);
+
+  // Preview mode
+  if (action === "preview") {
+    const messageHtml = (message || "").replace(/\n/g, "<br />");
+    return res.render("admin/send-update", {
+      activePage: "admin-settings",
+      signupCount: signups.length,
+      emails,
+      smtpConfigured,
+      pastUpdates: db.getSentUpdates(),
+      preview: { subject, messageHtml },
+      lastSubject: subject,
+      lastMessage: message,
+    });
+  }
+
+  // Send mode
+  if (action === "send" && smtpConfigured) {
+    try {
+      const emailLib = require("./lib/email");
+      let sentCount = 0;
+      for (const addr of emails) {
+        try {
+          await emailLib.sendEmail(addr, subject, message);
+          sentCount++;
+        } catch (e) {
+          console.error("Failed to send to", addr, e.message);
+        }
+      }
+      db.saveSentUpdate(subject, message, sentCount);
+      return res.render("admin/send-update", {
+        activePage: "admin-settings",
+        signupCount: signups.length,
+        emails,
+        smtpConfigured,
+        pastUpdates: db.getSentUpdates(),
+        sent: sentCount,
+      });
+    } catch (e) {
+      return res.render("admin/send-update", {
+        activePage: "admin-settings",
+        signupCount: signups.length,
+        emails,
+        smtpConfigured,
+        pastUpdates: db.getSentUpdates(),
+        error: "Failed to send: " + e.message,
+        lastSubject: subject,
+        lastMessage: message,
+      });
+    }
+  }
+
+  res.redirect("/admin/send-update");
 });
 
 // Settings

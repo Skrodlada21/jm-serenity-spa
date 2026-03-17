@@ -8,7 +8,7 @@
     <div class="admin-alert">Phone booking added successfully.</div>
     <% } %>
 
-    <div class="grid three" style="margin-bottom: 1.5rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
       <div class="card admin-stat">
         <p class="admin-stat-number"><%= stats.todayCount %></p>
         <p class="muted small">Today</p>
@@ -21,6 +21,12 @@
         <p class="admin-stat-number"><%= stats.monthCount %></p>
         <p class="muted small">This Month</p>
       </div>
+      <% if (signupCount > 0) { %>
+      <a href="/admin/signups" class="card admin-stat" style="text-decoration: none; border-top: 3px solid #e67e22;">
+        <p class="admin-stat-number" style="color: #e67e22;"><%= signupCount %></p>
+        <p class="muted small">Email Signups</p>
+      </a>
+      <% } %>
     </div>
 
     <!-- ============================================================
