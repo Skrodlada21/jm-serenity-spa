@@ -41,9 +41,21 @@ pm2 restart spa
 
 ### Accessing the Pi from Cowork/Claude
 
-Cowork mode runs in an isolated VM that cannot reach local network devices directly. To SSH into the Pi:
+**Method 1 — Direct SSH from sandbox (try first):**
+Some Cowork sessions have network access. If so, set up an SSH key and copy it to the Pi:
+```bash
+mkdir -p ~/.ssh && ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "cowork-spa-deploy"
+# Then copy the public key to the Pi (requires user to enter password once):
+ssh-copy-id -i ~/.ssh/id_ed25519 nick@192.168.7.5
+# After that, connect with:
+ssh -i ~/.ssh/id_ed25519 nick@192.168.7.5 "cd ~/jm-serenity-spa && git pull && pm2 restart spa"
+```
+Test with: `ssh -o ConnectTimeout=5 nick@192.168.7.5 "echo connected"` — if "Network is unreachable", use Method 2.
 
-1. Open the **HA SSH Web Terminal** via Chrome: navigate to `https://lieterhas.duckdns.org:8123/hassio/ingress/a0d7b954_ssh`
+**Method 2 — Via HA SSH Web Terminal (fallback):**
+If the sandbox has no network access (only loopback), use Chrome to access Home Assistant's SSH terminal:
+
+1. Open the **HA SSH Web Terminal** via Chrome MCP: navigate to `https://lieterhas.duckdns.org:8123/hassio/ingress/a0d7b954_ssh`
 2. From the HA terminal, SSH to the Pi with the pre-configured key:
    ```bash
    ssh -i ~/.ssh/id_ed25519_pi nick@192.168.7.5
