@@ -75,6 +75,22 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 /* =========================================================================
+   HTML Escaping (for XSS prevention)
+   ========================================================================= */
+
+function escapeHtml(str) {
+  if (!str) return "";
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  };
+  return str.replace(/[&<>"']/g, (c) => map[c]);
+}
+
+/* =========================================================================
    Middleware
    ========================================================================= */
 
@@ -85,9 +101,17 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Session secret: use env var, or generate and store in database on first run
+let sessionSecret = db.getSetting("session_secret");
+if (!sessionSecret || sessionSecret === "jm-spa-secret-key-change-me") {
+  sessionSecret = crypto.randomBytes(32).toString("hex");
+  db.setSetting("session_secret", sessionSecret);
+  console.log("✓ Generated and stored new session secret");
+}
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "jm-spa-secret-key-change-me",
+    secret: process.env.SESSION_SECRET || sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 8 * 60 * 60 * 1000 },
@@ -1263,7 +1287,9 @@ app.post("/admin/send-update", requireAdmin, async (req, res) => {
 
   // Preview mode
   if (action === "preview") {
-    const messageHtml = (message || "").replace(/\n/g, "<br />");
+    // Escape message content first, then convert newlines to <br /> for display
+    const escapedMessage = escapeHtml(message || "");
+    const messageHtml = escapedMessage.replace(/\n/g, "<br />");
     return res.render("admin/send-update", {
       activePage: "admin-settings",
       signupCount: signups.length,
