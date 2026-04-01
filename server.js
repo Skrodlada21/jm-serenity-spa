@@ -40,6 +40,34 @@ const galleryStorage = multer.diskStorage({
 });
 const galleryUpload = multer({ storage: galleryStorage, limits: { fileSize: 10 * 1024 * 1024 } });
 
+// Expense receipt upload (photos or PDFs)
+const receiptDir = path.join(__dirname, "public", "receipts");
+if (!fs.existsSync(receiptDir)) fs.mkdirSync(receiptDir, { recursive: true });
+
+const receiptStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, receiptDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExt = [".jpg", ".jpeg", ".png", ".gif", ".pdf"];
+    if (!allowedExt.includes(ext)) {
+      return cb(new Error("Only JPG, PNG, GIF, and PDF files allowed"));
+    }
+    cb(null, "receipt-" + Date.now() + ext);
+  },
+});
+const receiptUpload = multer({
+  storage: receiptStorage,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB for PDFs
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "application/pdf"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"));
+    }
+  },
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -1227,10 +1255,12 @@ app.get("/admin/expenses", requireAdmin, (req, res) => {
   });
 });
 
-app.post("/admin/expenses", requireAdmin, (req, res) => {
+app.post("/admin/expenses", requireAdmin, receiptUpload.single("receipt"), (req, res) => {
   const b = req.body;
   // Merge due_to from either the reimbursement or due-bill field
   const dueTo = b.due_to || b.due_to_bill || "";
+  const receiptFile = req.file ? "/receipts/" + req.file.filename : "";
+  
   db.addExpense({
     description: b.description,
     amount: parseFloat(b.amount),
@@ -1244,6 +1274,7 @@ app.post("/admin/expenses", requireAdmin, (req, res) => {
     paid_by: b.paid_by || "",
     due_to: dueTo,
     due_date: b.due_date || "",
+    receipt_file: receiptFile,
   });
   res.redirect("/admin/expenses?month=" + (b.date ? b.date.slice(0, 7) : new Date().toISOString().slice(0, 7)));
 });
