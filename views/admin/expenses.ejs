@@ -82,7 +82,7 @@
     <!-- Add Expense -->
     <div class="card" style="margin-bottom: 1.5rem;">
       <h2>Add Expense</h2>
-      <form class="form" method="POST" action="/admin/expenses">
+      <form class="form" method="POST" action="/admin/expenses" enctype="multipart/form-data">
         <label>
           Description
           <input type="text" name="description" placeholder="What was the expense?" required />
@@ -177,6 +177,11 @@
           Notes <span class="muted small">(optional)</span>
           <input type="text" name="notes" placeholder="Extra details, receipt #, etc." />
         </label>
+        <label>
+          Receipt <span class="muted small">(optional — photo or PDF)</span>
+          <input type="file" name="receipt" accept=".jpg,.jpeg,.png,.gif,.pdf" />
+          <span class="muted small" style="display: block; margin-top: .3rem;">Accepted: JPG, PNG, GIF, PDF (max 15MB)</span>
+        </label>
         <button class="btn btn-primary" type="submit">Add Expense</button>
       </form>
     </div>
@@ -236,6 +241,9 @@
               <%= e.description %>
               <% if (e.is_startup) { %>
                 <span style="display: inline-block; font-size: .7rem; background: #9b59b6; color: #fff; padding: .1rem .4rem; border-radius: 4px; margin-left: .3rem;">STARTUP</span>
+              <% } %>
+              <% if (e.receipt_file) { %>
+                <br /><a href="<%= e.receipt_file %>" target="_blank" style="display: inline-block; font-size: .75rem; background: #3498db; color: #fff; padding: .15rem .5rem; border-radius: 4px; text-decoration: none; margin-top: .3rem;">📎 View Receipt</a>
               <% } %>
               <% if (e.due_to) { %>
                 <br /><span style="font-size: .8rem; color: #e74c3c; font-weight: 600;">Owe: <%= e.due_to %></span>
