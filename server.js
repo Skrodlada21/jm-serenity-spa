@@ -1247,10 +1247,12 @@ app.get("/admin/expenses", requireAdmin, (req, res) => {
   const expenses = db.getExpenses(month, filter);
   const totals = db.getExpenseTotals(month);
   const summary = db.getRecurringExpenseSummary();
+  const taxSummary = db.getTaxDeductibleSummary(month);
   res.render("admin/expenses", {
     activePage: "admin-expenses",
     expenses, totals, summary, filter,
     grandTotal: totals.reduce((sum, t) => sum + t.total, 0),
+    taxSummary,
     month,
   });
 });
@@ -1275,6 +1277,35 @@ app.post("/admin/expenses", requireAdmin, receiptUpload.single("receipt"), (req,
     due_to: dueTo,
     due_date: b.due_date || "",
     receipt_file: receiptFile,
+    tax_deductible: b.tax_deductible === "1" ? 1 : 0,
+  });
+  res.redirect("/admin/expenses?month=" + (b.date ? b.date.slice(0, 7) : new Date().toISOString().slice(0, 7)));
+});
+
+app.post("/admin/expenses/:id/edit", requireAdmin, receiptUpload.single("receipt"), (req, res) => {
+  const b = req.body;
+  const id = parseInt(req.params.id, 10);
+  const expense = db.getExpenseById(id);
+  const dueTo = b.due_to || b.due_to_bill || "";
+  
+  // Keep existing receipt unless a new one is uploaded
+  const receiptFile = req.file ? "/receipts/" + req.file.filename : (expense ? expense.receipt_file : "");
+  
+  db.updateExpense(id, {
+    description: b.description,
+    amount: parseFloat(b.amount),
+    category: b.category,
+    date: b.date,
+    frequency: b.frequency,
+    is_startup: b.is_startup === "1",
+    vendor: b.vendor,
+    notes: b.notes,
+    payment_status: b.payment_status,
+    paid_by: b.paid_by || "",
+    due_to: dueTo,
+    due_date: b.due_date || "",
+    receipt_file: receiptFile,
+    tax_deductible: b.tax_deductible === "1" ? 1 : 0,
   });
   res.redirect("/admin/expenses?month=" + (b.date ? b.date.slice(0, 7) : new Date().toISOString().slice(0, 7)));
 });

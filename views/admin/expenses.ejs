@@ -79,9 +79,34 @@
       </div>
     </div>
 
+    <!-- TAX DEDUCTIBLE SUMMARY -->
+    <% if (taxSummary) { %>
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #27ae60;">
+      <h2 style="font-size: 1rem; margin-bottom: .5rem;">📋 Tax Deductible Summary — <%= month %></h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div style="background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: 1rem;">
+          <p class="muted small" style="margin-bottom: .3rem;">Total Deductible</p>
+          <p style="font-size: 1.3rem; font-weight: 700; color: #27ae60;">$<%= taxSummary.totalDeductible.toFixed(2) %></p>
+        </div>
+        <div style="background: #fef0f0; border: 1px solid #f5c6cb; border-radius: 10px; padding: 1rem;">
+          <p class="muted small" style="margin-bottom: .3rem;">Non-Deductible</p>
+          <p style="font-size: 1.3rem; font-weight: 700; color: #e74c3c;">$<%= taxSummary.totalNonDeductible.toFixed(2) %></p>
+        </div>
+      </div>
+      <% if (taxSummary.byCategory.length > 0) { %>
+      <h3 style="font-size: .9rem; margin-top: 1rem; margin-bottom: .5rem;">By Category</h3>
+      <ul style="margin: 0; padding-left: 1.5rem; font-size: .9rem;">
+        <% taxSummary.byCategory.forEach(function(cat) { %>
+        <li><strong><%= cat.category %></strong> — $<%= cat.total.toFixed(2) %></li>
+        <% }); %>
+      </ul>
+      <% } %>
+    </div>
+    <% } %>
+
     <!-- Add Expense -->
     <div class="card" style="margin-bottom: 1.5rem;">
-      <h2>Add Expense</h2>
+      <h2>Add / Edit Expense</h2>
       <form class="form" method="POST" action="/admin/expenses" enctype="multipart/form-data">
         <label>
           Description
@@ -172,6 +197,10 @@
             <input type="checkbox" name="is_startup" value="1" style="width: 20px; height: 20px;" />
             <span>Startup Cost</span>
           </label>
+          <label style="display: flex; align-items: center; gap: .5rem; padding-top: .3rem;">
+            <input type="checkbox" name="tax_deductible" value="1" checked style="width: 20px; height: 20px;" />
+            <span>Tax Deductible 🧾</span>
+          </label>
         </div>
         <label>
           Notes <span class="muted small">(optional)</span>
@@ -242,6 +271,9 @@
               <% if (e.is_startup) { %>
                 <span style="display: inline-block; font-size: .7rem; background: #9b59b6; color: #fff; padding: .1rem .4rem; border-radius: 4px; margin-left: .3rem;">STARTUP</span>
               <% } %>
+              <% if (e.tax_deductible) { %>
+                <span style="display: inline-block; font-size: .7rem; background: #27ae60; color: #fff; padding: .1rem .4rem; border-radius: 4px; margin-left: .3rem;">TAX✓</span>
+              <% } %>
               <% if (e.receipt_file) { %>
                 <br /><a href="<%= e.receipt_file %>" target="_blank" style="display: inline-block; font-size: .75rem; background: #3498db; color: #fff; padding: .15rem .5rem; border-radius: 4px; text-decoration: none; margin-top: .3rem;">📎 View Receipt</a>
               <% } %>
@@ -281,6 +313,7 @@
             </td>
             <td><strong>$<%= e.amount.toFixed(2) %></strong></td>
             <td style="white-space: nowrap;">
+              <button class="btn btn-small" type="button" style="background: #3498db; color: #fff; margin-bottom: .3rem;" onclick="editExpense(<%= e.id %>)">Edit</button>
               <% if (e.payment_status === 'due' || e.payment_status === 'reimburse') { %>
               <form method="POST" action="/admin/expenses/<%= e.id %>/mark-paid" style="display: inline;">
                 <button class="btn btn-small" type="submit" style="background: #27ae60; color: #fff; margin-bottom: .3rem;">Mark Paid</button>
@@ -313,6 +346,66 @@
   sel.addEventListener('change', toggle);
   toggle();
 })();
+
+// Edit expense — populate form with existing data and submit to edit endpoint
+function editExpense(id) {
+  const row = event.target.closest('tr');
+  if (!row) return;
+  
+  // Find the data cells
+  const date = row.cells[0].textContent.trim();
+  const desc = row.cells[1].textContent.trim().split('\n')[0];
+  const category = row.cells[2].textContent.trim();
+  const vendor = row.cells[3].textContent.trim();
+  const amount = row.cells[6].textContent.replace('$', '').trim();
+  
+  // Scroll to form and update action
+  const form = document.querySelector('form[action="/admin/expenses"]');
+  if (!form) return;
+  
+  form.action = '/admin/expenses/' + id + '/edit';
+  form.style.background = '#e8f5e9';
+  form.style.border = '2px solid #27ae60';
+  form.style.padding = '1rem';
+  form.style.borderRadius = '10px';
+  
+  // Populate fields
+  form.description.value = desc;
+  form.amount.value = amount;
+  form.date.value = date;
+  form.category.value = category;
+  form.vendor.value = vendor;
+  
+  // Scroll to form
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  
+  // Update button text
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn) {
+    btn.textContent = 'Update Expense';
+    btn.style.background = '#27ae60';
+  }
+  
+  // Add cancel button if not exists
+  if (!form.querySelector('.cancel-edit')) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn-ghost cancel-edit';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.marginLeft = '.5rem';
+    cancelBtn.onclick = function() {
+      form.action = '/admin/expenses';
+      form.reset();
+      form.style.background = '';
+      form.style.border = '';
+      form.style.padding = '';
+      btn.textContent = 'Add Expense';
+      btn.style.background = '';
+      this.remove();
+    };
+    btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
+  }
+}
 </script>
 
 </body>
