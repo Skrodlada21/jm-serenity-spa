@@ -992,6 +992,15 @@ app.get("/api/member-check", (req, res) => {
   }
 });
 
+// API: Get quarterly tax summary
+app.get("/api/admin/quarterly-tax", requireAdmin, (req, res) => {
+  const year = parseInt(req.query.year, 10) || new Date().getFullYear();
+  const quarter = parseInt(req.query.quarter, 10) || 1;
+  if (quarter < 1 || quarter > 4) return res.json({ quarterly: null });
+  const quarterly = db.getQuarterlyTaxSummary(year, quarter);
+  res.json({ quarterly });
+});
+
 // ---- Discount Codes / Partnerships ----
 app.get("/admin/discounts", requireAdmin, (req, res) => {
   const editId = req.query.edit ? parseInt(req.query.edit, 10) : null;

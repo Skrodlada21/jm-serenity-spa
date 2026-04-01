@@ -58,24 +58,43 @@
       <div style="display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end;">
         <form class="form" method="GET" action="/admin/expenses" style="display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end; margin: 0;">
           <label style="margin: 0;">
-            Month
-            <input type="month" name="month" value="<%= month %>" style="min-width: 160px;" />
+            <% if (filter === "monthly" || filter === "yearly" || filter === "recurring" || filter === "startup") { %>
+              Year (for recurring/startup)
+            <% } else { %>
+              Month
+            <% } %>
+            <input type="<%= (filter === 'monthly' || filter === 'yearly' || filter === 'recurring' || filter === 'startup') ? 'number' : 'month' %>" name="month" value="<%= month %>" style="min-width: 160px;" placeholder="<%= (filter === 'monthly' || filter === 'yearly' || filter === 'recurring' || filter === 'startup') ? '2026' : '' %>" />
           </label>
           <label style="margin: 0;">
             Filter
             <select name="filter" style="min-width: 160px;">
-              <option value="" <%= filter === '' ? 'selected' : '' %>>All Expenses</option>
-              <option value="monthly" <%= filter === 'monthly' ? 'selected' : '' %>>Monthly Only</option>
-              <option value="yearly" <%= filter === 'yearly' ? 'selected' : '' %>>Yearly Only</option>
-              <option value="recurring" <%= filter === 'recurring' ? 'selected' : '' %>>All Recurring</option>
-              <option value="startup" <%= filter === 'startup' ? 'selected' : '' %>>Startup Costs</option>
-              <option value="due" <%= filter === 'due' ? 'selected' : '' %>>Bills Due</option>
-              <option value="reimburse" <%= filter === 'reimburse' ? 'selected' : '' %>>Needs Reimbursement</option>
-              <option value="unpaid" <%= filter === 'unpaid' ? 'selected' : '' %>>All Unpaid</option>
+              <option value="" <%= filter === '' ? 'selected' : '' %>>All Expenses (by month)</option>
+              <option value="monthly" <%= filter === 'monthly' ? 'selected' : '' %>>Monthly Recurring (all)</option>
+              <option value="yearly" <%= filter === 'yearly' ? 'selected' : '' %>>Yearly Recurring (all)</option>
+              <option value="recurring" <%= filter === 'recurring' ? 'selected' : '' %>>All Recurring (all)</option>
+              <option value="startup" <%= filter === 'startup' ? 'selected' : '' %>>Startup Costs (all)</option>
+              <option value="due" <%= filter === 'due' ? 'selected' : '' %>>Bills Due (all)</option>
+              <option value="reimburse" <%= filter === 'reimburse' ? 'selected' : '' %>>Needs Reimbursement (all)</option>
+              <option value="unpaid" <%= filter === 'unpaid' ? 'selected' : '' %>>All Unpaid (all)</option>
             </select>
           </label>
           <button class="btn btn-primary btn-small" type="submit" style="height: 40px;">Filter</button>
         </form>
+      </div>
+    </div>
+    
+    <!-- Quarterly Tax Estimator -->
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #e67e22;">
+      <h2 style="font-size: 1rem; margin-bottom: .5rem;">📊 Quarterly Estimated Tax (Q1-Q4)</h2>
+      <p class="muted small" style="margin-bottom: .8rem;">Track quarterly tax payments based on deductible expenses. Rough estimate: 25% of deductible expenses.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+        <% const currentYear = new Date().getFullYear(); %>
+        <% for (let q = 1; q <= 4; q++) { %>
+        <div style="background: #fff8f0; border: 1px solid #f5cba7; border-radius: 10px; padding: .8rem; cursor: pointer;" onclick="loadQuarterlyTax(<%= currentYear %>, <%= q %>)">
+          <p style="font-weight: 600; margin: 0 0 .3rem; font-size: .9rem;">Q<%= q %> <%= currentYear %></p>
+          <p class="muted small" style="margin: 0;">Click to view</p>
+        </div>
+        <% } %>
       </div>
     </div>
 
@@ -346,6 +365,27 @@
   sel.addEventListener('change', toggle);
   toggle();
 })();
+
+// Load quarterly tax data via AJAX
+function loadQuarterlyTax(year, quarter) {
+  fetch('/api/admin/quarterly-tax?year=' + year + '&quarter=' + quarter)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.quarterly) { alert('No data'); return; }
+      const q = data.quarterly;
+      let msg = 'Q' + q.quarter + ' ' + q.year + '\n\n';
+      msg += 'Total Deductible: $' + q.totalDeductible.toFixed(2) + '\n';
+      msg += 'Est. Tax Owed (~25%): $' + q.estimatedTaxOwed.toFixed(2) + '\n\n';
+      if (q.byCategory.length > 0) {
+        msg += 'By Category:\n';
+        q.byCategory.forEach(cat => {
+          msg += '  ' + cat.category + ': $' + cat.total.toFixed(2) + '\n';
+        });
+      }
+      alert(msg);
+    })
+    .catch(e => alert('Error loading quarterly data'));
+}
 
 // Edit expense — populate form with existing data and submit to edit endpoint
 function editExpense(id) {
