@@ -484,6 +484,8 @@
   <p class="sub">Sign up for updates on our progress, opening date, and exclusive early-bird offers.</p>
   <form class="signup-form" id="signup-form" method="POST" action="/api/signup">
     <input type="email" name="email" placeholder="Enter your email" required />
+    <!-- Honeypot: bots fill this, humans don't see it -->
+    <input type="text" name="_hp" style="position:absolute;left:-9999px;top:-9999px;opacity:0;height:0;width:0;" tabindex="-1" autocomplete="off" />
     <button type="submit">Notify Me</button>
   </form>
   <div class="signup-success" id="signup-success">You're on the list! We'll keep you posted.</div>

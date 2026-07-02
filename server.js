@@ -448,10 +448,22 @@ app.get("/api/therapists", (req, res) => {
 });
 
 // Email signup (coming soon page)
-app.post("/api/signup", (req, res) => {
+// Honeypot: bots fill hidden fields, real humans don't see them
+app.post("/api/signup", rateLimit, (req, res) => {
+  // Honeypot check — if the hidden field is filled, silently pretend we succeeded
+  if (req.body._hp && req.body._hp.length > 0) {
+    return res.json({ ok: true });
+  }
   const email = (req.body.email || "").trim();
-  if (!email || !email.includes("@")) {
+  // Reject obviously fake emails (common disposable/bogus patterns)
+  const legitEmail = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~\-]+@[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
+  if (!email || !legitEmail.test(email)) {
     return res.json({ ok: false, error: "Please enter a valid email." });
+  }
+  // Block common throwaway/disposable domains
+  const blockedDomains = /@(mailinator\.com|guerrillamail\.com|10minutemail\.com|tempmail|yopmail|sharklasers|trashmail|throwaway|dispostable)\./i;
+  if (blockedDomains.test(email)) {
+    return res.json({ ok: true }); // silently accept but don't store
   }
   try {
     db.addEmailSignup(email);
