@@ -7,3 +7,7 @@ db/*.db-shm
 *.log
 .DS_Store
 Thumbs.db
+# Uploaded financial receipts — never commit these (contain PII)
+private_uploads/
+public/receipts/
+data.db

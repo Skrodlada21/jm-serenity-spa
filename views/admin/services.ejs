@@ -114,7 +114,7 @@
               <form method="POST" action="/admin/services/<%= s.id %>/toggle" style="display:inline;">
                 <button class="btn btn-small btn-ghost" type="submit"><%= s.active ? 'Hide' : 'Show' %></button>
               </form>
-              <form method="POST" action="/admin/services/<%= s.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete <%= s.name %>?')">
+              <form method="POST" action="/admin/services/<%= s.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this service?')">
                 <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
               </form>
             </td>
@@ -198,7 +198,7 @@
               <form method="POST" action="/admin/addons/<%= a.id %>/toggle" style="display:inline;">
                 <button class="btn btn-small btn-ghost" type="submit"><%= a.active ? 'Hide' : 'Show' %></button>
               </form>
-              <form method="POST" action="/admin/addons/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete <%= a.name %>?')">
+              <form method="POST" action="/admin/addons/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this add-on?')">
                 <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
               </form>
             </td>

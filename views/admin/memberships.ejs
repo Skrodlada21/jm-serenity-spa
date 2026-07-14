@@ -207,7 +207,7 @@
             <td class="action-cell">
               <a class="btn btn-small btn-ghost" href="/admin/memberships?editMember=<%= m.id %>#members">Edit</a>
               <% if (m.status === 'active') { %>
-                <form method="POST" action="/admin/memberships/members/<%= m.id %>/use-visit" style="display:inline;" onsubmit="return confirm('Use 1 visit for <%= m.client_name %>?')">
+                <form method="POST" action="/admin/memberships/members/<%= m.id %>/use-visit" style="display:inline;" onsubmit="return confirm('Use 1 visit for this member?')">
                   <button class="btn btn-small btn-ghost" type="submit" style="color: var(--brand);">Use Visit</button>
                 </form>
                 <form method="POST" action="/admin/memberships/members/<%= m.id %>/pause" style="display:inline;">

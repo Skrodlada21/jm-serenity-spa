@@ -8,11 +8,29 @@ const path = require("path");
 const fs = require("fs");
 const express = require("express");
 const session = require("express-session");
+const helmet = require("helmet");
 const multer = require("multer");
 const db = require("./lib/db");
 const email = require("./lib/email");
 const sms = require("./lib/sms");
 const square = require("./lib/square");
+
+// Image uploads: only accept real image types, and derive the stored
+// extension from the (validated) mimetype — never from the client filename.
+// This prevents uploading .svg/.html that would execute as script on our origin.
+const IMAGE_MIME_EXT = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+};
+function imageFileFilter(req, file, cb) {
+  if (IMAGE_MIME_EXT[file.mimetype]) return cb(null, true);
+  cb(new Error("Only JPG, PNG, GIF, and WEBP images are allowed"));
+}
+function randomName(prefix, ext) {
+  return prefix + "-" + Date.now() + "-" + crypto.randomBytes(6).toString("hex") + ext;
+}
 
 // Multer config for therapist photos
 const photoDir = path.join(__dirname, "public", "images", "therapists");
@@ -20,12 +38,9 @@ if (!fs.existsSync(photoDir)) fs.mkdirSync(photoDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, photoDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, "therapist-" + Date.now() + ext);
-  },
+  filename: (req, file, cb) => cb(null, randomName("therapist", IMAGE_MIME_EXT[file.mimetype] || ".jpg")),
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: imageFileFilter });
 
 // Gallery photo upload
 const galleryDir = path.join(__dirname, "public", "images", "gallery");
@@ -33,43 +48,76 @@ if (!fs.existsSync(galleryDir)) fs.mkdirSync(galleryDir, { recursive: true });
 
 const galleryStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, galleryDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, "gallery-" + Date.now() + ext);
-  },
+  filename: (req, file, cb) => cb(null, randomName("gallery", IMAGE_MIME_EXT[file.mimetype] || ".jpg")),
 });
-const galleryUpload = multer({ storage: galleryStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const galleryUpload = multer({ storage: galleryStorage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFileFilter });
 
-// Expense receipt upload (photos or PDFs)
-const receiptDir = path.join(__dirname, "public", "receipts");
+// Expense receipt upload (photos or PDFs).
+// Stored OUTSIDE the public web root and served only through an
+// authenticated route (see /admin/receipts/:file) so financial documents
+// are never directly reachable. Filenames are random to defeat enumeration.
+const receiptDir = path.join(__dirname, "private_uploads", "receipts");
 if (!fs.existsSync(receiptDir)) fs.mkdirSync(receiptDir, { recursive: true });
 
+const RECEIPT_MIME_EXT = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/gif": ".gif",
+  "application/pdf": ".pdf",
+};
 const receiptStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, receiptDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const allowedExt = [".jpg", ".jpeg", ".png", ".gif", ".pdf"];
-    if (!allowedExt.includes(ext)) {
-      return cb(new Error("Only JPG, PNG, GIF, and PDF files allowed"));
-    }
-    cb(null, "receipt-" + Date.now() + ext);
-  },
+  filename: (req, file, cb) => cb(null, randomName("receipt", RECEIPT_MIME_EXT[file.mimetype] || ".dat")),
 });
 const receiptUpload = multer({
   storage: receiptStorage,
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB for PDFs
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "application/pdf"];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type"));
-    }
+    if (RECEIPT_MIME_EXT[file.mimetype]) return cb(null, true);
+    cb(new Error("Only JPG, PNG, GIF, and PDF files allowed"));
   },
 });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Behind Nginx Proxy Manager (+ Cloudflare): trust the first proxy hop so
+// req.ip is the real client (for rate limiting), req.secure reflects the
+// terminated TLS, and secure cookies work.
+app.set("trust proxy", 1);
+
+// Security headers. CSP is left off for now because the templates rely on
+// inline styles/scripts and some remote images (coming-soon); enabling a
+// strict policy would break rendering. HSTS/frameguard/nosniff/referrer are safe.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    hsts: { maxAge: 31536000, includeSubDomains: true },
+  })
+);
+
+// Public base URL for links placed in outbound email/SMS. Prefer a configured
+// value over the request Host header to avoid Host-header link poisoning.
+function publicBaseUrl(req) {
+  const configured = db.getSetting("site_url");
+  if (configured) return configured.replace(/\/+$/, "");
+  return req.protocol + "://" + req.get("host");
+}
+
+// Redirect back to the referring page ONLY if it is same-origin; otherwise
+// use a safe fallback. Prevents open-redirect via a forged Referer header.
+function safeBack(req, fallback) {
+  const ref = req.get("Referrer") || req.get("Referer");
+  if (ref) {
+    try {
+      if (new URL(ref).host === req.get("host")) return ref;
+    } catch (e) { /* ignore malformed referer */ }
+  }
+  return fallback;
+}
 
 /* =========================================================================
    Rate Limiting (simple in-memory)
@@ -99,6 +147,55 @@ setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of rateLimitMap) {
     if (now - entry.start > RATE_LIMIT_WINDOW) rateLimitMap.delete(ip);
+  }
+}, 5 * 60 * 1000);
+
+// Stricter limiter for authentication endpoints (login / PIN unlock) to stop
+// online password/PIN brute-forcing. Keyed per-IP; short window, low ceiling.
+const authLimitMap = new Map();
+const AUTH_WINDOW = 15 * 60 * 1000; // 15 minutes
+const AUTH_MAX = 8; // attempts per IP per window
+
+function authRateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  let entry = authLimitMap.get(ip);
+  if (!entry || now - entry.start > AUTH_WINDOW) entry = { start: now, count: 0 };
+  entry.count++;
+  authLimitMap.set(ip, entry);
+  if (entry.count > AUTH_MAX) {
+    return res.status(429).send("Too many attempts. Please wait a few minutes and try again.");
+  }
+  next();
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of authLimitMap) {
+    if (now - entry.start > AUTH_WINDOW) authLimitMap.delete(ip);
+  }
+}, 5 * 60 * 1000);
+
+// Looser limiter for read-only phone lookups (client / member autofill).
+// Generous enough never to bother a real person filling out one form, but
+// low enough to make phone-number enumeration impractical.
+const lookupLimitMap = new Map();
+const LOOKUP_WINDOW = 15 * 60 * 1000;
+const LOOKUP_MAX = 40;
+
+function lookupRateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  let entry = lookupLimitMap.get(ip);
+  if (!entry || now - entry.start > LOOKUP_WINDOW) entry = { start: now, count: 0 };
+  entry.count++;
+  lookupLimitMap.set(ip, entry);
+  if (entry.count > LOOKUP_MAX) return res.status(429).json({ client: null, member: null });
+  next();
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of lookupLimitMap) {
+    if (now - entry.start > LOOKUP_WINDOW) lookupLimitMap.delete(ip);
   }
 }, 5 * 60 * 1000);
 
@@ -142,11 +239,18 @@ app.use(
     secret: process.env.SESSION_SECRET || sessionSecret,
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 8 * 60 * 60 * 1000 },
+    cookie: {
+      maxAge: 8 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "lax",
+      // "auto" sets the Secure flag only on HTTPS requests (via trust proxy),
+      // so the cookie still works for direct HTTP access on the LAN.
+      secure: "auto",
+    },
   })
 );
 
-// CSRF Token middleware
+// CSRF Token middleware — makes a per-session token available to templates.
 app.use((req, res, next) => {
   if (!req.session.csrfToken) {
     req.session.csrfToken = crypto.randomBytes(24).toString("hex");
@@ -155,13 +259,37 @@ app.use((req, res, next) => {
   next();
 });
 
-function csrfCheck(req, res, next) {
-  const token = req.body._csrf || req.query._csrf;
-  if (token && token === req.session.csrfToken) return next();
-  // Allow forms without CSRF for backwards compat during rollout
-  // Later you can return res.status(403).send("Invalid CSRF token");
-  next();
+// CSRF protection for all state-changing requests. A request passes if it
+// either carries the correct session token OR originates from our own site
+// (Origin/Referer host is one we recognize). Combined with SameSite=Lax
+// cookies this blocks cross-site forgery without a token in every form.
+// The allow-list tolerates the reverse proxy rewriting the Host header.
+function allowedHosts(req) {
+  const set = new Set(["jmserenityspa.com", "www.jmserenityspa.com"]);
+  const h = req.get("host");
+  if (h) set.add(h.toLowerCase());
+  const site = db.getSetting("site_url");
+  if (site) {
+    try { set.add(new URL(site).host.toLowerCase()); } catch (e) { /* ignore */ }
+  }
+  return set;
 }
+function verifyCsrf(req, res, next) {
+  const method = req.method.toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return next();
+
+  const token = (req.body && req.body._csrf) || req.get("x-csrf-token");
+  if (token && req.session.csrfToken && token === req.session.csrfToken) return next();
+
+  const source = req.get("origin") || req.get("referer");
+  if (source) {
+    try {
+      if (allowedHosts(req).has(new URL(source).host.toLowerCase())) return next();
+    } catch (e) { /* malformed — fall through to block */ }
+  }
+  return res.status(403).send("Request blocked for security (invalid origin).");
+}
+app.use(verifyCsrf);
 
 app.use((req, res, next) => {
   res.locals.settings = db.getAllSettings();
@@ -196,8 +324,7 @@ function requireDesk(req, res, next) {
 
 // Direct route to see the coming soon page (always accessible)
 app.get("/coming-soon", (req, res) => {
-  const baseUrl = req.protocol + "://" + req.get("host");
-  res.render("coming-soon", { baseUrl });
+  res.render("coming-soon", { baseUrl: publicBaseUrl(req) });
 });
 
 // Preview mode: sets a session flag so you can browse the real site even when coming-soon is on
@@ -231,8 +358,7 @@ app.use((req, res, next) => {
   // Everyone else sees coming soon — no caching so changes take effect immediately
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.set("Pragma", "no-cache");
-  const baseUrl = req.protocol + "://" + req.get("host");
-  return res.render("coming-soon", { baseUrl });
+  return res.render("coming-soon", { baseUrl: publicBaseUrl(req) });
 });
 
 /* =========================================================================
@@ -332,15 +458,17 @@ app.post("/book", rateLimit, (req, res) => {
   // Send email & SMS confirmation (async, non-blocking)
   const booking = db.getBookingById(result.lastInsertRowid);
   const addons = aidStr ? db.getAddonsByIds(aidStr.split(",").map(Number)) : [];
-  const baseUrl = req.protocol + "://" + req.get("host");
+  const baseUrl = publicBaseUrl(req);
   email.sendBookingConfirmation(booking, addons, baseUrl).catch(() => {});
   sms.sendBookingConfirmationSMS(booking, baseUrl).catch(() => {});
 
-  res.redirect("/booking-confirm/" + result.lastInsertRowid);
+  // Redirect using the unguessable cancel token, not the sequential id,
+  // so confirmation pages can't be enumerated to harvest customer PII.
+  res.redirect("/booking-confirm/" + cancelToken);
 });
 
-app.get("/booking-confirm/:id", (req, res) => {
-  const booking = db.getBookingById(parseInt(req.params.id, 10));
+app.get("/booking-confirm/:token", (req, res) => {
+  const booking = db.getBookingByToken(req.params.token);
   if (!booking) return res.redirect("/book");
   const bookingAddons = booking.addon_ids ? db.getAddonsByIds(booking.addon_ids.split(",").map(Number)) : [];
   res.render("booking-confirm", { activePage: "book", booking, bookingAddons });
@@ -410,8 +538,11 @@ app.get("/api/availability", (req, res) => {
   res.json({ slots });
 });
 
-// Client lookup by phone (public — used on booking forms)
-app.get("/api/client-lookup", (req, res) => {
+// Client lookup by phone (public — used on booking forms).
+// Rate limited and intentionally minimal: returns only name/email so the
+// booking form can autofill. Stored preference/health notes are NOT exposed
+// to this unauthenticated endpoint (staff tools use full profiles instead).
+app.get("/api/client-lookup", lookupRateLimit, (req, res) => {
   const phone = (req.query.phone || "").trim();
   if (!phone || phone.replace(/\D/g, "").length < 7) return res.json({ client: null });
   const client = db.getClientByPhone(phone);
@@ -420,10 +551,6 @@ app.get("/api/client-lookup", (req, res) => {
       name: client.name,
       email: client.email,
       phone: client.phone,
-      pressure_pref: client.pressure_pref,
-      areas_to_focus: client.areas_to_focus,
-      areas_to_avoid: client.areas_to_avoid,
-      notes: client.notes,
       intake_complete: !!client.intake_complete,
     }});
   } else {
@@ -525,11 +652,15 @@ app.post("/checkin", (req, res) => {
 
 app.get("/admin/login", (req, res) => res.render("admin/login", { activePage: "admin", error: null }));
 
-app.post("/admin/login", (req, res) => {
+app.post("/admin/login", authRateLimit, (req, res) => {
   const password = db.getSetting("admin_password") || "serenity2025";
   if (req.body.password === password) {
-    req.session.admin = true;
-    return res.redirect("/admin");
+    // Regenerate the session on privilege change to prevent session fixation.
+    return req.session.regenerate((err) => {
+      if (err) return res.render("admin/login", { activePage: "admin", error: "Login error, please try again." });
+      req.session.admin = true;
+      res.redirect("/admin");
+    });
   }
   res.render("admin/login", { activePage: "admin", error: "Incorrect password" });
 });
@@ -767,7 +898,7 @@ app.post("/admin/bookings/:id/cancel", requireStaff, (req, res) => {
   const booking = db.getBookingById(parseInt(req.params.id, 10));
   db.cancelBooking(parseInt(req.params.id, 10));
   if (booking) sms.sendCancellationSMS(booking).catch(() => {});
-  const back = req.get("Referrer") || "/admin";
+  const back = safeBack(req, "/admin");
   res.redirect(back);
 });
 
@@ -805,13 +936,13 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
   }
 
   db.completeBooking(bookingId, payment_method, parseFloat(tip_amount) || 0, completed_by || "");
-  const back = req.get("Referrer") || "/admin";
+  const back = safeBack(req, "/admin");
   res.redirect(back);
 });
 
 app.post("/admin/bookings/:id/noshow", requireStaff, (req, res) => {
   db.noShowBooking(parseInt(req.params.id, 10));
-  const back = req.get("Referrer") || "/admin";
+  const back = safeBack(req, "/admin");
   res.redirect(back);
 });
 
@@ -821,7 +952,7 @@ app.post("/admin/send-text", requireStaff, (req, res) => {
   if (phone && message) {
     sms.sendSMS(phone, message).catch(() => {});
   }
-  res.redirect(req.get("Referrer") || "/admin");
+  res.redirect(safeBack(req, "/admin"));
 });
 
 // ---- Square Terminal Checkout ----
@@ -856,11 +987,11 @@ app.post("/admin/bookings/:id/charge", requireStaff, async (req, res) => {
   });
 
   if (checkout) {
-    const back = req.get("Referrer") || "/admin";
+    const back = safeBack(req, "/admin");
     const sep = back.includes("?") ? "&" : "?";
     res.redirect(back + sep + "terminal_sent=1&checkout_id=" + checkout.id);
   } else {
-    const back = req.get("Referrer") || "/admin";
+    const back = safeBack(req, "/admin");
     const sep = back.includes("?") ? "&" : "?";
     res.redirect(back + sep + "terminal_error=1");
   }
@@ -944,7 +1075,7 @@ app.post("/admin/memberships/members/:id/renew", requireAdmin, (req, res) => {
 
 app.post("/admin/memberships/members/:id/use-visit", requireStaff, (req, res) => {
   db.useMemberVisit(parseInt(req.params.id, 10), req.body.booking_id ? parseInt(req.body.booking_id, 10) : null);
-  const back = req.get("Referrer") || "/admin/memberships#members";
+  const back = safeBack(req, "/admin/memberships#members");
   res.redirect(back);
 });
 
@@ -993,7 +1124,7 @@ app.get("/api/admin/pin-check", requireStaff, (req, res) => {
 });
 
 // API: Check membership by phone (used in booking form)
-app.get("/api/member-check", (req, res) => {
+app.get("/api/member-check", lookupRateLimit, (req, res) => {
   const phone = req.query.phone || "";
   if (!phone) return res.json({ member: null });
   const member = db.getMemberByPhone(phone);
@@ -1130,18 +1261,13 @@ app.post("/admin/gift-certificates", requireStaff, async (req, res) => {
   const code = "JMS-" + crypto.randomBytes(4).toString("hex").toUpperCase();
   const parsedAmount = parseFloat(amount);
 
-  // Look up who created this gift cert by their PIN
-  let createdBy = "";
-  if (employee_pin) {
-    const emp = db.getTherapistByPin(employee_pin.trim());
-    if (emp) {
-      createdBy = emp.name;
-    } else {
-      // Invalid PIN — redirect back with error
-      const back = req.get("Referrer") || "/admin/gift-certificates";
-      return res.redirect(back + "?pin_error=1");
-    }
+  // Require a valid employee PIN so every gift-cert issuance is attributable.
+  const emp = db.getTherapistByPin((employee_pin || "").trim());
+  if (!emp) {
+    const back = safeBack(req, "/admin/gift-certificates");
+    return res.redirect(back + "?pin_error=1");
   }
+  const createdBy = emp.name;
 
   if (payment_method === "Square Terminal") {
     db.createGiftCertificate(code, purchaser_name, purchaser_email || "", recipient_name || "", parsedAmount, message || "", "", createdBy);
@@ -1164,13 +1290,11 @@ app.post("/admin/gift-certificates", requireStaff, async (req, res) => {
 // Mark a gift certificate as paid (if created without payment initially)
 app.post("/admin/gift-certificates/:id/mark-paid", requireStaff, (req, res) => {
   const { payment_method, employee_pin } = req.body;
-  // Verify employee PIN
-  if (employee_pin) {
-    const emp = db.getTherapistByPin(employee_pin.trim());
-    if (!emp) {
-      const back = req.get("Referrer") || "/admin/gift-certificates";
-      return res.redirect(back + "?pin_error=1");
-    }
+  // Require a valid employee PIN.
+  const emp = db.getTherapistByPin((employee_pin || "").trim());
+  if (!emp) {
+    const back = safeBack(req, "/admin/gift-certificates");
+    return res.redirect(back + "?pin_error=1");
   }
   db.markGiftCertificatePaid(parseInt(req.params.id, 10), payment_method || "Cash");
   res.redirect("/admin/gift-certificates");
@@ -1204,17 +1328,14 @@ app.get("/admin/gift-certificates/:id/print", requireStaff, (req, res) => {
 
 app.post("/admin/gift-certificates/:id/redeem", requireStaff, (req, res) => {
   const { amount, redeemed_by, notes, employee_pin } = req.body;
-  // Verify employee PIN
-  let staffName = "";
-  if (employee_pin) {
-    const emp = db.getTherapistByPin(employee_pin.trim());
-    if (!emp) {
-      const back = req.get("Referrer") || "/admin/gift-certificates";
-      return res.redirect(back + "?pin_error=1");
-    }
-    staffName = emp.name;
+  // Require a valid employee PIN so every redemption is attributable.
+  const emp = db.getTherapistByPin((employee_pin || "").trim());
+  if (!emp) {
+    const back = safeBack(req, "/admin/gift-certificates");
+    return res.redirect(back + "?pin_error=1");
   }
-  db.redeemGiftCertificate(parseInt(req.params.id, 10), parseFloat(amount) || 0, redeemed_by || "", (notes ? notes + " " : "") + (staffName ? "[Staff: " + staffName + "]" : ""));
+  const staffName = emp.name;
+  db.redeemGiftCertificate(parseInt(req.params.id, 10), parseFloat(amount) || 0, redeemed_by || "", (notes ? notes + " " : "") + "[Staff: " + staffName + "]");
   res.redirect("/admin/gift-certificates");
 });
 
@@ -1262,6 +1383,17 @@ app.post("/admin/gallery/:id/delete", requireAdmin, (req, res) => {
 });
 
 // Expenses
+// Serve expense receipts (financial documents) only to authenticated admins.
+// Files live outside the public web root; basename-only lookup blocks traversal.
+app.get("/admin/receipts/:file", requireAdmin, (req, res) => {
+  const name = path.basename(req.params.file);
+  const full = path.join(receiptDir, name);
+  if (!full.startsWith(receiptDir + path.sep) || !fs.existsSync(full)) {
+    return res.status(404).send("Not found");
+  }
+  res.sendFile(full);
+});
+
 app.get("/admin/expenses", requireAdmin, (req, res) => {
   const month = req.query.month || new Date().toISOString().slice(0, 7);
   const filter = req.query.filter || "";
@@ -1282,8 +1414,8 @@ app.post("/admin/expenses", requireAdmin, receiptUpload.single("receipt"), (req,
   const b = req.body;
   // Merge due_to from either the reimbursement or due-bill field
   const dueTo = b.due_to || b.due_to_bill || "";
-  const receiptFile = req.file ? "/receipts/" + req.file.filename : "";
-  
+  const receiptFile = req.file ? "/admin/receipts/" + req.file.filename : "";
+
   db.addExpense({
     description: b.description,
     amount: parseFloat(b.amount),
@@ -1310,7 +1442,7 @@ app.post("/admin/expenses/:id/edit", requireAdmin, receiptUpload.single("receipt
   const dueTo = b.due_to || b.due_to_bill || "";
   
   // Keep existing receipt unless a new one is uploaded
-  const receiptFile = req.file ? "/receipts/" + req.file.filename : (expense ? expense.receipt_file : "");
+  const receiptFile = req.file ? "/admin/receipts/" + req.file.filename : (expense ? expense.receipt_file : "");
   
   db.updateExpense(id, {
     description: b.description,
@@ -1430,7 +1562,7 @@ app.get("/admin/settings", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/settings", requireAdmin, (req, res) => {
-  const fields = ["spa_name","phone","email","address","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon"];
+  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon"];
   for (const f of fields) {
     if (req.body[f] !== undefined) {
       // Checkboxes with hidden fallback can send arrays — take the last value
@@ -1466,22 +1598,24 @@ app.get("/desk/login", (req, res) => {
   res.render("admin/fd-login", { error: null });
 });
 
-app.post("/desk/login", (req, res) => {
+app.post("/desk/login", authRateLimit, (req, res) => {
   const password = db.getSetting("desk_password") || "1234";
   if (req.body.password === password) {
-    req.session.desk = true;
-    return res.redirect("/desk");
+    return req.session.regenerate((err) => {
+      if (err) return res.render("admin/fd-login", { error: "Login error, please try again." });
+      req.session.desk = true;
+      res.redirect("/desk");
+    });
   }
   res.render("admin/fd-login", { error: "Wrong PIN. Try again." });
 });
 
 app.get("/desk/logout", (req, res) => {
-  req.session.desk = false;
-  res.redirect("/desk/login");
+  req.session.destroy(() => res.redirect("/desk/login"));
 });
 
 // Verify PIN for lock screen unlock (accepts desk password OR employee PIN)
-app.post("/desk/verify-pin", (req, res) => {
+app.post("/desk/verify-pin", authRateLimit, (req, res) => {
   const pin = (req.body.pin || "").trim();
   const deskPw = db.getSetting("desk_password") || "1234";
   if (pin === deskPw) return res.json({ ok: true });

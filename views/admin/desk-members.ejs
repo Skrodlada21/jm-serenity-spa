@@ -53,7 +53,7 @@
             </td>
             <td class="action-cell">
               <% if (m.visits_remaining > 0) { %>
-              <form method="POST" action="/admin/memberships/members/<%= m.id %>/use-visit" style="display:inline;" onsubmit="return confirm('Use 1 visit for <%= m.client_name %>?')">
+              <form method="POST" action="/admin/memberships/members/<%= m.id %>/use-visit" style="display:inline;" onsubmit="return confirm('Use 1 visit for this member?')">
                 <button class="btn btn-small btn-primary" type="submit" style="font-size: .95rem; padding: .5rem 1rem;">Use Visit</button>
               </form>
               <% } else { %>
