@@ -1,0 +1,84 @@
+<%- include('../partials/admin-header', { activePage: 'admin-documents' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Documents</h1>
+    <p class="muted small" style="margin-bottom: 1.5rem;">
+      Store business documents like your Certificate of Insurance (COI), the landlord welcome packet, licenses, and contracts.
+      They're private to the admin panel — no separate login — and download with one click.
+    </p>
+
+    <% function fileSize(n){ n = Number(n)||0; if (n < 1024) return n + ' B'; if (n < 1048576) return (n/1024).toFixed(0) + ' KB'; return (n/1048576).toFixed(1) + ' MB'; } %>
+
+    <!-- Upload -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h2>Add a Document</h2>
+      <form class="form" method="POST" action="/admin/documents" enctype="multipart/form-data">
+        <label>
+          Title
+          <input type="text" name="title" placeholder="e.g., Certificate of Insurance 2026" required />
+        </label>
+        <div class="grid two">
+          <label>
+            Category
+            <select name="category">
+              <option value="Insurance">Insurance</option>
+              <option value="Lease / Landlord">Lease / Landlord</option>
+              <option value="Licenses">Licenses</option>
+              <option value="Contracts">Contracts</option>
+              <option value="Vendor">Vendor</option>
+              <option value="General" selected>General</option>
+            </select>
+          </label>
+          <label>
+            File
+            <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv" required />
+            <span class="muted small" style="display: block; margin-top: .3rem;">PDF, images, Word, Excel, text (max 25MB)</span>
+          </label>
+        </div>
+        <label>
+          Notes <span class="muted small">(optional)</span>
+          <input type="text" name="notes" placeholder="Extra details, renewal date, etc." />
+        </label>
+        <button class="btn btn-primary" type="submit">Upload Document</button>
+      </form>
+    </div>
+
+    <!-- List -->
+    <h2>Saved Documents</h2>
+    <% if (!documents || documents.length === 0) { %>
+    <div class="card"><p class="muted">No documents yet. Upload your COI or welcome packet above.</p></div>
+    <% } else { %>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr><th>Title</th><th>Category</th><th>Size</th><th>Added</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% documents.forEach(function(d) { %>
+          <tr>
+            <td>
+              <strong><%= d.title %></strong>
+              <% if (d.original_name) { %><br /><span class="muted small"><%= d.original_name %></span><% } %>
+              <% if (d.notes) { %><br /><span class="muted small"><%= d.notes %></span><% } %>
+            </td>
+            <td><span style="display: inline-block; font-size: .75rem; background: #34495e; color: #fff; padding: .15rem .5rem; border-radius: 4px;"><%= d.category %></span></td>
+            <td class="muted small"><%= fileSize(d.size) %></td>
+            <td class="muted small"><%= (d.uploaded_at || '').slice(0, 10) %></td>
+            <td style="white-space: nowrap;">
+              <a class="btn btn-small btn-primary" href="/admin/documents/<%= d.id %>/download" style="margin-bottom: .3rem;">⬇ Download</a>
+              <form method="POST" action="/admin/documents/<%= d.id %>/delete" style="display: inline;" onsubmit="return confirm('Delete this document?')">
+                <button class="btn btn-small btn-ghost" type="submit" style="color: #c0392b;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</main>
+
+</body>
+</html>

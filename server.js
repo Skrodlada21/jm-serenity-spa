@@ -78,6 +78,26 @@ const receiptUpload = multer({
   },
 });
 
+// Business documents (COI, welcome packet, licenses, contracts). Stored OUTSIDE
+// the public web root; only downloadable through an authenticated admin route
+// (which forces a file download, never inline rendering).
+const documentsDir = path.join(__dirname, "private_uploads", "documents");
+if (!fs.existsSync(documentsDir)) fs.mkdirSync(documentsDir, { recursive: true });
+
+const DOC_ALLOWED_EXT = new Set([".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".csv"]);
+const documentStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, documentsDir),
+  filename: (req, file, cb) => cb(null, randomName("doc", path.extname(file.originalname).toLowerCase() || ".dat")),
+});
+const documentUpload = multer({
+  storage: documentStorage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (req, file, cb) => {
+    if (DOC_ALLOWED_EXT.has(path.extname(file.originalname).toLowerCase())) return cb(null, true);
+    cb(new Error("Unsupported file type"));
+  },
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -1392,6 +1412,50 @@ app.get("/admin/receipts/:file", requireAdmin, (req, res) => {
     return res.status(404).send("Not found");
   }
   res.sendFile(full);
+});
+
+/* =========================================================================
+   DOCUMENTS (COI, welcome packet, licenses — admin only)
+   ========================================================================= */
+
+app.get("/admin/documents", requireAdmin, (req, res) => {
+  res.render("admin/documents", { activePage: "admin-documents", documents: db.getDocuments() });
+});
+
+app.post("/admin/documents", requireAdmin, documentUpload.single("document"), (req, res) => {
+  if (req.file) {
+    db.addDocument({
+      title: (req.body.title && req.body.title.trim()) || req.file.originalname,
+      category: req.body.category || "General",
+      filename: req.file.filename,
+      original_name: req.file.originalname,
+      mime: req.file.mimetype,
+      size: req.file.size,
+      notes: req.body.notes || "",
+    });
+  }
+  res.redirect("/admin/documents");
+});
+
+// Download a document — forces attachment (never renders inline) behind admin auth.
+app.get("/admin/documents/:id/download", requireAdmin, (req, res) => {
+  const doc = db.getDocumentById(parseInt(req.params.id, 10));
+  if (!doc) return res.status(404).send("Not found");
+  const full = path.join(documentsDir, path.basename(doc.filename));
+  if (!full.startsWith(documentsDir + path.sep) || !fs.existsSync(full)) return res.status(404).send("Not found");
+  res.download(full, doc.original_name || doc.filename);
+});
+
+app.post("/admin/documents/:id/delete", requireAdmin, (req, res) => {
+  const doc = db.getDocumentById(parseInt(req.params.id, 10));
+  if (doc) {
+    const full = path.join(documentsDir, path.basename(doc.filename));
+    if (full.startsWith(documentsDir + path.sep) && fs.existsSync(full)) {
+      try { fs.unlinkSync(full); } catch (e) { /* file already gone */ }
+    }
+    db.deleteDocument(doc.id);
+  }
+  res.redirect("/admin/documents");
 });
 
 app.get("/admin/expenses", requireAdmin, (req, res) => {
