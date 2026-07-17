@@ -1401,11 +1401,14 @@ app.get("/admin/expenses", requireAdmin, (req, res) => {
   const totals = db.getExpenseTotals(month);
   const summary = db.getRecurringExpenseSummary();
   const taxSummary = db.getTaxDeductibleSummary(month);
+  const outstanding = db.getOutstandingExpenses();
   res.render("admin/expenses", {
     activePage: "admin-expenses",
     expenses, totals, summary, filter,
     grandTotal: totals.reduce((sum, t) => sum + t.total, 0),
     taxSummary,
+    outstanding,
+    today: new Date().toISOString().slice(0, 10),
     month,
   });
 });
@@ -1431,6 +1434,7 @@ app.post("/admin/expenses", requireAdmin, receiptUpload.single("receipt"), (req,
     due_date: b.due_date || "",
     receipt_file: receiptFile,
     tax_deductible: b.tax_deductible === "1" ? 1 : 0,
+    auto_pay: b.auto_pay === "1",
   });
   res.redirect("/admin/expenses?month=" + (b.date ? b.date.slice(0, 7) : new Date().toISOString().slice(0, 7)));
 });
@@ -1459,13 +1463,28 @@ app.post("/admin/expenses/:id/edit", requireAdmin, receiptUpload.single("receipt
     due_date: b.due_date || "",
     receipt_file: receiptFile,
     tax_deductible: b.tax_deductible === "1" ? 1 : 0,
+    auto_pay: b.auto_pay === "1",
   });
   res.redirect("/admin/expenses?month=" + (b.date ? b.date.slice(0, 7) : new Date().toISOString().slice(0, 7)));
 });
 
 app.post("/admin/expenses/:id/mark-paid", requireAdmin, (req, res) => {
   db.markExpensePaid(parseInt(req.params.id, 10));
-  res.redirect("/admin/expenses");
+  res.redirect(safeBack(req, "/admin/expenses"));
+});
+
+// Record a partial payment (installment) toward an expense
+app.post("/admin/expenses/:id/payment", requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const b = req.body;
+  db.addExpensePayment(id, {
+    amount: parseFloat(b.amount),
+    date: b.date || new Date().toISOString().slice(0, 10),
+    method: b.method || "",
+    paid_by: b.paid_by || "",
+    note: b.note || "",
+  });
+  res.redirect(safeBack(req, "/admin/expenses"));
 });
 
 app.post("/admin/expenses/:id/delete", requireAdmin, (req, res) => {

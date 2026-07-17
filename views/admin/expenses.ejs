@@ -4,6 +4,68 @@
   <div class="container">
     <h1>Expense Tracking</h1>
 
+    <% function money(n){ return (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); } %>
+    <% var soonCutoff = new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,10); %>
+
+    <!-- OUTSTANDING — WHAT'S DUE -->
+    <% if (typeof outstanding !== 'undefined' && outstanding && outstanding.length > 0) { %>
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 5px solid #e74c3c;">
+      <h2 style="font-size: 1.1rem; margin-bottom: .2rem;">💸 Outstanding — What's Due</h2>
+      <p class="muted small" style="margin-bottom: .9rem;">Everything still owed, soonest due first. Click <strong>Record Payment</strong> to log an installment.</p>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>Due Date</th><th>What / Who</th><th style="text-align:right;">Total</th><th style="text-align:right;">Paid</th><th style="text-align:right;">Remaining</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% outstanding.forEach(function(o) {
+                 var overdue = o.due_date && o.due_date < today;
+                 var soon = o.due_date && o.due_date >= today && o.due_date <= soonCutoff;
+                 var pct = o.amount > 0 ? Math.min(100, Math.round((o.paid_to_date / o.amount) * 100)) : 0;
+            %>
+            <tr style="<%= overdue ? 'background:#fdecea;' : (soon ? 'background:#fff8f0;' : '') %>">
+              <td style="white-space:nowrap;">
+                <% if (o.due_date) { %>
+                  <%= o.due_date %>
+                  <% if (overdue) { %><br /><span style="font-size:.7rem; background:#e74c3c; color:#fff; padding:.1rem .4rem; border-radius:4px;">OVERDUE</span>
+                  <% } else if (soon) { %><br /><span style="font-size:.7rem; background:#e67e22; color:#fff; padding:.1rem .4rem; border-radius:4px;">DUE SOON</span><% } %>
+                <% } else { %><span class="muted small">no date</span><% } %>
+              </td>
+              <td>
+                <strong><%= o.description %></strong>
+                <% if (o.due_to) { %><br /><span style="font-size:.8rem; color:#e74c3c; font-weight:600;">Owe: <%= o.due_to %></span><% } %>
+                <% if (o.auto_pay) { %> <span style="font-size:.7rem; background:#16a085; color:#fff; padding:.1rem .4rem; border-radius:4px;">🔄 Auto-Pay</span><% } %>
+                <% if (o.paid_to_date > 0) { %>
+                  <div style="height:6px; background:#eee; border-radius:3px; margin-top:.4rem; max-width:200px;"><div style="height:6px; width:<%= pct %>%; background:#27ae60; border-radius:3px;"></div></div>
+                  <span class="muted small"><%= pct %>% paid</span>
+                <% } %>
+              </td>
+              <td style="text-align:right; white-space:nowrap;">$<%= money(o.amount) %></td>
+              <td style="text-align:right; white-space:nowrap; color:#27ae60;">$<%= money(o.paid_to_date) %></td>
+              <td style="text-align:right; white-space:nowrap;"><strong style="color:#e74c3c;">$<%= money(o.remaining) %></strong></td>
+              <td style="white-space:nowrap;">
+                <button class="btn btn-small btn-primary" type="button" onclick="togglePay(<%= o.id %>)">Record Payment</button>
+              </td>
+            </tr>
+            <tr id="pay-<%= o.id %>" style="display:none; background:#f4f9ff;">
+              <td colspan="6">
+                <form method="POST" action="/admin/expenses/<%= o.id %>/payment" class="form" style="display:flex; flex-wrap:wrap; gap:.6rem; align-items:flex-end; margin:0;">
+                  <label style="margin:0;">Amount ($)<input type="number" name="amount" value="<%= o.remaining.toFixed(2) %>" min="0.01" step="0.01" required style="min-width:130px;" /></label>
+                  <label style="margin:0;">Date<input type="date" name="date" value="<%= today %>" required /></label>
+                  <label style="margin:0;">Method<input type="text" name="method" placeholder="Check, ACH, Card…" style="min-width:130px;" /></label>
+                  <label style="margin:0;">Note<input type="text" name="note" placeholder="optional" /></label>
+                  <button class="btn btn-primary btn-small" type="submit" style="height:40px;">Save Payment</button>
+                  <button class="btn btn-ghost btn-small" type="button" style="height:40px;" onclick="togglePay(<%= o.id %>)">Cancel</button>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% } %>
+
     <!-- Summary Cards -->
     <% if (summary) { %>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .8rem; margin-bottom: 1.5rem;">
@@ -221,6 +283,10 @@
             <span>Tax Deductible 🧾</span>
           </label>
         </div>
+        <label style="display: flex; align-items: center; gap: .5rem; padding-top: .3rem;">
+          <input type="checkbox" name="auto_pay" value="1" style="width: 20px; height: 20px;" />
+          <span>Auto-Pay 🔄 <span class="muted small">(drafts automatically from the business account)</span></span>
+        </label>
         <label>
           Notes <span class="muted small">(optional)</span>
           <input type="text" name="notes" placeholder="Extra details, receipt #, etc." />
@@ -283,7 +349,22 @@
         </thead>
         <tbody>
           <% expenses.forEach(function(e) { %>
-          <tr style="<%= e.payment_status === 'due' || e.payment_status === 'reimburse' ? 'background: #fff8f0;' : '' %>">
+          <tr style="<%= e.payment_status === 'due' || e.payment_status === 'reimburse' ? 'background: #fff8f0;' : '' %>"
+              data-id="<%= e.id %>"
+              data-description="<%= e.description %>"
+              data-amount="<%= e.amount %>"
+              data-date="<%= e.date %>"
+              data-category="<%= e.category %>"
+              data-vendor="<%= e.vendor || '' %>"
+              data-frequency="<%= e.frequency || 'one-time' %>"
+              data-status="<%= e.payment_status || 'paid' %>"
+              data-startup="<%= e.is_startup ? 1 : 0 %>"
+              data-tax="<%= e.tax_deductible ? 1 : 0 %>"
+              data-autopay="<%= e.auto_pay ? 1 : 0 %>"
+              data-notes="<%= e.notes || '' %>"
+              data-dueto="<%= e.due_to || '' %>"
+              data-duedate="<%= e.due_date || '' %>"
+              data-paidby="<%= e.paid_by || '' %>">
             <td><%= e.date %></td>
             <td>
               <%= e.description %>
@@ -292,6 +373,9 @@
               <% } %>
               <% if (e.tax_deductible) { %>
                 <span style="display: inline-block; font-size: .7rem; background: #27ae60; color: #fff; padding: .1rem .4rem; border-radius: 4px; margin-left: .3rem;">TAX✓</span>
+              <% } %>
+              <% if (e.auto_pay) { %>
+                <span style="display: inline-block; font-size: .7rem; background: #16a085; color: #fff; padding: .1rem .4rem; border-radius: 4px; margin-left: .3rem;">🔄 AUTO-PAY</span>
               <% } %>
               <% if (e.receipt_file) { %>
                 <br /><a href="<%= e.receipt_file %>" target="_blank" style="display: inline-block; font-size: .75rem; background: #3498db; color: #fff; padding: .15rem .5rem; border-radius: 4px; text-decoration: none; margin-top: .3rem;">📎 View Receipt</a>
@@ -330,10 +414,17 @@
                 <% if (e.paid_date) { %><br /><span class="muted small"><%= e.paid_date %></span><% } %>
               <% } %>
             </td>
-            <td><strong>$<%= e.amount.toFixed(2) %></strong></td>
+            <td style="white-space: nowrap;">
+              <strong>$<%= money(e.amount) %></strong>
+              <% if ((e.payment_status === 'due' || e.payment_status === 'reimburse') && e.paid_to_date > 0) { %>
+                <br /><span class="muted small">Paid $<%= money(e.paid_to_date) %></span>
+                <br /><span style="font-size: .8rem; color: #e74c3c; font-weight: 600;">$<%= money(e.amount - e.paid_to_date) %> left</span>
+              <% } %>
+            </td>
             <td style="white-space: nowrap;">
               <button class="btn btn-small" type="button" style="background: #3498db; color: #fff; margin-bottom: .3rem;" onclick="editExpense(<%= e.id %>)">Edit</button>
               <% if (e.payment_status === 'due' || e.payment_status === 'reimburse') { %>
+              <button class="btn btn-small btn-primary" type="button" style="margin-bottom: .3rem;" onclick="togglePay(<%= e.id %>)">＋ Payment</button>
               <form method="POST" action="/admin/expenses/<%= e.id %>/mark-paid" style="display: inline;">
                 <button class="btn btn-small" type="submit" style="background: #27ae60; color: #fff; margin-bottom: .3rem;">Mark Paid</button>
               </form>
@@ -387,46 +478,61 @@ function loadQuarterlyTax(year, quarter) {
     .catch(e => alert('Error loading quarterly data'));
 }
 
-// Edit expense — populate form with existing data and submit to edit endpoint
-function editExpense(id) {
-  const row = event.target.closest('tr');
+// Show/hide the inline "record payment" form for an expense
+function togglePay(id) {
+  var row = document.getElementById('pay-' + id);
   if (!row) return;
-  
-  // Find the data cells
-  const date = row.cells[0].textContent.trim();
-  const desc = row.cells[1].textContent.trim().split('\n')[0];
-  const category = row.cells[2].textContent.trim();
-  const vendor = row.cells[3].textContent.trim();
-  const amount = row.cells[6].textContent.replace('$', '').trim();
-  
-  // Scroll to form and update action
-  const form = document.querySelector('form[action="/admin/expenses"]');
-  if (!form) return;
-  
+  var showing = row.style.display !== 'none';
+  row.style.display = showing ? 'none' : 'table-row';
+  if (!showing) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var amt = row.querySelector('input[name="amount"]');
+    if (amt) amt.focus();
+  }
+}
+
+// Edit expense — populate ALL fields from the row's data attributes (so editing
+// never silently resets status, frequency, auto-pay, notes, etc.)
+function editExpense(id) {
+  const row = document.querySelector('tr[data-id="' + id + '"]');
+  const form = document.querySelector('form[action^="/admin/expenses"]');
+  if (!row || !form) return;
+  const d = row.dataset;
+
   form.action = '/admin/expenses/' + id + '/edit';
   form.style.background = '#e8f5e9';
   form.style.border = '2px solid #27ae60';
   form.style.padding = '1rem';
   form.style.borderRadius = '10px';
-  
-  // Populate fields
-  form.description.value = desc;
-  form.amount.value = amount;
-  form.date.value = date;
-  form.category.value = category;
-  form.vendor.value = vendor;
-  
-  // Scroll to form
-  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  
-  // Update button text
-  const btn = form.querySelector('button[type="submit"]');
-  if (btn) {
-    btn.textContent = 'Update Expense';
-    btn.style.background = '#27ae60';
+
+  form.description.value = d.description || '';
+  form.amount.value = d.amount || '';
+  form.date.value = d.date || '';
+  form.category.value = d.category || 'General';
+  form.vendor.value = d.vendor || '';
+  form.frequency.value = d.frequency || 'one-time';
+  form.notes.value = d.notes || '';
+  form.is_startup.checked = d.startup === '1';
+  form.tax_deductible.checked = d.tax === '1';
+  form.auto_pay.checked = d.autopay === '1';
+
+  // Payment status + its dependent fields
+  const sel = document.getElementById('payment-status-select');
+  sel.value = d.status || 'paid';
+  sel.dispatchEvent(new Event('change'));
+  if (d.status === 'due') {
+    if (form.due_to_bill) form.due_to_bill.value = d.dueto || '';
+    if (form.due_date) form.due_date.value = d.duedate || '';
+  } else if (d.status === 'reimburse') {
+    if (form.due_to) form.due_to.value = d.dueto || '';
+    if (form.paid_by) form.paid_by.value = d.paidby || '';
   }
-  
-  // Add cancel button if not exists
+
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn) { btn.textContent = 'Update Expense'; btn.style.background = '#27ae60'; }
+
   if (!form.querySelector('.cancel-edit')) {
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
@@ -441,6 +547,7 @@ function editExpense(id) {
       form.style.padding = '';
       btn.textContent = 'Add Expense';
       btn.style.background = '';
+      document.getElementById('payment-status-select').dispatchEvent(new Event('change'));
       this.remove();
     };
     btn.parentNode.insertBefore(cancelBtn, btn.nextSibling);
