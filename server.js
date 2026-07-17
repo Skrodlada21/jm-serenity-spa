@@ -1473,6 +1473,7 @@ app.get("/admin/expenses", requireAdmin, (req, res) => {
     taxSummary,
     outstanding,
     today: new Date().toISOString().slice(0, 10),
+    recorded: req.query.recorded || null,
     month,
   });
 });
@@ -1541,14 +1542,17 @@ app.post("/admin/expenses/:id/mark-paid", requireAdmin, (req, res) => {
 app.post("/admin/expenses/:id/payment", requireAdmin, (req, res) => {
   const id = parseInt(req.params.id, 10);
   const b = req.body;
+  const amt = parseFloat(b.amount) || 0;
   db.addExpensePayment(id, {
-    amount: parseFloat(b.amount),
+    amount: amt,
     date: b.date || new Date().toISOString().slice(0, 10),
     method: b.method || "",
     paid_by: b.paid_by || "",
     note: b.note || "",
   });
-  res.redirect(safeBack(req, "/admin/expenses"));
+  const back = safeBack(req, "/admin/expenses");
+  const sep = back.includes("?") ? "&" : "?";
+  res.redirect(back + sep + "recorded=" + amt.toFixed(2));
 });
 
 app.post("/admin/expenses/:id/delete", requireAdmin, (req, res) => {
