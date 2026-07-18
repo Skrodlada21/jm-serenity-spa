@@ -121,6 +121,20 @@
       </div>
 
       <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>AI Email Assistant (OpenRouter)</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">Powers "Draft with AI" on the Send Update page. Get a key at <strong>openrouter.ai/keys</strong>. Leave blank to disable AI drafting.</p>
+        <label>
+          OpenRouter API Key
+          <input type="password" name="openrouter_api_key" value="<%= settings.openrouter_api_key || '' %>" placeholder="sk-or-..." />
+        </label>
+        <label>
+          Model <span class="muted small">(cheap-but-good default; you can change it anytime)</span>
+          <input type="text" name="openrouter_model" value="<%= settings.openrouter_model || '' %>" placeholder="openai/gpt-4.1-mini" />
+          <span class="muted small" style="display:block; margin-top:.3rem;">Other good options: <code>google/gemini-2.5-flash</code>, <code>anthropic/claude-haiku-4.5</code>. Leave blank to use the default (openai/gpt-4.1-mini).</span>
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
         <h2>Text Message Reminders (OpenPhone)</h2>
         <p class="muted small" style="margin-bottom: .5rem;">Configure to send SMS booking confirmations and automatic 24-hour appointment reminders. Leave blank to disable texting.</p>
         <label>

@@ -27,26 +27,45 @@
     </div>
     <% } %>
 
+    <!-- AI Draft -->
+    <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #7c5cbf;">
+      <h2 style="font-size: 1.05rem;">✨ Draft with AI</h2>
+      <% if (aiConfigured) { %>
+        <p class="muted small" style="margin-bottom: .5rem;">Describe what you want to say — AI writes a first draft into the form below, then you edit it.</p>
+        <textarea id="ai-topic" rows="2" placeholder="e.g., Progress update — flooring and tile are done, on track to open this spring. Excited to share photos soon." style="width:100%; font-size:.95rem; padding:.6rem; border:1px solid #ddd; border-radius:8px;"></textarea>
+        <div style="display:flex; align-items:center; gap:.6rem; margin-top:.5rem; flex-wrap:wrap;">
+          <button type="button" class="btn btn-small" id="ai-btn" style="background:#7c5cbf; color:#fff;" onclick="aiDraft()">✨ Draft with AI</button>
+          <span id="ai-status" class="muted small"></span>
+        </div>
+      <% } else { %>
+        <p class="muted small">Want AI to write these for you? Add an OpenRouter API key in <a href="/admin/settings">Settings</a> and this turns on.</p>
+      <% } %>
+    </div>
+
     <!-- Compose Form -->
     <div class="card" style="margin-bottom: 1.5rem;">
       <h2>Compose Update</h2>
-      <form class="form" method="POST" action="/admin/send-update" id="update-form">
+      <form class="form" method="POST" action="/admin/send-update" id="update-form" enctype="multipart/form-data">
         <label>
           Subject
           <input type="text" name="subject" placeholder="e.g., J&M Serenity Spa — Grand Opening Date!" required value="<%= typeof lastSubject !== 'undefined' ? lastSubject : '' %>" />
         </label>
         <label>
           Message
-          <textarea name="message" rows="10" placeholder="Write your update here...
-
-Example:
-Hi there!
-
-We're excited to share that J&M Serenity Spa is getting closer to opening! Here's what's new...
-
-Stay tuned for more updates!
-— J&M Serenity Spa Team" required style="font-size: .95rem; line-height: 1.6;"><%= typeof lastMessage !== 'undefined' ? lastMessage : '' %></textarea>
+          <textarea name="message" rows="10" placeholder="Write your update here, or use Draft with AI above." required style="font-size: .95rem; line-height: 1.6;"><%= typeof lastMessage !== 'undefined' ? lastMessage : '' %></textarea>
         </label>
+        <label>
+          Photo <span class="muted small">(optional — e.g. a progress picture; shows inside the email)</span>
+          <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp" />
+        </label>
+        <% if (typeof existingImage !== 'undefined' && existingImage) { %>
+          <input type="hidden" name="existing_image" value="<%= existingImage %>" />
+          <p class="muted small">📎 Photo attached and will be included. Choosing a new file replaces it.</p>
+        <% } %>
+
+        <p class="muted small" style="background:#f4f9ff; border-radius:8px; padding:.5rem .7rem;">
+          🛈 Every email automatically includes your business address and a one-click <strong>Unsubscribe</strong> link (required by law for marketing email). Anyone who unsubscribes is never emailed again.
+        </p>
 
         <div style="display: flex; gap: .5rem; flex-wrap: wrap;">
           <% if (smtpConfigured) { %>
@@ -75,9 +94,13 @@ Stay tuned for more updates!
       <div style="background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 1.5rem; margin-top: .5rem;">
         <p style="color: #888; font-size: .85rem; margin-bottom: .5rem;">Subject: <strong style="color: #333;"><%= preview.subject %></strong></p>
         <hr style="border: none; border-top: 1px solid #eee; margin: .8rem 0;" />
-        <div style="white-space: pre-wrap; line-height: 1.7; font-size: .95rem;"><%= preview.messageHtml %></div>
+        <% if (preview.imageUrl) { %>
+        <div style="text-align:center; margin-bottom: 1rem;"><img src="<%= preview.imageUrl %>" alt="Update photo" style="max-width:100%; border-radius:10px;" /></div>
+        <% } %>
+        <div style="white-space: pre-wrap; line-height: 1.7; font-size: .95rem;"><%- preview.messageHtml %></div>
         <hr style="border: none; border-top: 1px solid #eee; margin: .8rem 0;" />
-        <p style="color: #aaa; font-size: .8rem; text-align: center;">J&M Serenity Spa · Littleton, CO</p>
+        <p style="color: #aaa; font-size: .8rem; text-align: center; margin-bottom: .2rem;">J&M Serenity Spa · Littleton, CO</p>
+        <p style="color: #bbb; font-size: .75rem; text-align: center;">You're receiving this because you signed up for updates. <span style="text-decoration:underline;">Unsubscribe</span></p>
       </div>
     </div>
     <% } %>
@@ -99,6 +122,32 @@ Stay tuned for more updates!
     <a href="/admin/signups" class="btn btn-ghost" style="margin-top: 1rem;">&larr; Back to Signups</a>
   </div>
 </main>
+
+<script>
+function aiDraft() {
+  var topicEl = document.getElementById('ai-topic');
+  var status = document.getElementById('ai-status');
+  var btn = document.getElementById('ai-btn');
+  var form = document.getElementById('update-form');
+  if (!topicEl || !form) return;
+  var topic = topicEl.value.trim();
+  if (!topic) { status.textContent = 'Type a topic or a few details first.'; return; }
+  btn.disabled = true;
+  status.textContent = 'Writing your draft…';
+  fetch('/admin/ai-draft', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic: topic })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    btn.disabled = false;
+    if (!d.ok) { status.textContent = d.error || 'Could not generate a draft.'; return; }
+    if (d.subject) form.subject.value = d.subject;
+    form.message.value = d.body || '';
+    status.textContent = '✓ Draft ready — edit it below, then Preview or Send.';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }).catch(function(){ btn.disabled = false; status.textContent = 'Error contacting the AI service.'; });
+}
+</script>
 
 </body>
 </html>

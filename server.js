@@ -52,6 +52,16 @@ const galleryStorage = multer.diskStorage({
 });
 const galleryUpload = multer({ storage: galleryStorage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFileFilter });
 
+// Update/newsletter images — stored in the PUBLIC image dir because email
+// clients must be able to load them from a public URL.
+const updatesImgDir = path.join(__dirname, "public", "images", "updates");
+if (!fs.existsSync(updatesImgDir)) fs.mkdirSync(updatesImgDir, { recursive: true });
+const updateImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, updatesImgDir),
+  filename: (req, file, cb) => cb(null, randomName("update", IMAGE_MIME_EXT[file.mimetype] || ".jpg")),
+});
+const updateImageUpload = multer({ storage: updateImageStorage, limits: { fileSize: 8 * 1024 * 1024 }, fileFilter: imageFileFilter });
+
 // Expense receipt upload (photos or PDFs).
 // Stored OUTSIDE the public web root and served only through an
 // authenticated route (see /admin/receipts/:file) so financial documents
@@ -298,6 +308,10 @@ function verifyCsrf(req, res, next) {
   const method = req.method.toUpperCase();
   if (method === "GET" || method === "HEAD" || method === "OPTIONS") return next();
 
+  // One-click List-Unsubscribe POSTs come from mail providers with no Origin/token.
+  // This action is public, idempotent, and safe, so it is exempt from CSRF.
+  if (req.path.startsWith("/unsubscribe/")) return next();
+
   const token = (req.body && req.body._csrf) || req.get("x-csrf-token");
   if (token && req.session.csrfToken && token === req.session.csrfToken) return next();
 
@@ -367,7 +381,7 @@ app.use((req, res, next) => {
   // These paths always bypass coming-soon mode
   const bypass = [
     "/admin", "/desk", "/api/", "/checkin",
-    "/coming-soon", "/preview",
+    "/coming-soon", "/preview", "/unsubscribe",
     "/style.css", "/script.js", "/images/", "/favicon"
   ];
   if (bypass.some(p => req.path.startsWith(p))) return next();
@@ -592,6 +606,21 @@ app.get("/api/client-lookup", lookupRateLimit, (req, res) => {
 // Therapists API (for dynamic filtering)
 app.get("/api/therapists", (req, res) => {
   res.json({ therapists: db.getActiveTherapists() });
+});
+
+// Unsubscribe from update emails (CAN-SPAM). GET = the link people click;
+// POST = one-click List-Unsubscribe from the mail client. Both just work.
+app.get("/unsubscribe/:token", (req, res) => {
+  const row = db.unsubscribeByToken(req.params.token);
+  res.render("unsubscribe", {
+    spaName: db.getSetting("spa_name") || "J&M Serenity Spa",
+    found: !!row,
+    email: row ? row.email : null,
+  });
+});
+app.post("/unsubscribe/:token", (req, res) => {
+  db.unsubscribeByToken(req.params.token);
+  res.status(200).send("Unsubscribed");
 });
 
 // Email signup (coming soon page)
@@ -1566,77 +1595,84 @@ app.get("/admin/signups", requireAdmin, (req, res) => {
   res.render("admin/signups", { activePage: "admin-settings", signups });
 });
 
-// Send update to subscribers
-app.get("/admin/send-update", requireAdmin, (req, res) => {
-  const signups = db.getEmailSignups();
-  const settings = db.getAllSettings();
-  const smtpConfigured = !!(settings.smtp_host && settings.smtp_user && settings.smtp_pass);
-  res.render("admin/send-update", {
-    activePage: "admin-settings",
-    signupCount: signups.length,
-    emails: signups.map(s => s.email),
-    smtpConfigured,
-    pastUpdates: db.getSentUpdates(),
-  });
+// AI: draft an update email from a short topic (OpenRouter)
+app.post("/admin/ai-draft", requireAdmin, async (req, res) => {
+  const topic = (req.body.topic || "").trim();
+  if (!topic) return res.json({ ok: false, error: "Add a topic or a few details first." });
+  try {
+    const ai = require("./lib/ai");
+    const { subject, body } = await ai.draftUpdateEmail(topic);
+    res.json({ ok: true, subject, body });
+  } catch (e) {
+    res.json({ ok: false, error: e.message });
+  }
 });
 
-app.post("/admin/send-update", requireAdmin, async (req, res) => {
-  const { subject, message, action } = req.body;
-  const signups = db.getEmailSignups();
+function sendUpdateViewData(req) {
   const settings = db.getAllSettings();
-  const smtpConfigured = !!(settings.smtp_host && settings.smtp_user && settings.smtp_pass);
-  const emails = signups.map(s => s.email);
+  const subscribers = db.getSubscribedSignups();
+  const ai = require("./lib/ai");
+  return {
+    activePage: "admin-settings",
+    signupCount: subscribers.length,
+    emails: subscribers.map(s => s.email),
+    smtpConfigured: !!(settings.smtp_host && settings.smtp_user && settings.smtp_pass),
+    aiConfigured: ai.isConfigured(),
+    pastUpdates: db.getSentUpdates(),
+  };
+}
+
+// Send update to subscribers
+app.get("/admin/send-update", requireAdmin, (req, res) => {
+  res.render("admin/send-update", sendUpdateViewData(req));
+});
+
+app.post("/admin/send-update", requireAdmin, updateImageUpload.single("image"), async (req, res) => {
+  const { subject, message, action, existing_image } = req.body;
+  const base = sendUpdateViewData(req);
+  // Image URL (newly uploaded, or one carried through from a preview)
+  const imageUrl = req.file
+    ? publicBaseUrl(req) + "/images/updates/" + req.file.filename
+    : (existing_image || null);
 
   // Preview mode
   if (action === "preview") {
-    // Escape message content first, then convert newlines to <br /> for display
-    const escapedMessage = escapeHtml(message || "");
-    const messageHtml = escapedMessage.replace(/\n/g, "<br />");
-    return res.render("admin/send-update", {
-      activePage: "admin-settings",
-      signupCount: signups.length,
-      emails,
-      smtpConfigured,
-      pastUpdates: db.getSentUpdates(),
-      preview: { subject, messageHtml },
+    const messageHtml = escapeHtml(message || "").replace(/\n/g, "<br />");
+    return res.render("admin/send-update", Object.assign({}, base, {
+      preview: { subject, messageHtml, imageUrl },
       lastSubject: subject,
       lastMessage: message,
-    });
+      existingImage: imageUrl,
+    }));
   }
 
   // Send mode
-  if (action === "send" && smtpConfigured) {
+  if (action === "send" && base.smtpConfigured) {
     try {
       const emailLib = require("./lib/email");
+      const subscribers = db.getSubscribedSignups();
+      const urlBase = publicBaseUrl(req);
       let sentCount = 0;
-      for (const addr of emails) {
+      for (const sub of subscribers) {
         try {
-          await emailLib.sendEmail(addr, subject, message);
+          await emailLib.sendEmail(sub.email, subject, message, {
+            unsubscribeUrl: urlBase + "/unsubscribe/" + sub.unsubscribe_token,
+            imageUrl,
+          });
           sentCount++;
         } catch (e) {
-          console.error("Failed to send to", addr, e.message);
+          console.error("Failed to send to", sub.email, e.message);
         }
       }
       db.saveSentUpdate(subject, message, sentCount);
-      return res.render("admin/send-update", {
-        activePage: "admin-settings",
-        signupCount: signups.length,
-        emails,
-        smtpConfigured,
-        pastUpdates: db.getSentUpdates(),
-        sent: sentCount,
-      });
+      return res.render("admin/send-update", Object.assign({}, sendUpdateViewData(req), { sent: sentCount }));
     } catch (e) {
-      return res.render("admin/send-update", {
-        activePage: "admin-settings",
-        signupCount: signups.length,
-        emails,
-        smtpConfigured,
-        pastUpdates: db.getSentUpdates(),
+      return res.render("admin/send-update", Object.assign({}, base, {
         error: "Failed to send: " + e.message,
         lastSubject: subject,
         lastMessage: message,
-      });
+        existingImage: imageUrl,
+      }));
     }
   }
 
@@ -1649,7 +1685,7 @@ app.get("/admin/settings", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/settings", requireAdmin, (req, res) => {
-  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon"];
+  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon","openrouter_api_key","openrouter_model"];
   for (const f of fields) {
     if (req.body[f] !== undefined) {
       // Checkboxes with hidden fallback can send arrays — take the last value
