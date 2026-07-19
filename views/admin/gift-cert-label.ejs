@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Gift Card Label — <%= cert.code %></title>
+  <script src="/js/jsbarcode.min.js"></script>
+  <style>
+    /* Default: sized for a 2.25" x 1.25" thermal die-cut label. Tell the
+       developer your exact label size and this gets matched to it. */
+    @page { size: 2.25in 1.25in; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+    .toolbar { padding: 14px; background: #f2f2f2; text-align: center; border-bottom: 1px solid #ddd; }
+    .toolbar button { font-size: 15px; padding: 8px 18px; cursor: pointer; }
+    .toolbar .note { display:block; color: #666; font-size: 12px; margin-top: 6px; }
+    .label {
+      width: 2.25in; height: 1.25in; padding: 0.05in 0.1in;
+      display: flex; flex-direction: column; justify-content: space-between;
+      margin: 12px auto;
+    }
+    .barcode { text-align: center; }
+    #bc { max-width: 100%; height: 0.5in; }
+    .bal { text-align: center; font-weight: 700; font-size: 11pt; margin: 1px 0; }
+    .lines { font-size: 8pt; line-height: 1.5; }
+    .lines div { border-bottom: 0.5pt solid #999; padding-top: 1px; white-space: nowrap; }
+    @media print {
+      .toolbar { display: none; }
+      .label { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨 Print Label</button>
+    <span class="note">Sticks on the back of the gift card. Sized for 2.25" × 1.25" labels — tell me your exact label size and I'll match it.</span>
+  </div>
+
+  <div class="label">
+    <div class="barcode"><svg id="bc"></svg></div>
+    <div class="bal">Balance: $<%= cert.balance.toFixed(2) %></div>
+    <div class="lines">
+      <div>To:&nbsp;&nbsp; <%= cert.recipient_name || '' %></div>
+      <div>From: <%= cert.purchaser_name || '' %></div>
+    </div>
+  </div>
+
+  <script>
+    JsBarcode("#bc", "<%= cert.code %>", { format: "CODE128", displayValue: true, fontSize: 12, textMargin: 0, height: 40, margin: 2 });
+  </script>
+</body>
+</html>

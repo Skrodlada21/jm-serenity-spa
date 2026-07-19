@@ -1367,6 +1367,14 @@ app.post("/admin/gift-certificates/:id/charge", requireStaff, async (req, res) =
   }
 });
 
+// Barcode label for the back of a pre-printed gift card
+app.get("/admin/gift-certificates/:id/label", requireStaff, (req, res) => {
+  const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
+  if (!cert) return res.redirect("/admin/gift-certificates");
+  if (!cert.paid) return res.redirect("/admin/gift-certificates?not_paid=1");
+  res.render("admin/gift-cert-label", { cert });
+});
+
 app.get("/admin/gift-certificates/:id/print", requireStaff, (req, res) => {
   const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
   if (!cert) return res.redirect("/admin/gift-certificates");

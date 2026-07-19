@@ -130,7 +130,8 @@
               <div style="display: flex; flex-wrap: wrap; gap: .3rem; align-items: center;">
                 <% if (c.paid) { %>
                   <!-- Only show Print if paid -->
-                  <a class="btn btn-small btn-primary" href="/admin/gift-certificates/<%= c.id %>/print" target="_blank" title="Print">Print</a>
+                  <a class="btn btn-small btn-primary" href="/admin/gift-certificates/<%= c.id %>/print" target="_blank" title="Print full certificate">Print</a>
+                  <a class="btn btn-small" style="background:#16a085; color:#fff;" href="/admin/gift-certificates/<%= c.id %>/label" target="_blank" title="Print barcode label for the card back">Label</a>
                 <% } else { %>
                   <!-- Payment required before printing -->
                   <details class="complete-dropdown">
