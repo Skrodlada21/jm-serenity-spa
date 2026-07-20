@@ -60,7 +60,7 @@
           <% if (b.is_member) { %><span class="badge member">会员 Member</span><% } %>
         </div>
 
-        <div class="row"><span class="lab">理疗师<span class="en">Therapist</span></span>
+        <div class="row"><span class="lab">按摩师<span class="en">Therapist</span></span>
           <span class="val"><%= b.therapist_name || '任意 Any' %><% if (b.therapist2_name) { %> + <%= b.therapist2_name %><% } %></span></div>
 
         <div class="row"><span class="lab">服务<span class="en">Service</span></span>
@@ -68,7 +68,7 @@
 
         <% if (b.gender_pref === 'female' || b.gender_pref === 'male') { %>
         <div class="row"><span class="lab">偏好<span class="en">Pref</span></span>
-          <span class="val"><%= b.gender_pref === 'female' ? '女理疗师 Female' : '男理疗师 Male' %></span></div>
+          <span class="val"><%= b.gender_pref === 'female' ? '女按摩师 Female' : '男按摩师 Male' %></span></div>
         <% } %>
 
         <% if (b.addonNames && b.addonNames.length) { %>
