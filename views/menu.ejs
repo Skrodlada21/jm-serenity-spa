@@ -122,7 +122,8 @@
       chair: 'Chair Massage',
       foot: 'Foot Treatments',
       combo: 'Combo Packages',
-      four_hands: 'Four Hands Massage'
+      four_hands: 'Four Hands Massage',
+      water_head: 'Water Head Massage'
     };
     var grouped = {};
     services.forEach(function(s) {
@@ -130,7 +131,7 @@
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(s);
     });
-    var categoryOrder = ['full_body', 'couples', 'four_hands', 'chair', 'foot', 'combo'];
+    var categoryOrder = ['full_body', 'couples', 'four_hands', 'water_head', 'chair', 'foot', 'combo'];
   %>
 
   <div class="menu-grid">
@@ -142,7 +143,7 @@
             <div class="menu-item">
               <span class="item-name"><%= s.name %></span>
               <span class="item-duration"><%= s.duration %> min</span>
-              <span class="item-price">$<%= s.price %></span>
+              <span class="item-price"><%= s.price > 0 ? '$' + s.price : '—' %></span>
             </div>
           <% }); %>
         </div>
