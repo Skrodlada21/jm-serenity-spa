@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>今日准备 · Prep Board</title>
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", -apple-system, sans-serif;
+      background: #0e1a1c; color: #eef3f2; padding: 1.2rem 1.5rem 2rem; }
+    .top { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap;
+      border-bottom: 2px solid #1f6f78; padding-bottom: .7rem; margin-bottom: 1.2rem; }
+    .top h1 { font-size: 1.9rem; color: #fff; }
+    .top h1 .en { color: #c9a96e; font-size: 1.1rem; font-weight: 400; margin-left: .5rem; }
+    .top .meta { text-align: right; font-size: 1.1rem; color: #9fc0c2; }
+    .top .meta #clock { font-size: 1.6rem; color: #fff; font-weight: 700; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+    .card { background: #14282b; border: 1px solid #24484c; border-radius: 14px; padding: 1rem 1.1rem;
+      border-left: 6px solid #1f6f78; }
+    .card.past { opacity: .38; }
+    .card.next { border-left-color: #c9a96e; background: #1a3236; box-shadow: 0 0 0 2px #c9a96e55; }
+    .card .time { font-size: 2.1rem; font-weight: 800; color: #fff; line-height: 1; }
+    .card .time .dur { font-size: 1rem; color: #9fc0c2; font-weight: 500; margin-left: .4rem; }
+    .card .cust { font-size: 1.5rem; font-weight: 700; margin: .5rem 0 .2rem; color: #ffe9c7; }
+    .row { display: flex; gap: .5rem; font-size: 1.05rem; margin-top: .35rem; align-items: baseline; }
+    .row .lab { color: #7fa8aa; min-width: 5.6rem; flex-shrink: 0; font-size: .95rem; }
+    .row .lab .en { color: #567; font-size: .75rem; display: block; }
+    .row .val { color: #eef3f2; font-weight: 600; }
+    .badge { display: inline-block; font-size: .8rem; padding: .1rem .5rem; border-radius: 6px;
+      background: #1f6f78; color: #fff; margin-left: .4rem; }
+    .badge.member { background: #c9a96e; color: #14282b; }
+    .empty { text-align: center; color: #7fa8aa; font-size: 1.4rem; padding: 4rem 1rem; }
+    .nextlabel { display: inline-block; font-size: .8rem; background: #c9a96e; color: #14282b;
+      padding: .1rem .5rem; border-radius: 6px; font-weight: 700; margin-bottom: .3rem; }
+  </style>
+</head>
+<body>
+  <%
+    function fmt12(t){ if(!t) return t; var p=t.split(":"); var h=parseInt(p[0],10); var m=p[1];
+      var ap=h>=12?"PM":"AM"; var h12=h%12; if(h12===0)h12=12; return h12+":"+m+" "+ap; }
+    function toMin(t){ if(!t) return 0; var p=t.split(":"); return parseInt(p[0],10)*60+parseInt(p[1],10); }
+  %>
+  <div class="top">
+    <h1>今日准备 <span class="en">Prep Board</span></h1>
+    <div class="meta">
+      <div id="clock">--:--</div>
+      <div><%= today %></div>
+    </div>
+  </div>
+
+  <% if (!bookings || bookings.length === 0) { %>
+    <div class="empty">今天暂无预约 · No appointments today</div>
+  <% } else { %>
+    <div class="cards">
+      <% bookings.forEach(function(b){ %>
+      <div class="card" data-start="<%= toMin(b.time) %>" data-end="<%= toMin(b.time) + (b.duration||0) %>" data-status="<%= b.status %>">
+        <div class="time"><%= fmt12(b.time) %> <span class="dur"><%= b.duration %>分钟 / min</span></div>
+        <div class="cust"><%= b.client_name || '—' %>
+          <% if (b.is_member) { %><span class="badge member">会员 Member</span><% } %>
+        </div>
+
+        <div class="row"><span class="lab">理疗师<span class="en">Therapist</span></span>
+          <span class="val"><%= b.therapist_name || '任意 Any' %><% if (b.therapist2_name) { %> + <%= b.therapist2_name %><% } %></span></div>
+
+        <div class="row"><span class="lab">服务<span class="en">Service</span></span>
+          <span class="val"><%= b.service_name || '—' %></span></div>
+
+        <% if (b.gender_pref === 'female' || b.gender_pref === 'male') { %>
+        <div class="row"><span class="lab">偏好<span class="en">Pref</span></span>
+          <span class="val"><%= b.gender_pref === 'female' ? '女理疗师 Female' : '男理疗师 Male' %></span></div>
+        <% } %>
+
+        <% if (b.addonNames && b.addonNames.length) { %>
+        <div class="row"><span class="lab">附加<span class="en">Add-ons</span></span>
+          <span class="val"><%= b.addonNames.join('、') %></span></div>
+        <% } %>
+
+        <% if (b.areas) { %>
+        <div class="row"><span class="lab">重点<span class="en">Focus</span></span>
+          <span class="val"><%= b.areas %></span></div>
+        <% } %>
+
+        <% if (b.notes) { %>
+        <div class="row"><span class="lab">备注<span class="en">Notes</span></span>
+          <span class="val"><%= b.notes %></span></div>
+        <% } %>
+      </div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <script>
+    function tick(){
+      var d = new Date();
+      var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? "PM" : "AM";
+      var h12 = h % 12; if (h12 === 0) h12 = 12;
+      document.getElementById("clock").textContent = h12 + ":" + String(m).padStart(2,"0") + " " + ap;
+      // dim past, highlight the next upcoming
+      var nowMin = h*60 + m;
+      var cards = Array.prototype.slice.call(document.querySelectorAll(".card"));
+      var nextSet = false;
+      cards.forEach(function(c){
+        c.classList.remove("past","next");
+        var end = parseInt(c.getAttribute("data-end"),10);
+        var start = parseInt(c.getAttribute("data-start"),10);
+        if (end <= nowMin || c.getAttribute("data-status") === "completed") { c.classList.add("past"); }
+        else if (!nextSet && start >= nowMin) {
+          c.classList.add("next");
+          if (!c.querySelector(".nextlabel")) {
+            var t = document.createElement("div"); t.className = "nextlabel"; t.textContent = "下一位 · Next";
+            c.insertBefore(t, c.firstChild);
+          }
+          nextSet = true;
+        }
+      });
+    }
+    tick();
+    setInterval(tick, 30000);
+    // auto-refresh data every 45s
+    setTimeout(function(){ location.reload(); }, 45000);
+  </script>
+</body>
+</html>

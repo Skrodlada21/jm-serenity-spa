@@ -1772,6 +1772,18 @@ app.get("/desk", requireDesk, (req, res) => {
   });
 });
 
+// Employee-room prep board — today's appointments with what each customer wants,
+// bilingual (Mandarin-forward). For an always-on monitor in the back room.
+app.get("/desk/prep", requireDesk, (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const bookings = db.getBookingsForDate(today).map((b) => {
+    b.is_member = b.client_phone ? !!db.getMemberByPhone(b.client_phone) : false;
+    b.addonNames = b.addon_ids ? db.getAddonsByIds(b.addon_ids.split(",").map(Number)).map((a) => a.name) : [];
+    return b;
+  });
+  res.render("prep-board", { bookings, today });
+});
+
 // Front desk phone booking (reuses existing phone-booking view)
 app.get("/desk/booking", requireDesk, (req, res) => {
   res.render("admin/phone-booking", {
