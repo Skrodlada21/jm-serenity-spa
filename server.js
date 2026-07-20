@@ -380,7 +380,7 @@ app.use((req, res, next) => {
 
   // These paths always bypass coming-soon mode
   const bypass = [
-    "/admin", "/desk", "/api/", "/checkin",
+    "/admin", "/desk", "/api/", "/checkin", "/arrive",
     "/coming-soon", "/preview", "/unsubscribe",
     "/menu", "/tv/",
     "/style.css", "/script.js", "/images/", "/favicon"
@@ -653,6 +653,62 @@ app.post("/api/signup", rateLimit, (req, res) => {
 /* =========================================================================
    CUSTOMER CHECK-IN (Tablet / Kiosk)
    ========================================================================= */
+
+/* =========================================================================
+   SELF CHECK-IN KIOSK (tablet at the front desk)
+   ========================================================================= */
+
+app.get("/arrive", (req, res) => {
+  res.render("arrive", { services: db.getActiveServices() });
+});
+
+// Look up today's appointments for a phone number
+app.post("/api/arrive/lookup", lookupRateLimit, (req, res) => {
+  const phone = (req.body.phone || "").trim();
+  if (!phone || phone.replace(/\D/g, "").length < 7) return res.json({ bookings: [] });
+  const bookings = db.getTodayBookingsByPhone(phone).map(function (b) {
+    return {
+      id: b.id,
+      time: b.time,
+      service: b.service_name || "",
+      therapist: b.therapist_name || "",
+      name: b.client_name || "",
+      arrived: !!b.arrived_at,
+    };
+  });
+  res.json({ bookings });
+});
+
+// Mark an appointment as arrived / checked in
+app.post("/api/arrive/checkin", (req, res) => {
+  const id = parseInt(req.body.booking_id, 10);
+  if (!id) return res.json({ ok: false });
+  db.markBookingArrived(id);
+  res.json({ ok: true });
+});
+
+// Walk-in: add to the front-desk waiting list
+app.post("/api/arrive/walkin", (req, res) => {
+  const name = (req.body.name || "").trim();
+  const phone = (req.body.phone || "").trim();
+  const serviceId = req.body.service_id ? parseInt(req.body.service_id, 10) : null;
+  if (!name || !phone) return res.json({ ok: false, error: "Please enter your name and phone number." });
+  const now = new Date();
+  const hh = now.getHours(), mm = String(now.getMinutes()).padStart(2, "0");
+  const ampm = hh >= 12 ? "PM" : "AM";
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  db.addToWaitlist({
+    clientName: name,
+    clientPhone: phone,
+    clientEmail: "",
+    serviceId: serviceId,
+    therapistId: null,
+    preferredDate: now.toISOString().slice(0, 10),
+    preferredTime: "Walk-in",
+    notes: "Walk-in — checked in at " + h12 + ":" + mm + " " + ampm,
+  });
+  res.json({ ok: true });
+});
 
 app.get("/checkin", (req, res) => {
   res.render("checkin", {});

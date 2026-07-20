@@ -73,6 +73,8 @@
               &#10007; NO SHOW
             <% } else if (b.status === 'cancelled') { %>
               &#10007; CANCELLED
+            <% } else if (b.arrived_at) { %>
+              <span style="color:#27ae60;">&#10003; CHECKED IN</span>
             <% } else { %>
               &#9679; UPCOMING
             <% } %>

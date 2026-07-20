@@ -58,6 +58,7 @@
         <div class="time"><%= fmt12(b.time) %> <span class="dur"><%= b.duration %>分钟 / min</span></div>
         <div class="cust"><%= b.client_name || '—' %>
           <% if (b.is_member) { %><span class="badge member">会员 Member</span><% } %>
+          <% if (b.arrived_at) { %><span class="badge" style="background:#27ae60;">已到 Arrived</span><% } %>
         </div>
 
         <div class="row"><span class="lab">按摩师<span class="en">Therapist</span></span>
