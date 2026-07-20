@@ -328,5 +328,12 @@ setTimeout(function(){ location.reload(); }, 60000);
 </div>
 <% } %>
 
+<script>
+// Barcode scanner: keep its trailing Enter from submitting the payment form early.
+document.querySelectorAll('input[name="gift_cert_code"]').forEach(function (i) {
+  i.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } });
+});
+</script>
+
 </body>
 </html>

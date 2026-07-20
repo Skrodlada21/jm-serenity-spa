@@ -348,6 +348,11 @@ document.querySelectorAll('input[name="gift_cert_code"]').forEach(function(input
         }).catch(function() { status.textContent = ''; });
     }, 400);
   });
+  // A USB barcode scanner sends Enter after the code — don't let that submit
+  // the payment form early. The live balance lookup above still runs.
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+  });
 });
 </script>
 
