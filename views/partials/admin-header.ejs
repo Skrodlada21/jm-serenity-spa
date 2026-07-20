@@ -9,6 +9,7 @@
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
   <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="/admin.css" />
+  <script src="/js/admin-i18n.js" defer></script>
 </head>
 <body class="admin-body">
 
@@ -36,6 +37,7 @@
       <a class="admin-link <%= activePage === 'admin-expenses' ? 'is-active' : '' %>" href="/admin/expenses">Expenses</a>
       <a class="admin-link <%= activePage === 'admin-documents' ? 'is-active' : '' %>" href="/admin/documents">Documents</a>
       <a class="admin-link <%= activePage === 'admin-settings' ? 'is-active' : '' %>" href="/admin/settings">Settings</a>
+      <a class="admin-link" id="jm-lang-btn" href="javascript:void(0)" onclick="jmToggleLang()" title="Switch language / 切换语言" style="font-weight:700;">中文</a>
       <a class="admin-link" href="/admin/logout">Logout</a>
     </nav>
   </div>
