@@ -382,6 +382,7 @@ app.use((req, res, next) => {
   const bypass = [
     "/admin", "/desk", "/api/", "/checkin",
     "/coming-soon", "/preview", "/unsubscribe",
+    "/menu", "/tv/",
     "/style.css", "/script.js", "/images/", "/favicon"
   ];
   if (bypass.some(p => req.path.startsWith(p))) return next();
