@@ -139,6 +139,21 @@
       </div>
 
       <div class="card" style="margin-bottom: 1.5rem;">
+        <h2>Gift-Card Label Printer (Zebra)</h2>
+        <p class="muted small" style="margin-bottom: .5rem;">The Zebra GX420d's network IP. When set, the "Label" button on a gift certificate prints the barcode sticker instantly (no dialog). Leave blank to use the browser print page instead. Find the IP by printing a config label on the Zebra, or in your router's device list.</p>
+        <div class="grid two">
+          <label>
+            Printer IP Address
+            <input type="text" name="label_printer_ip" value="<%= settings.label_printer_ip || '' %>" placeholder="e.g. 192.168.7.20" />
+          </label>
+          <label>
+            Port <span class="muted small">(default 9100)</span>
+            <input type="text" name="label_printer_port" value="<%= settings.label_printer_port || '' %>" placeholder="9100" />
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.5rem;">
         <h2>Text Message Reminders (OpenPhone)</h2>
         <p class="muted small" style="margin-bottom: .5rem;">Configure to send SMS booking confirmations and automatic 24-hour appointment reminders. Leave blank to disable texting.</p>
         <label>

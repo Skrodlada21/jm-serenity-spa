@@ -131,7 +131,7 @@
                 <% if (c.paid) { %>
                   <!-- Only show Print if paid -->
                   <a class="btn btn-small btn-primary" href="/admin/gift-certificates/<%= c.id %>/print" target="_blank" title="Print full certificate">Print</a>
-                  <a class="btn btn-small" style="background:#16a085; color:#fff;" href="/admin/gift-certificates/<%= c.id %>/label" target="_blank" title="Print barcode label for the card back">Label</a>
+                  <button type="button" class="btn btn-small" style="background:#16a085; color:#fff;" onclick="printGiftLabel(<%= c.id %>, this)" title="Print barcode label for the card back">Label</button>
                 <% } else { %>
                   <!-- Payment required before printing -->
                   <details class="complete-dropdown">
@@ -242,6 +242,31 @@
     </div>
   </div>
 </main>
+
+<script>
+// Print a gift-card barcode label. Tries the networked Zebra (silent, one-click);
+// if no printer is configured, falls back to the browser print page.
+function printGiftLabel(id, btn) {
+  var original = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Printing…"; }
+  fetch("/admin/gift-certificates/" + id + "/print-zpl", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    if (d.ok) {
+      if (btn) { btn.textContent = "Printed ✓"; setTimeout(function(){ btn.textContent = original; }, 2000); }
+    } else if (d.configured === false) {
+      // No Zebra set up yet — open the browser-print label
+      window.open("/admin/gift-certificates/" + id + "/label", "_blank");
+    } else {
+      alert(d.error || "Could not print the label.");
+    }
+  }).catch(function () {
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    window.open("/admin/gift-certificates/" + id + "/label", "_blank");
+  });
+}
+</script>
 
 </body>
 </html>

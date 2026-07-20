@@ -1368,12 +1368,29 @@ app.post("/admin/gift-certificates/:id/charge", requireStaff, async (req, res) =
   }
 });
 
-// Barcode label for the back of a pre-printed gift card
+// Barcode label for the back of a pre-printed gift card (browser-print fallback)
 app.get("/admin/gift-certificates/:id/label", requireStaff, (req, res) => {
   const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
   if (!cert) return res.redirect("/admin/gift-certificates");
   if (!cert.paid) return res.redirect("/admin/gift-certificates?not_paid=1");
   res.render("admin/gift-cert-label", { cert });
+});
+
+// Silent one-click label print — sends ZPL straight to the networked Zebra.
+app.post("/admin/gift-certificates/:id/print-zpl", requireStaff, async (req, res) => {
+  const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
+  if (!cert) return res.json({ ok: false, error: "Gift certificate not found" });
+  if (!cert.paid) return res.json({ ok: false, error: "This gift certificate isn't marked paid yet" });
+  const ip = (db.getSetting("label_printer_ip") || "").trim();
+  if (!ip) return res.json({ ok: false, configured: false });
+  const port = parseInt(db.getSetting("label_printer_port") || "9100", 10);
+  try {
+    const label = require("./lib/label");
+    await label.sendToPrinter(ip, port, label.buildGiftCertZpl(cert.code, cert.amount));
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: false, error: "Couldn't reach the label printer at " + ip + ":" + port + " (" + e.message + ")" });
+  }
 });
 
 app.get("/admin/gift-certificates/:id/print", requireStaff, (req, res) => {
@@ -1694,7 +1711,7 @@ app.get("/admin/settings", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/settings", requireAdmin, (req, res) => {
-  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","water_head_tables","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon","openrouter_api_key","openrouter_model"];
+  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","water_head_tables","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon","openrouter_api_key","openrouter_model","label_printer_ip","label_printer_port"];
   for (const f of fields) {
     if (req.body[f] !== undefined) {
       // Checkboxes with hidden fallback can send arrays — take the last value
