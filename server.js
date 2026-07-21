@@ -785,8 +785,11 @@ app.get("/admin/front-desk", requireAdmin, (req, res) => {
     todayBookings,
     upcoming: db.getUpcomingBookings(10),
     therapists: db.getActiveTherapists(),
+    services: db.getActiveServices(),
     allAddons: db.getAllAddons(),
     waiting: db.getWaitlist().filter((w) => w.preferred_date === today),
+    booked: req.query.booked === "1",
+    seated: req.query.seated || false,
   });
 });
 
@@ -933,7 +936,7 @@ app.get("/admin/phone-booking", requireAdmin, (req, res) => {
 app.post("/admin/phone-booking", requireStaff, (req, res) => {
   const { client_name, client_phone, client_email, service_id, therapist_id, therapist2_id, gender_pref, date, time, areas, notes, addon_ids, recurring_weeks } = req.body;
   const service = db.getServiceById(parseInt(service_id, 10));
-  if (!service) return res.redirect("/admin/phone-booking?error=1");
+  if (!service) return res.redirect(req.session.admin ? "/admin/phone-booking?error=1" : "/desk/booking?error=1");
 
   // Auto-save/update client profile
   if (client_phone) db.upsertClient(client_phone, client_name || "", client_email || "");
@@ -998,7 +1001,8 @@ app.post("/admin/phone-booking", requireStaff, (req, res) => {
     }
   }
 
-  res.redirect("/admin?booked=1");
+  // Desk-only staff can't view /admin — send them back to the front desk.
+  res.redirect(req.session.admin ? "/admin?booked=1" : "/desk?booked=1");
 });
 
 app.post("/admin/bookings/:id/cancel", requireStaff, (req, res) => {
@@ -1843,15 +1847,58 @@ app.get("/desk", requireDesk, (req, res) => {
     todayBookings,
     upcoming: db.getUpcomingBookings(10),
     therapists: db.getActiveTherapists(),
+    services: db.getActiveServices(),
     allAddons: db.getAllAddons(),
     waiting: db.getWaitlist().filter((w) => w.preferred_date === today),
+    booked: req.query.booked === "1",
+    seated: req.query.seated || false,
   });
 });
 
-// Clear a walk-in / waiting entry once they've been seated (front desk)
+// Remove a walk-in / waiting entry (they left or were a no-show)
 app.post("/desk/waitlist/:id/done", requireStaff, (req, res) => {
   db.deleteWaitlistEntry(parseInt(req.params.id, 10));
   res.redirect(safeBack(req, "/desk"));
+});
+
+// Accept a walk-in / waiting person: assign a therapist + service and seat them
+// as a real appointment for NOW, then remove them from the waiting list.
+app.post("/desk/waitlist/:id/accept", requireStaff, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const entry = db.getWaitlist().find((w) => w.id === id);
+  const service = db.getServiceById(parseInt(req.body.service_id, 10));
+  const home = req.session.admin ? "/admin/front-desk" : "/desk";
+  if (!entry || !service) return res.redirect(home + "?error=1");
+
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const cancelToken = crypto.randomBytes(16).toString("hex");
+  db.createBooking({
+    clientName: entry.client_name || entry.client_phone,
+    clientPhone: entry.client_phone || "",
+    clientEmail: entry.client_email || "",
+    serviceId: service.id,
+    therapistId: req.body.therapist_id ? parseInt(req.body.therapist_id, 10) : null,
+    therapist2Id: null,
+    genderPref: "",
+    notes: entry.notes || "",
+    areas: "",
+    date: now.toISOString().slice(0, 10),
+    time: hh + ":" + mm,
+    duration: service.duration,
+    source: "walk-in",
+    addonIds: "",
+    cancelToken,
+    recurringId: "",
+  });
+  // Mark them present (they're standing right here) so it shows checked-in
+  const seated = db.getBookingByToken(cancelToken);
+  if (seated) db.markBookingArrived(seated.id);
+
+  db.deleteWaitlistEntry(id);
+  const who = encodeURIComponent(entry.client_name || "Walk-in");
+  res.redirect(home + "?seated=" + who);
 });
 
 // Employee-room prep board — today's appointments with what each customer wants,
@@ -1875,6 +1922,42 @@ app.get("/desk/booking", requireDesk, (req, res) => {
     therapists: db.getActiveTherapists(),
     deskMode: true,
   });
+});
+
+// Front desk WALK-IN — quick add to today's waiting list (NOT a scheduled booking).
+// They appear in the "Waiting / Walk-Ins" panel on the Today page.
+app.get("/desk/walkin", requireDesk, (req, res) => {
+  res.render("admin/desk-walkin", {
+    activePage: "admin-dashboard",
+    services: db.getActiveServices(),
+    deskMode: !req.session.admin,
+    error: req.query.error === "1",
+  });
+});
+
+app.post("/desk/walkin", requireDesk, (req, res) => {
+  const name = (req.body.client_name || "").trim();
+  const phone = (req.body.client_phone || "").trim();
+  if (!name || !phone) return res.redirect("/desk/walkin?error=1");
+  const serviceId = req.body.service_id ? parseInt(req.body.service_id, 10) : null;
+  const now = new Date();
+  const hh = now.getHours(), mm = String(now.getMinutes()).padStart(2, "0");
+  const ampm = hh >= 12 ? "PM" : "AM";
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  let notes = "Walk-in — added at " + h12 + ":" + mm + " " + ampm;
+  const extra = (req.body.notes || "").trim();
+  if (extra) notes += " · " + extra;
+  db.addToWaitlist({
+    clientName: name,
+    clientPhone: phone,
+    clientEmail: "",
+    serviceId: serviceId,
+    therapistId: null,
+    preferredDate: now.toISOString().slice(0, 10),
+    preferredTime: "Walk-in",
+    notes: notes,
+  });
+  res.redirect(req.session.admin ? "/admin/front-desk" : "/desk");
 });
 
 // Front desk gift certificates (read-only view with create + charge)

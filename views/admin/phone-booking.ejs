@@ -6,8 +6,13 @@
 
 <main class="admin-main">
   <div class="container" style="max-width: 640px;">
+    <% if (typeof deskMode !== 'undefined' && deskMode) { %>
+    <h1>New Booking</h1>
+    <p class="muted">Book an appointment — pick a service, date, and time. The system prevents double-booking.</p>
+    <% } else { %>
     <h1>Phone Booking</h1>
     <p class="muted">Add a booking from a phone call. Same availability system prevents double-booking.</p>
+    <% } %>
 
     <div class="card">
       <form class="form" method="POST" action="/admin/phone-booking" id="phone-booking-form">

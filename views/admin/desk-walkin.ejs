@@ -1,0 +1,49 @@
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+<%- include('../partials/fd-header') %>
+<% } else { %>
+<%- include('../partials/admin-header', { activePage: 'admin-dashboard' }) %>
+<% } %>
+
+<main class="admin-main">
+  <div class="container" style="max-width: 620px;">
+    <h1>Walk-In</h1>
+    <p class="muted" style="margin-bottom: 1.2rem;">Add someone who just walked in to today's waiting list. They'll show on the <strong>Today</strong> page so you can seat them when a room opens.</p>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+    <div class="admin-alert" style="background:#fdecea; border-color:#f5c6cb; color:#b02a37; margin-bottom:1rem;">Please enter at least a name and phone number.</div>
+    <% } %>
+
+    <div class="card">
+      <form class="form" method="POST" action="/desk/walkin">
+        <label>Name
+          <input type="text" name="client_name" required autofocus placeholder="Customer's name"
+            style="font-size:1.2rem; padding:.7rem .9rem;" />
+        </label>
+        <label>Phone
+          <input type="tel" name="client_phone" required placeholder="(303) 555-1234"
+            style="font-size:1.2rem; padding:.7rem .9rem;" />
+        </label>
+        <label>Service <span class="muted small">(optional — can decide later)</span>
+          <select name="service_id" style="font-size:1.1rem; padding:.7rem .9rem;">
+            <option value="">— Any / decide later —</option>
+            <% services.forEach(function(svc){ %>
+            <option value="<%= svc.id %>"><%= svc.name %> — <%= svc.duration %> min ($<%= svc.price %>)</option>
+            <% }); %>
+          </select>
+        </label>
+        <label>Notes <span class="muted small">(optional — requests, preferred therapist, etc.)</span>
+          <input type="text" name="notes" placeholder="Anything to note"
+            style="font-size:1.1rem; padding:.7rem .9rem;" />
+        </label>
+        <button class="btn btn-primary btn-block" type="submit" style="font-size:1.2rem; padding:.9rem;">Add to Waiting List</button>
+      </form>
+    </div>
+
+    <p style="margin-top:1rem;">
+      <a href="<%= (typeof deskMode !== 'undefined' && deskMode) ? '/desk' : '/admin/front-desk' %>" class="muted">&larr; Back to Today</a>
+    </p>
+  </div>
+</main>
+
+</body>
+</html>

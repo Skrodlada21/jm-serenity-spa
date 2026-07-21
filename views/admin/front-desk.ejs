@@ -16,7 +16,7 @@
         <span class="fd-action-icon">&#128222;</span>
         <span>New Booking</span>
       </a>
-      <a class="fd-action-btn fd-action-walkin" href="<%= baseUrl %><%= baseUrl === '/desk' ? '/booking' : '/phone-booking' %>">
+      <a class="fd-action-btn fd-action-walkin" href="/desk/walkin">
         <span class="fd-action-icon">&#128694;</span>
         <span>Walk-In</span>
       </a>
@@ -29,6 +29,13 @@
         <span>Members</span>
       </a>
     </div>
+
+    <% if (typeof seated !== 'undefined' && seated) { %>
+    <div class="admin-alert" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.7rem 1rem; margin-bottom:1rem; font-weight:600;">✓ <%= decodeURIComponent(seated) %> is seated — added to today's appointments below.</div>
+    <% } %>
+    <% if (typeof booked !== 'undefined' && booked) { %>
+    <div class="admin-alert" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.7rem 1rem; margin-bottom:1rem; font-weight:600;">✓ Booking added — see today's list below.</div>
+    <% } %>
 
     <!-- ============================================================
          Today's Date — Big and clear
@@ -53,25 +60,42 @@
       </div>
     </div>
 
-    <!-- Waiting / Walk-Ins (from the check-in kiosk) -->
-    <% if (typeof waiting !== 'undefined' && waiting && waiting.length > 0) { %>
+    <!-- Waiting / Walk-Ins — always visible so the desk always knows where it is.
+         Each person: pick a service + therapist, then Accept to seat them as a
+         real appointment (shows in Today's list + prep board). -->
+    <% var waitList = (typeof waiting !== 'undefined' && waiting) ? waiting : []; %>
     <div class="fd-waiting" style="background:#fff8f0; border:2px solid #e67e22; border-radius:14px; padding:1rem 1.2rem; margin-bottom:1.3rem;">
-      <h2 style="font-size:1.2rem; color:#e67e22; margin-bottom:.6rem;">🚶 Waiting / Walk-Ins (<%= waiting.length %>)</h2>
-      <% waiting.forEach(function(w){ %>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.65rem 0; border-top:1px solid #f0dcc0;">
-        <div>
-          <strong style="font-size:1.2rem;"><%= w.client_name %></strong>
-          <span class="muted" style="margin-left:.5rem;"><%= w.client_phone %></span><br/>
-          <span style="color:#555;"><%= w.service_name || 'Any service' %></span>
-          <% if (w.notes) { %><span class="muted small"> · <%= w.notes %></span><% } %>
+      <h2 style="font-size:1.2rem; color:#e67e22; margin-bottom:.6rem;">🚶 Waiting / Walk-Ins (<%= waitList.length %>)</h2>
+      <% if (waitList.length === 0) { %>
+      <p class="muted" style="margin:.2rem 0;">No one waiting right now. Walk-ins you add and tablet check-ins show up here — then pick a therapist and Accept them.</p>
+      <% } else { %>
+      <% waitList.forEach(function(w){ %>
+      <div style="padding:.75rem 0; border-top:1px solid #f0dcc0;">
+        <div style="margin-bottom:.5rem;">
+          <strong style="font-size:1.25rem;"><%= w.client_name %></strong>
+          <span class="muted" style="margin-left:.5rem;"><%= w.client_phone %></span>
+          <% if (w.notes) { %><div class="muted small" style="margin-top:.15rem;"><%= w.notes %></div><% } %>
         </div>
-        <form method="POST" action="/desk/waitlist/<%= w.id %>/done" style="margin:0;">
-          <button class="btn btn-small btn-primary" type="submit" style="white-space:nowrap;">Seated ✓</button>
+        <form method="POST" action="/desk/waitlist/<%= w.id %>/accept" style="display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:0;">
+          <select name="service_id" required style="padding:.55rem .6rem; font-size:1rem; border-radius:8px;">
+            <option value="">Service…</option>
+            <% (typeof services !== 'undefined' ? services : []).forEach(function(s){ %>
+            <option value="<%= s.id %>" <%= w.service_id === s.id ? 'selected' : '' %>><%= s.name %> (<%= s.duration %>m)</option>
+            <% }); %>
+          </select>
+          <select name="therapist_id" required style="padding:.55rem .6rem; font-size:1rem; border-radius:8px;">
+            <option value="">Assign therapist…</option>
+            <% (typeof therapists !== 'undefined' ? therapists : []).forEach(function(t){ %>
+            <option value="<%= t.id %>" <%= w.therapist_id === t.id ? 'selected' : '' %>><%= t.name %></option>
+            <% }); %>
+          </select>
+          <button class="btn btn-small btn-primary" type="submit" style="white-space:nowrap;">Accept &amp; Seat</button>
+          <button class="btn btn-small btn-ghost" type="submit" formaction="/desk/waitlist/<%= w.id %>/done" formnovalidate style="white-space:nowrap; color:#b06a2c;">Remove</button>
         </form>
       </div>
       <% }); %>
+      <% } %>
     </div>
-    <% } %>
 
     <!-- ============================================================
          Today's Appointments — BIG cards, one per booking
