@@ -1930,6 +1930,7 @@ app.get("/desk/walkin", requireDesk, (req, res) => {
   res.render("admin/desk-walkin", {
     activePage: "admin-dashboard",
     services: db.getActiveServices(),
+    therapists: db.getActiveTherapists(),
     deskMode: !req.session.admin,
     error: req.query.error === "1",
   });
@@ -1940,6 +1941,7 @@ app.post("/desk/walkin", requireDesk, (req, res) => {
   const phone = (req.body.client_phone || "").trim();
   if (!name || !phone) return res.redirect("/desk/walkin?error=1");
   const serviceId = req.body.service_id ? parseInt(req.body.service_id, 10) : null;
+  const therapistId = req.body.therapist_id ? parseInt(req.body.therapist_id, 10) : null;
   const now = new Date();
   const hh = now.getHours(), mm = String(now.getMinutes()).padStart(2, "0");
   const ampm = hh >= 12 ? "PM" : "AM";
@@ -1952,7 +1954,7 @@ app.post("/desk/walkin", requireDesk, (req, res) => {
     clientPhone: phone,
     clientEmail: "",
     serviceId: serviceId,
-    therapistId: null,
+    therapistId: therapistId,
     preferredDate: now.toISOString().slice(0, 10),
     preferredTime: "Walk-in",
     notes: notes,

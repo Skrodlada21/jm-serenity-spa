@@ -31,6 +31,14 @@
             <% }); %>
           </select>
         </label>
+        <label>Preferred Therapist <span class="muted small">(optional — if they asked for someone)</span>
+          <select name="therapist_id" style="font-size:1.1rem; padding:.7rem .9rem;">
+            <option value="">— No preference —</option>
+            <% (typeof therapists !== 'undefined' ? therapists : []).forEach(function(t){ %>
+            <option value="<%= t.id %>"><%= t.name %></option>
+            <% }); %>
+          </select>
+        </label>
         <label>Notes <span class="muted small">(optional — requests, preferred therapist, etc.)</span>
           <input type="text" name="notes" placeholder="Anything to note"
             style="font-size:1.1rem; padding:.7rem .9rem;" />
