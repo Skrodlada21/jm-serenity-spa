@@ -146,7 +146,13 @@
     "Text Message Reminders (OpenPhone)": "短信提醒（OpenPhone）", "Square Payments (Terminal)": "Square 支付（终端）",
     "AI Email Assistant (OpenRouter)": "AI 邮件助手（OpenRouter）", "Email Not Configured Yet": "邮件尚未配置",
     "Sandbox (Testing)": "沙盒（测试）", "Production (Live)": "生产环境（正式）",
-    "Clear All Test Data & Start Fresh": "清除所有测试数据并重新开始"
+    "Clear All Test Data & Start Fresh": "清除所有测试数据并重新开始",
+    // Front desk — waiting / walk-in panel
+    "No one waiting right now. Walk-ins you add and tablet check-ins show up here — then pick a therapist and Accept them.": "目前暂无等候的客人。您添加的散客和平板签到会显示在这里 —— 然后为其选择一位按摩师并点击接受。",
+    "Accept & Seat": "接受并安排入座",
+    "Assign therapist…": "指派按摩师…",
+    "Service…": "服务…",
+    "Preferred Therapist": "偏好按摩师"
   };
 
   function isBi() { try { return localStorage.getItem(KEY) === "bi"; } catch (e) { return false; } }
