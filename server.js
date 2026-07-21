@@ -786,6 +786,7 @@ app.get("/admin/front-desk", requireAdmin, (req, res) => {
     upcoming: db.getUpcomingBookings(10),
     therapists: db.getActiveTherapists(),
     allAddons: db.getAllAddons(),
+    waiting: db.getWaitlist().filter((w) => w.preferred_date === today),
   });
 });
 
@@ -1843,7 +1844,14 @@ app.get("/desk", requireDesk, (req, res) => {
     upcoming: db.getUpcomingBookings(10),
     therapists: db.getActiveTherapists(),
     allAddons: db.getAllAddons(),
+    waiting: db.getWaitlist().filter((w) => w.preferred_date === today),
   });
+});
+
+// Clear a walk-in / waiting entry once they've been seated (front desk)
+app.post("/desk/waitlist/:id/done", requireStaff, (req, res) => {
+  db.deleteWaitlistEntry(parseInt(req.params.id, 10));
+  res.redirect(safeBack(req, "/desk"));
 });
 
 // Employee-room prep board — today's appointments with what each customer wants,
@@ -1881,13 +1889,25 @@ app.get("/desk/gift-certificates", requireDesk, (req, res) => {
   });
 });
 
-// Front desk member lookup
+// Front desk member lookup + sign up new members
 app.get("/desk/members", requireDesk, (req, res) => {
   res.render("admin/desk-members", {
     activePage: "admin-memberships",
     members: db.getActiveMembers(),
+    plans: db.getActiveMembershipPlans(),
     deskMode: true,
+    saved: req.query.saved === "1",
   });
+});
+
+// Front desk: sign up a new member (limited — plan management stays in admin)
+app.post("/desk/members", requireDesk, (req, res) => {
+  const { client_name, client_phone, client_email, plan_id, start_date } = req.body;
+  if (client_name && client_phone && plan_id) {
+    db.addMember(client_name, client_phone, client_email || "", parseInt(plan_id, 10),
+      start_date || new Date().toISOString().slice(0, 10), "", "Signed up at front desk");
+  }
+  res.redirect("/desk/members?saved=1");
 });
 
 // Member card print (accessible to both admin and desk)

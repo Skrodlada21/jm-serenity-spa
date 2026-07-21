@@ -6,8 +6,36 @@
 
 <main class="admin-main">
   <div class="container" style="max-width: 700px;">
-    <h1>Member Lookup</h1>
-    <p class="muted" style="margin-bottom: 1.5rem;">Search by phone number or name to check membership status.</p>
+    <h1>Members</h1>
+    <p class="muted" style="margin-bottom: 1.5rem;">Look up a member, or sign up a new one.</p>
+
+    <% if (typeof saved !== 'undefined' && saved) { %>
+    <div class="admin-alert" style="background:#e8f5e9; border-color:#a5d6a7; color:#2e7d32; margin-bottom:1.2rem;">✓ New member signed up!</div>
+    <% } %>
+
+    <!-- Sign Up New Member -->
+    <details class="card" style="margin-bottom: 1.5rem;">
+      <summary style="cursor:pointer; font-size:1.1rem; font-weight:700; color:var(--brand);">➕ Sign Up New Member</summary>
+      <form class="form" method="POST" action="/desk/members" style="margin-top:1rem;">
+        <div class="grid two">
+          <label>Name<input type="text" name="client_name" required /></label>
+          <label>Phone<input type="tel" name="client_phone" required /></label>
+        </div>
+        <div class="grid two">
+          <label>Email <span class="muted small">(optional)</span><input type="email" name="client_email" /></label>
+          <label>Start Date<input type="date" name="start_date" value="<%= new Date().toISOString().slice(0,10) %>" /></label>
+        </div>
+        <label>Membership Plan
+          <select name="plan_id" required>
+            <option value="">— Choose a plan —</option>
+            <% (typeof plans !== 'undefined' ? plans : []).forEach(function(p){ %>
+            <option value="<%= p.id %>"><%= p.name %> — $<%= p.monthly_price %>/mo (<%= p.visits_per_month %> visits)</option>
+            <% }); %>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Sign Up Member</button>
+      </form>
+    </details>
 
     <!-- Search Box -->
     <div class="card" style="margin-bottom: 1.5rem;">

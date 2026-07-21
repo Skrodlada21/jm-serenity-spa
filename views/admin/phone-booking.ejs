@@ -1,4 +1,8 @@
+<% if (typeof deskMode !== 'undefined' && deskMode) { %>
+<%- include('../partials/fd-header') %>
+<% } else { %>
 <%- include('../partials/admin-header', { activePage: 'admin-phone' }) %>
+<% } %>
 
 <main class="admin-main">
   <div class="container" style="max-width: 640px;">

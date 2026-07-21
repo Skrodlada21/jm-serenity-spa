@@ -53,6 +53,26 @@
       </div>
     </div>
 
+    <!-- Waiting / Walk-Ins (from the check-in kiosk) -->
+    <% if (typeof waiting !== 'undefined' && waiting && waiting.length > 0) { %>
+    <div class="fd-waiting" style="background:#fff8f0; border:2px solid #e67e22; border-radius:14px; padding:1rem 1.2rem; margin-bottom:1.3rem;">
+      <h2 style="font-size:1.2rem; color:#e67e22; margin-bottom:.6rem;">🚶 Waiting / Walk-Ins (<%= waiting.length %>)</h2>
+      <% waiting.forEach(function(w){ %>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.65rem 0; border-top:1px solid #f0dcc0;">
+        <div>
+          <strong style="font-size:1.2rem;"><%= w.client_name %></strong>
+          <span class="muted" style="margin-left:.5rem;"><%= w.client_phone %></span><br/>
+          <span style="color:#555;"><%= w.service_name || 'Any service' %></span>
+          <% if (w.notes) { %><span class="muted small"> · <%= w.notes %></span><% } %>
+        </div>
+        <form method="POST" action="/desk/waitlist/<%= w.id %>/done" style="margin:0;">
+          <button class="btn btn-small btn-primary" type="submit" style="white-space:nowrap;">Seated ✓</button>
+        </form>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
     <!-- ============================================================
          Today's Appointments — BIG cards, one per booking
          ============================================================ -->
