@@ -870,18 +870,18 @@ app.get("/admin/therapists", requireAdmin, (req, res) => {
 app.post("/admin/therapists", requireAdmin, upload.single("photo"), (req, res) => {
   const { name, gender, specialties, service_ids, bio, work_days, start_time, end_time, pin } = req.body;
   const sids = Array.isArray(service_ids) ? service_ids.join(",") : service_ids || "";
-  const wdays = Array.isArray(work_days) ? work_days.join(",") : work_days || "1,2,3,4,5,6";
+  const wdays = Array.isArray(work_days) ? work_days.join(",") : work_days || "";
   const photo = req.file ? "/images/therapists/" + req.file.filename : "";
-  db.addTherapist(name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "09:00", end_time || "19:00", pin || "");
+  db.addTherapist(name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "", end_time || "", pin || "");
   res.redirect("/admin/therapists");
 });
 
 app.post("/admin/therapists/:id/edit", requireAdmin, upload.single("photo"), (req, res) => {
   const { name, gender, specialties, service_ids, bio, existing_photo, work_days, start_time, end_time, pin } = req.body;
   const sids = Array.isArray(service_ids) ? service_ids.join(",") : service_ids || "";
-  const wdays = Array.isArray(work_days) ? work_days.join(",") : work_days || "1,2,3,4,5,6";
+  const wdays = Array.isArray(work_days) ? work_days.join(",") : work_days || "";
   const photo = req.file ? "/images/therapists/" + req.file.filename : (existing_photo || "");
-  db.updateTherapist(parseInt(req.params.id, 10), name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "09:00", end_time || "19:00", pin || "");
+  db.updateTherapist(parseInt(req.params.id, 10), name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "", end_time || "", pin || "");
   res.redirect("/admin/therapists");
 });
 
