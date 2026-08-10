@@ -57,6 +57,29 @@
         <p>If you are feeling unwell, have a fever, or have a contagious condition, we ask that you reschedule your appointment for your safety and the safety of our staff and other clients.</p>
       </div>
 
+      <!-- Text Message Policy — required disclosure for A2P 10DLC carrier
+           registration. Carriers verify this page exists before approving. -->
+      <div class="card reveal" id="text-messages" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+        <h2>Text Message Policy</h2>
+        <p><strong>What we send.</strong> If you give us your mobile number when you book, we send
+          appointment confirmations and a reminder before your appointment. We may also text you
+          back if you contact us. We do not send marketing or promotional texts, and we never sell
+          or share your number.</p>
+        <p><strong>How you opt in.</strong> You opt in by giving us your phone number when you book
+          online, book by phone, or check in at the spa. Providing your number is not a condition of
+          any purchase.</p>
+        <p><strong>How to stop.</strong> Reply <strong>STOP</strong> to any message to opt out at any
+          time. Reply <strong>HELP</strong> for help, or call us at
+          <% var pd = (settings.phone || '').replace(/\D/g, ''); %>
+          <% if (pd.length === 10) { %><a href="tel:+1<%= pd %>"><%= settings.phone %></a><% } else { %><%= settings.phone || '' %><% } %>.
+          Opting out of texts does not cancel your appointment — call us to change or cancel.</p>
+        <p><strong>Frequency &amp; cost.</strong> Message frequency varies by how often you book.
+          Message and data rates may apply, depending on your mobile carrier and plan. Carriers are
+          not liable for delayed or undelivered messages.</p>
+        <p class="muted small">Questions about this policy? Email
+          <a href="mailto:<%= settings.email || 'bookings@jmserenityspa.com' %>"><%= settings.email || 'bookings@jmserenityspa.com' %></a>.</p>
+      </div>
+
       <div class="card reveal" style="padding: 1.5rem; margin-bottom: 1.5rem;">
         <h2>Frequently Asked Questions</h2>
 

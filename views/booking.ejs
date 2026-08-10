@@ -26,6 +26,17 @@
             <input type="tel" name="client_phone" id="client-phone" placeholder="(555) 555-5555" required autofocus />
           </label>
 
+          <!-- SMS consent disclosure. Required evidence of opt-in for A2P 10DLC
+               carrier registration — reviewers check that this is live on the site. -->
+          <p class="muted small" style="margin: -.4rem 0 1rem; line-height: 1.5;">
+            By providing your phone number and booking, you agree to receive appointment
+            confirmations and reminders by text message from
+            <%= settings.spa_name || 'J&amp;M Serenity Spa' %>. Message frequency varies.
+            Message and data rates may apply. Reply <strong>STOP</strong> to opt out or
+            <strong>HELP</strong> for help. See our
+            <a href="/policies#text-messages">Text Message Policy</a>.
+          </p>
+
           <div id="returning-banner" style="display:none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: .8rem 1rem; margin-bottom: .5rem;">
             <strong style="color: #2e7d32;">Welcome back!</strong>
             <span id="returning-name" style="color: #2e7d32;"></span>
