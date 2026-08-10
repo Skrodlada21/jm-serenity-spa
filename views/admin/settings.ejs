@@ -116,7 +116,13 @@
         </label>
         <label>
           SMTP Password
-          <input type="password" name="smtp_pass" value="<%= settings.smtp_pass || '' %>" placeholder="App password" />
+          <input type="password" name="smtp_pass" value="" autocomplete="new-password"
+            placeholder="<%= settings.smtp_pass ? '•••••••••••• saved' : 'App password' %>" />
+          <% if (settings.smtp_pass) { %>
+          <label class="muted small" style="display:block; margin-top:.3rem; font-weight:normal;">
+            Leave blank to keep the saved value. <input type="checkbox" name="clear_smtp_pass" value="1" /> Clear it
+          </label>
+          <% } %>
         </label>
         <label>
           From Address <span class="muted small">(optional — defaults to SMTP user)</span>
@@ -129,7 +135,13 @@
         <p class="muted small" style="margin-bottom: .5rem;">Powers "Draft with AI" on the Send Update page. Get a key at <strong>openrouter.ai/keys</strong>. Leave blank to disable AI drafting.</p>
         <label>
           OpenRouter API Key
-          <input type="password" name="openrouter_api_key" value="<%= settings.openrouter_api_key || '' %>" placeholder="sk-or-..." />
+          <input type="password" name="openrouter_api_key" value="" autocomplete="new-password"
+            placeholder="<%= settings.openrouter_api_key ? '•••••••••••• saved' : 'sk-or-...' %>" />
+          <% if (settings.openrouter_api_key) { %>
+          <label class="muted small" style="display:block; margin-top:.3rem; font-weight:normal;">
+            Leave blank to keep the saved value. <input type="checkbox" name="clear_openrouter_api_key" value="1" /> Clear it
+          </label>
+          <% } %>
         </label>
         <label>
           Model <span class="muted small">(cheap-but-good default; you can change it anytime)</span>
@@ -158,7 +170,13 @@
         <p class="muted small" style="margin-bottom: .5rem;">Configure to send SMS booking confirmations and automatic 24-hour appointment reminders. Leave blank to disable texting.</p>
         <label>
           OpenPhone API Key
-          <input type="password" name="openphone_api_key" value="<%= settings.openphone_api_key || '' %>" placeholder="Your OpenPhone API key" />
+          <input type="password" name="openphone_api_key" value="" autocomplete="new-password"
+            placeholder="<%= settings.openphone_api_key ? '•••••••••••• saved' : 'Your OpenPhone API key' %>" />
+          <% if (settings.openphone_api_key) { %>
+          <label class="muted small" style="display:block; margin-top:.3rem; font-weight:normal;">
+            Leave blank to keep the saved value. <input type="checkbox" name="clear_openphone_api_key" value="1" /> Clear it
+          </label>
+          <% } %>
         </label>
         <label>
           Phone Number ID <span class="muted small">(from OpenPhone API — identifies which number to send from)</span>
@@ -184,7 +202,13 @@
         <p class="muted small" style="margin-bottom: .5rem;">Connect your Square Terminal for card payments at checkout. Your website never touches card data — Square handles everything securely.</p>
         <label>
           Access Token <span class="muted small">(from Square Developer Dashboard)</span>
-          <input type="password" name="square_access_token" value="<%= settings.square_access_token || '' %>" placeholder="Your Square access token" />
+          <input type="password" name="square_access_token" value="" autocomplete="new-password"
+            placeholder="<%= settings.square_access_token ? '•••••••••••• saved' : 'Your Square access token' %>" />
+          <% if (settings.square_access_token) { %>
+          <label class="muted small" style="display:block; margin-top:.3rem; font-weight:normal;">
+            Leave blank to keep the saved value. <input type="checkbox" name="clear_square_access_token" value="1" /> Clear it
+          </label>
+          <% } %>
         </label>
         <div class="grid two">
           <label>

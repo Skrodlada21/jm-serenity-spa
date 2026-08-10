@@ -1774,11 +1774,23 @@ app.get("/admin/settings", requireAdmin, (req, res) => {
 
 app.post("/admin/settings", requireAdmin, (req, res) => {
   const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","water_head_tables","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon","openrouter_api_key","openrouter_model","label_printer_ip","label_printer_port"];
+  // Credentials are never echoed back to the browser, so the form posts them
+  // blank unless the admin is actually setting a new one. Blank = keep the
+  // stored value; the matching "clear_<field>" checkbox is how you erase one.
+  const secretFields = new Set([
+    "smtp_pass", "openphone_api_key", "square_access_token", "openrouter_api_key",
+  ]);
   for (const f of fields) {
     if (req.body[f] !== undefined) {
       // Checkboxes with hidden fallback can send arrays — take the last value
       const val = Array.isArray(req.body[f]) ? req.body[f][req.body[f].length - 1] : req.body[f];
-      db.setSetting(f, val);
+      if (secretFields.has(f)) {
+        if (req.body["clear_" + f]) db.setSetting(f, "");
+        else if (String(val).trim() !== "") db.setSetting(f, String(val).trim());
+        // blank with no clear request — leave the stored credential untouched
+      } else {
+        db.setSetting(f, val);
+      }
     }
   }
   if (req.body.new_password && req.body.new_password.trim()) {
