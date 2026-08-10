@@ -42,7 +42,7 @@
       <% if (settings.address) { %>
         <%= settings.address %><br />
       <% } %>
-      Mon–Sat <%= footerOpen %>–<%= footerClose %> · Closed Sunday
+      <%= typeof hoursText !== 'undefined' ? hoursText : ('Mon–Sat ' + footerOpen + '–' + footerClose) %>
     </address>
 
     <div class="footer-links">

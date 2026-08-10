@@ -139,6 +139,45 @@ function publicBaseUrl(req) {
 
 // Redirect back to the referring page ONLY if it is same-origin; otherwise
 // use a safe fallback. Prevents open-redirect via a forged Referer header.
+/**
+ * Human-readable opening hours derived from settings — the single source used by
+ * the footer, contact page and coming-soon page, so an hours change in admin can
+ * never leave one page contradicting another.
+ *   "Every day 9am–9pm"  |  "Mon–Sat 9am–7pm · Closed Sunday"
+ * settings.open_days is a comma list where 1=Mon .. 6=Sat, 7=Sun (0 also accepted).
+ */
+function formatBusinessHours(settings) {
+  const s = settings || {};
+  const fmt = (value, fallback) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(value || ""));
+    if (!m) return fallback;
+    const h = parseInt(m[1], 10);
+    const mins = m[2];
+    if (isNaN(h) || h > 23) return fallback;
+    return ((h % 12) || 12) + (mins === "00" ? "" : ":" + mins) + (h >= 12 ? "pm" : "am");
+  };
+  const open = fmt(s.open_time, "9am");
+  const close = fmt(s.close_time, "7pm");
+
+  const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const nums = String(s.open_days || "1,2,3,4,5,6")
+    .split(",")
+    .map((d) => { const n = parseInt(d, 10); return n === 7 ? 0 : n; })
+    .filter((n) => n >= 0 && n <= 6);
+  const open7 = [0, 1, 2, 3, 4, 5, 6].every((n) => nums.includes(n));
+  if (open7) return "Every day " + open + "–" + close;
+
+  // Order Mon-first so a normal week reads as a range, then note the closed days.
+  const week = [1, 2, 3, 4, 5, 6, 0].filter((n) => nums.includes(n));
+  if (week.length === 0) return "Hours by appointment";
+  const label = week.length === 1
+    ? names[week[0]]
+    : names[week[0]] + "–" + names[week[week.length - 1]];
+  const closed = [1, 2, 3, 4, 5, 6, 0].filter((n) => !nums.includes(n)).map((n) => names[n]);
+  return label + " " + open + "–" + close +
+    (closed.length ? " · Closed " + closed.join(", ") : "");
+}
+
 function safeBack(req, fallback) {
   const ref = req.get("Referrer") || req.get("Referer");
   if (ref) {
@@ -327,6 +366,7 @@ app.use(verifyCsrf);
 
 app.use((req, res, next) => {
   res.locals.settings = db.getAllSettings();
+  res.locals.hoursText = formatBusinessHours(res.locals.settings);
   res.locals.isAdmin = !!req.session.admin;
   // Prevent browser caching of HTML pages so setting changes take effect immediately
   if (!req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$/)) {

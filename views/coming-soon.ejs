@@ -659,9 +659,7 @@ document.getElementById('signup-form').addEventListener('submit', function(e) {
       </p>
       <p>
         <span class="label">Hours</span>
-        Monday &ndash; Saturday<br />
-        <%= csOpen %> &ndash; <%= csClose %><br />
-        <span class="closed">Closed Sunday</span>
+        <%= typeof hoursText !== 'undefined' ? hoursText : (csOpen + ' – ' + csClose) %>
       </p>
     </div>
   </div>

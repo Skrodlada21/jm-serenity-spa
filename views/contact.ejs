@@ -58,7 +58,7 @@
               <% } %>
             </li>
             <li><strong>Email:</strong> <a href="mailto:<%= settings.email || '' %>"><%= settings.email || '[Your Email]' %></a></li>
-            <li><strong>Hours:</strong> Mon–Sat <%= contactOpen %>–<%= contactClose %> · Closed Sunday</li>
+            <li><strong>Hours:</strong> <%= typeof hoursText !== 'undefined' ? hoursText : ('Mon–Sat ' + contactOpen + '–' + contactClose) %></li>
             <li><strong>Location:</strong> <%= settings.address || 'Littleton, CO' %></li>
           </ul>
 
