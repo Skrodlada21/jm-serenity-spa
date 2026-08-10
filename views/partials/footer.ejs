@@ -1,9 +1,49 @@
+<%
+  /* Phone: settings.phone is stored pretty, e.g. "(303) 500-5845".
+     Strip to digits and build a valid E.164 tel: URI. 10 digits => prefix +1;
+     11 digits starting with 1 => already has the country code. Anything else
+     (blank / unexpected) yields '' so we never render a broken "tel:+1". */
+  var footerPhoneDigits = String(settings.phone || '').replace(/\D/g, '');
+  var footerPhoneHref = '';
+  if (footerPhoneDigits.length === 10) {
+    footerPhoneHref = '+1' + footerPhoneDigits;
+  } else if (footerPhoneDigits.length === 11 && footerPhoneDigits.charAt(0) === '1') {
+    footerPhoneHref = '+' + footerPhoneDigits;
+  }
+
+  /* Hours: read the times from settings so the footer follows the admin
+     settings, and render them human-readable ("09:00" -> "9am"). */
+  function footerTime(value, fallback) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''));
+    if (!m) return fallback;
+    var h = parseInt(m[1], 10);
+    var mins = m[2];
+    if (isNaN(h) || h > 23) return fallback;
+    var suffix = h >= 12 ? 'pm' : 'am';
+    var hour12 = (h % 12) || 12;
+    return (mins === '00' ? String(hour12) : hour12 + ':' + mins) + suffix;
+  }
+  var footerOpen = footerTime(settings.open_time, '9am');
+  var footerClose = footerTime(settings.close_time, '7pm');
+%>
 <footer class="site-footer">
   <div class="container footer-inner">
     <div class="footer-left">
       <img src="/images/logo.png" alt="J&amp;M Serenity Spa" class="footer-logo" />
       <p class="muted small">By appointment only • Pay at appointment</p>
     </div>
+
+    <address class="footer-contact muted small" style="font-style: normal; line-height: 1.7;">
+      <% if (footerPhoneHref) { %>
+        <a href="tel:<%= footerPhoneHref %>"><%= settings.phone %></a><br />
+      <% } else if (settings.phone) { %>
+        <%= settings.phone %><br />
+      <% } %>
+      <% if (settings.address) { %>
+        <%= settings.address %><br />
+      <% } %>
+      Mon–Sat <%= footerOpen %>–<%= footerClose %> · Closed Sunday
+    </address>
 
     <div class="footer-links">
       <a href="/treatments">Treatments</a>

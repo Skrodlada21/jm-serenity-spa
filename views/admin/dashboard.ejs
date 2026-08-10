@@ -4,6 +4,23 @@
   <div class="container">
     <h1>Dashboard</h1>
 
+    <!-- Text-message delivery health. Quo bills API texts against a PREPAID
+         balance and hard-fails when it runs out, so a silent stop is possible. -->
+    <% if (typeof smsHealth !== 'undefined' && smsHealth && smsHealth.configured && smsHealth.consecutiveFailures > 0) { %>
+    <div class="admin-alert" style="background:<%= smsHealth.likelyOutOfCredits ? '#fdecea' : '#fff8e1' %>; border:1px solid <%= smsHealth.likelyOutOfCredits ? '#f5c6cb' : '#ffe0a3' %>; color:<%= smsHealth.likelyOutOfCredits ? '#b02a37' : '#8a6d1f' %>; border-radius:12px; padding:.8rem 1rem; margin-bottom:1.2rem;">
+      <% if (smsHealth.likelyOutOfCredits) { %>
+        <strong>⚠️ Text messages are failing — Quo credits may be empty.</strong><br />
+        Confirmations and reminders are <strong>not</strong> being delivered. Top up the prepaid balance in Quo → Billing (turn on auto-reload to prevent this).
+      <% } else { %>
+        <strong>⚠️ Text messages are failing.</strong><br />
+        <%= smsHealth.consecutiveFailures %> send<%= smsHealth.consecutiveFailures === 1 ? '' : 's' %> in a row failed. Check the OpenPhone/Quo settings and API key.
+      <% } %>
+      <% if (smsHealth.lastError) { %>
+      <div class="muted small" style="margin-top:.4rem;">Last error<%= smsHealth.lastError.status ? ' (HTTP ' + smsHealth.lastError.status + ')' : '' %>: <%= smsHealth.lastError.message %></div>
+      <% } %>
+    </div>
+    <% } %>
+
     <% if (typeof booked !== 'undefined') { %>
     <div class="admin-alert">Phone booking added successfully.</div>
     <% } %>

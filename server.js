@@ -812,6 +812,7 @@ app.get("/admin", requireAdmin, (req, res) => {
     today,
     viewDate,
     signupCount: db.getEmailSignupCount(),
+    smsHealth: sms.getSmsHealth(),
   });
 });
 

@@ -4,6 +4,35 @@
   activePage: 'contact'
 }) %>
 
+<%
+  /* settings.phone is stored pretty, e.g. "(303) 500-5845". A tel: URI must not
+     contain parentheses or spaces, so strip to digits and build E.164:
+     10 digits => prefix +1; 11 digits starting with 1 => already country-coded.
+     Anything else yields '' so we never render a broken "tel:+1". */
+  var contactPhoneDigits = String(settings.phone || '').replace(/\D/g, '');
+  var contactPhoneHref = '';
+  if (contactPhoneDigits.length === 10) {
+    contactPhoneHref = '+1' + contactPhoneDigits;
+  } else if (contactPhoneDigits.length === 11 && contactPhoneDigits.charAt(0) === '1') {
+    contactPhoneHref = '+' + contactPhoneDigits;
+  }
+
+  /* Hours: read from settings, rendered human-readable ("09:00" -> "9am") so the
+     contact card matches the hours shown in the footer. */
+  function contactTime(value, fallback) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''));
+    if (!m) return fallback;
+    var h = parseInt(m[1], 10);
+    var mins = m[2];
+    if (isNaN(h) || h > 23) return fallback;
+    var suffix = h >= 12 ? 'pm' : 'am';
+    var hour12 = (h % 12) || 12;
+    return (mins === '00' ? String(hour12) : hour12 + ':' + mins) + suffix;
+  }
+  var contactOpen = contactTime(settings.open_time, '9am');
+  var contactClose = contactTime(settings.close_time, '7pm');
+%>
+
 <main>
   <section class="page-hero">
     <div class="container">
@@ -21,9 +50,15 @@
         <div class="card reveal">
           <h2>Contact Info</h2>
           <ul class="contact-list">
-            <li><strong>Phone:</strong> <a href="tel:<%= settings.phone || '' %>"><%= settings.phone || '[Your Phone]' %></a></li>
+            <li><strong>Phone:</strong>
+              <% if (contactPhoneHref) { %>
+                <a href="tel:<%= contactPhoneHref %>"><%= settings.phone %></a>
+              <% } else { %>
+                <%= settings.phone || '[Your Phone]' %>
+              <% } %>
+            </li>
             <li><strong>Email:</strong> <a href="mailto:<%= settings.email || '' %>"><%= settings.email || '[Your Email]' %></a></li>
-            <li><strong>Hours:</strong> Mon–Sat, <%= settings.open_time || '9:00' %> – <%= settings.close_time || '7:00 PM' %></li>
+            <li><strong>Hours:</strong> Mon–Sat <%= contactOpen %>–<%= contactClose %> · Closed Sunday</li>
             <li><strong>Location:</strong> <%= settings.address || 'Littleton, CO' %></li>
           </ul>
 

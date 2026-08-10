@@ -1,0 +1,84 @@
+<%
+    // ---- Structured data (schema.org) --------------------------------------
+    // Local-SEO markup that lets Google tie this site to the Google Business
+    // Profile listing. Every value comes from settings (never hardcoded) with a
+    // sensible fallback; only the stable city/state/ZIP are used as a backstop.
+    var sd = (typeof settings !== 'undefined' && settings) ? settings : {};
+
+    var sdSiteUrl = String(sd.site_url || 'https://jmserenityspa.com').trim().replace(/\/+$/, '');
+
+    // settings.address is one combined string ("street, city, ST ZIP") but
+    // PostalAddress wants separate fields, so split off the "city, ST ZIP" tail.
+    var sdAddress  = String(sd.address || '').trim();
+    var sdAddrTail = sdAddress.match(/^(.*),\s*([^,]+),\s*([A-Za-z]{2})\s*(\d{5})(?:-\d{4})?$/);
+    // If the address doesn't parse, emit incomplete-but-TRUE markup rather than
+    // pairing a real street with a guessed city/ZIP.
+    var sdStreet   = sdAddrTail ? sdAddrTail[1].trim()        : sdAddress;
+    var sdCity     = sdAddrTail ? sdAddrTail[2].trim()        : '';
+    var sdRegion   = sdAddrTail ? sdAddrTail[3].toUpperCase() : '';
+    var sdZip      = sdAddrTail ? sdAddrTail[4]               : '';
+
+    // schema.org wants E.164; settings.phone is a display string like "(303) 500-5845".
+    var sdDigits = String(sd.phone || '(303) 500-5845').replace(/\D/g, '');
+    if (sdDigits.length === 10) sdDigits = '1' + sdDigits;     // US 10-digit -> +1XXXXXXXXXX
+
+    // settings.open_days is a comma list of day numbers. The admin settings form
+    // documents it as 1=Mon .. 6=Sat, 7=Sun, so normalize 7 -> 0 (Sunday) before
+    // indexing; 0 is still accepted for backward compatibility.
+    var sdDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var sdOpenNums = String(sd.open_days || '1,2,3,4,5,6').split(',').map(function (d) {
+      var n = parseInt(d, 10);
+      return n === 7 ? 0 : n;
+    }).filter(function (n) { return n >= 0 && n <= 6; });
+    var sdOpenDays   = sdOpenNums.map(function (n) { return sdDayNames[n]; });
+    var sdClosedDays = sdDayNames.filter(function (day, n) { return sdOpenNums.indexOf(n) === -1; });
+
+    var sdHours = [];
+    if (sdOpenDays.length) {
+      sdHours.push({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: sdOpenDays,
+        opens: String(sd.open_time || '09:00'),
+        closes: String(sd.close_time || '19:00')
+      });
+    }
+    if (sdClosedDays.length) {
+      // Google's convention for "closed all day": opens and closes both 00:00.
+      sdHours.push({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: sdClosedDays,
+        opens: '00:00',
+        closes: '00:00'
+      });
+    }
+
+    var structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'DaySpa',
+      '@id': sdSiteUrl + '/#spa',
+      name: String(sd.spa_name || 'J&M Serenity Spa'),
+      url: sdSiteUrl,
+      image: sdSiteUrl + '/images/og-image.png',
+      logo: sdSiteUrl + '/images/logo.png',
+      telephone: '+' + sdDigits,
+      email: String(sd.email || 'bookings@jmserenityspa.com'),
+      priceRange: '$40-$170',
+      address: (function () {
+        var a = { '@type': 'PostalAddress', streetAddress: sdStreet, addressCountry: 'US' };
+        if (sdCity)   a.addressLocality = sdCity;
+        if (sdRegion) a.addressRegion   = sdRegion;
+        if (sdZip)    a.postalCode      = sdZip;
+        return a;
+      })(),
+      openingHoursSpecification: sdHours
+    };
+    if (sdCity) {
+      structuredData.areaServed = {
+        '@type': 'City',
+        name: sdCity,
+        containedInPlace: { '@type': 'State', name: sdRegion || 'CO' }
+      };
+    }
+%>
+<!-- Structured data for search engines / Google Business Profile -->
+  <script type="application/ld+json"><%- JSON.stringify(structuredData).replace(/</g, '\\u003c') %></script>
