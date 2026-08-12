@@ -1615,6 +1615,61 @@ app.post("/admin/documents/:id/delete", requireAdmin, (req, res) => {
   res.redirect("/admin/documents");
 });
 
+/* =========================================================================
+   VENDORS & ACCOUNTS (utility accounts, suppliers, portals — admin only)
+
+   requireAdmin on every route on purpose, never requireStaff: this page lists
+   account numbers and portal logins, which the front desk has no reason to see.
+   Nothing here stores a password — password_location is only a note about which
+   password manager holds it. See lib/db.js before adding fields.
+   ========================================================================= */
+
+// Pull the vendor fields out of a submitted form. Shared by add and update so
+// the two stay in step when a field is added.
+function vendorFromBody(b) {
+  return {
+    name: (b.name || "").trim(),
+    category: b.category || "Other",
+    what_for: b.what_for || "",
+    account_number: b.account_number || "",
+    website: b.website || "",
+    login_username: b.login_username || "",
+    password_location: b.password_location || "", // pointer only, never a password
+    support_phone: b.support_phone || "",
+    support_email: b.support_email || "",
+    cost: b.cost || "",
+    billing_cycle: b.billing_cycle || "",
+    renewal_date: b.renewal_date || "",
+    notes: b.notes || "",
+  };
+}
+
+app.get("/admin/vendors", requireAdmin, (req, res) => {
+  res.render("admin/vendors", { activePage: "admin-vendors", vendors: db.getVendors() });
+});
+
+app.post("/admin/vendors", requireAdmin, (req, res) => {
+  const vendor = vendorFromBody(req.body);
+  if (vendor.name) db.addVendor(vendor);
+  res.redirect("/admin/vendors");
+});
+
+app.post("/admin/vendors/:id/update", requireAdmin, (req, res) => {
+  const vendor = vendorFromBody(req.body);
+  if (vendor.name) db.updateVendor(parseInt(req.params.id, 10), vendor);
+  res.redirect("/admin/vendors");
+});
+
+app.post("/admin/vendors/:id/toggle", requireAdmin, (req, res) => {
+  db.toggleVendor(parseInt(req.params.id, 10));
+  res.redirect("/admin/vendors");
+});
+
+app.post("/admin/vendors/:id/delete", requireAdmin, (req, res) => {
+  db.deleteVendor(parseInt(req.params.id, 10));
+  res.redirect("/admin/vendors");
+});
+
 app.get("/admin/expenses", requireAdmin, (req, res) => {
   const month = req.query.month || new Date().toISOString().slice(0, 7);
   const filter = req.query.filter || "";

@@ -1,0 +1,413 @@
+<%- include('../partials/admin-header', { activePage: 'admin-vendors' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Vendors &amp; Accounts</h1>
+    <p class="muted small" style="margin-bottom: 1rem;">
+      One place for account numbers, portal links, support phone numbers, and who you buy things from —
+      the electric company, the internet, gift card and business card printers, suppliers, insurance, the landlord.
+    </p>
+    <div class="admin-alert" style="background:#fdf6e3; border-color:#e6d3a3; color:#7a5c12; margin-bottom:1.5rem;">
+      <strong>Passwords are not kept here.</strong>
+      Keep the real passwords in a password manager and use “Where the Password Is Kept” to note which one holds it,
+      for example “Bitwarden — J&amp;M Shared”.
+    </div>
+
+    <%
+      // Category order for the grouped listing. Anything unrecognized falls into "Other".
+      var CATEGORIES = ['Utility', 'Internet & Phone', 'Supplier', 'Software', 'Insurance',
+                        'Landlord', 'Government', 'Bank & Payments', 'Other'];
+      var CYCLES = ['Monthly', 'Annual', 'As needed', 'One-time'];
+
+      // Free-text website: force http(s) so a stray "javascript:" can never end up in an href.
+      function safeUrl(u) {
+        u = String(u || '').trim();
+        if (!u) return '';
+        if (/^https?:\/\//i.test(u)) return u;
+        // A URL scheme never contains a dot before the colon, but a hostname
+        // almost always does — so this blocks javascript:/data: without eating
+        // a scheme-less "portal.example.com:8443/login".
+        if (/^[a-z][a-z0-9+\-]*:/i.test(u)) return '';
+        return 'https://' + u;
+      }
+
+      // Group key doubles as the vendor's normalized category, so an unrecognized
+      // value from an older row still shows (and saves back) as "Other".
+      var groups = {};
+      (vendors || []).forEach(function(v) {
+        var c = CATEGORIES.indexOf(v.category) > -1 ? v.category : 'Other';
+        (groups[c] = groups[c] || []).push(v);
+      });
+    %>
+
+    <!-- Add -->
+    <details class="card" style="margin-bottom: 1.5rem;">
+      <summary style="cursor:pointer; font-size:1.1rem; font-weight:700; color:var(--brand);">➕ Add Vendor / Account</summary>
+      <form class="form" method="POST" action="/admin/vendors" style="margin-top:1rem;">
+        <div class="grid two">
+          <label>
+            Company / Vendor Name
+            <input type="text" name="name" placeholder="Xcel Energy" required />
+          </label>
+          <label>
+            Category
+            <select name="category">
+              <% CATEGORIES.forEach(function(c) { %>
+              <option value="<%= c %>" <%= c === 'Other' ? 'selected' : '' %>><%= c %></option>
+              <% }); %>
+            </select>
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            What This Is For
+            <input type="text" name="what_for" placeholder="Electricity" />
+          </label>
+          <label>
+            Account Number
+            <input type="text" name="account_number" placeholder="53-1234567-8" />
+          </label>
+        </div>
+        <div class="grid two">
+          <label>
+            Website / Portal
+            <input type="text" name="website" placeholder="xcelenergy.com" />
+          </label>
+          <label>
+            Login Username
+            <input type="text" name="login_username" placeholder="bookings@jmserenityspa.com" />
+          </label>
+        </div>
+        <label>
+          Where the Password Is Kept
+          <input type="text" name="password_location" placeholder="Bitwarden — J&amp;M Shared" />
+          <span class="muted small" style="display:block; margin-top:.3rem;">Just a note about where to find it — never type the password itself.</span>
+        </label>
+        <div class="grid two">
+          <label>
+            Support Phone
+            <input type="tel" name="support_phone" placeholder="(800) 895-4999" />
+          </label>
+          <label>
+            Support Email
+            <input type="text" name="support_email" placeholder="support@example.com" />
+          </label>
+        </div>
+        <div class="grid three">
+          <label>
+            Cost
+            <input type="text" name="cost" placeholder="~$140/mo" />
+          </label>
+          <label>
+            Billing Cycle
+            <select name="billing_cycle">
+              <option value="">—</option>
+              <% CYCLES.forEach(function(c) { %>
+              <option value="<%= c %>"><%= c %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label>
+            Renewal Date
+            <input type="text" name="renewal_date" placeholder="2027-03-01" />
+          </label>
+        </div>
+        <label>
+          Notes
+          <input type="text" name="notes" placeholder="Autopay from the business checking account" />
+        </label>
+        <button class="btn btn-primary" type="submit">Save Vendor</button>
+      </form>
+    </details>
+
+    <!-- Search -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <form id="vendor-search-form" class="form" onsubmit="return false;">
+        <label style="font-weight: 700;">
+          Search
+          <input type="text" id="vendor-search" placeholder="Name, category, account number, or what it's for"
+            style="font-size: 1.1rem; padding: .7rem .9rem; margin-top: .3rem;" />
+        </label>
+      </form>
+      <p id="vendor-search-count" class="muted small" style="margin:.4rem 0 0;"></p>
+    </div>
+
+    <% if (!vendors || vendors.length === 0) { %>
+    <div class="card"><p class="muted">No vendors yet. Add the electric company, the internet, and your gift card printer to start.</p></div>
+    <% } else { %>
+
+    <% CATEGORIES.forEach(function(cat) { if (!groups[cat]) return; %>
+    <section class="vendor-group" style="margin-bottom: 2rem;">
+      <h2><%= cat %></h2>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th>Account Number</th>
+              <th>Login</th>
+              <th>Contact</th>
+              <th>Cost</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% groups[cat].forEach(function(v) { var url = safeUrl(v.website); %>
+            <tr class="vendor-row" data-search="<%= (v.name + ' ' + v.category + ' ' + (v.account_number || '') + ' ' + (v.what_for || '')).toLowerCase() %>"
+                style="<%= v.active ? '' : 'opacity:.6;' %>">
+              <td>
+                <strong><%= v.name %></strong>
+                <% if (!v.active) { %> <span class="admin-badge offline">Inactive</span><% } %>
+                <% if (v.what_for) { %><br /><span class="muted small"><%= v.what_for %></span><% } %>
+                <% if (v.notes) { %><br /><span class="muted small"><%= v.notes %></span><% } %>
+              </td>
+              <td>
+                <% if (v.account_number) { %>
+                <span class="vendor-acct" style="font-family:monospace; font-size:.95rem;"><%= v.account_number %></span>
+                <button type="button" class="btn btn-small btn-ghost vendor-copy" data-copy="<%= v.account_number %>"
+                  style="margin-left:.3rem;" title="Copy account number">Copy</button>
+                <% } else { %>
+                <span class="muted">—</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (v.login_username) { %>
+                <span class="muted small">User:</span> <%= v.login_username %>
+                <% } else { %>
+                <span class="muted">—</span>
+                <% } %>
+                <% if (v.password_location) { %>
+                <br /><span class="muted small"><span>Password kept in:</span> <%= v.password_location %></span>
+                <% } %>
+              </td>
+              <td>
+                <% if (url) { %>
+                <a href="<%= url %>" target="_blank" rel="noopener">Open portal</a><br />
+                <% } %>
+                <% if (v.support_phone) { %>
+                <a href="tel:<%= v.support_phone %>"><%= v.support_phone %></a><br />
+                <% } %>
+                <% if (v.support_email) { %>
+                <a href="mailto:<%= v.support_email %>" class="small"><%= v.support_email %></a>
+                <% } %>
+                <% if (!url && !v.support_phone && !v.support_email) { %><span class="muted">—</span><% } %>
+              </td>
+              <td>
+                <% if (v.cost) { %><strong><%= v.cost %></strong><% } else { %><span class="muted">—</span><% } %>
+                <% if (v.billing_cycle) { %><br /><span class="muted small"><%= v.billing_cycle %></span><% } %>
+                <% if (v.renewal_date) { %><br /><span class="muted small"><span>Renews</span> <%= v.renewal_date %></span><% } %>
+              </td>
+              <td style="white-space: nowrap;">
+                <button class="btn btn-small" type="button" style="background:#3498db; color:#fff; margin-bottom:.3rem;"
+                  onclick="vendorEdit(<%= v.id %>)">Edit</button>
+                <form method="POST" action="/admin/vendors/<%= v.id %>/toggle" style="display:inline;">
+                  <button class="btn btn-small btn-ghost" type="submit" style="margin-bottom:.3rem;"><%= v.active ? 'Deactivate' : 'Reactivate' %></button>
+                </form>
+                <form method="POST" action="/admin/vendors/<%= v.id %>/delete" style="display:inline;"
+                  onsubmit="return confirm('Delete this vendor?')">
+                  <button class="btn btn-small btn-ghost" type="submit" style="color:#c0392b;">Delete</button>
+                </form>
+              </td>
+            </tr>
+
+            <!-- Edit (hidden until the Edit button is pressed) -->
+            <tr class="vendor-edit-row" id="vendor-edit-<%= v.id %>" style="display:none;"
+                data-search="<%= (v.name + ' ' + v.category + ' ' + (v.account_number || '') + ' ' + (v.what_for || '')).toLowerCase() %>">
+              <td colspan="6" style="background:#fafafa;">
+                <form class="form" method="POST" action="/admin/vendors/<%= v.id %>/update">
+                  <div class="grid two">
+                    <label>
+                      Company / Vendor Name
+                      <input type="text" name="name" value="<%= v.name %>" required />
+                    </label>
+                    <label>
+                      Category
+                      <select name="category">
+                        <% CATEGORIES.forEach(function(c) { %>
+                        <option value="<%= c %>" <%= cat === c ? 'selected' : '' %>><%= c %></option>
+                        <% }); %>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="grid two">
+                    <label>
+                      What This Is For
+                      <input type="text" name="what_for" value="<%= v.what_for || '' %>" />
+                    </label>
+                    <label>
+                      Account Number
+                      <input type="text" name="account_number" value="<%= v.account_number || '' %>" />
+                    </label>
+                  </div>
+                  <div class="grid two">
+                    <label>
+                      Website / Portal
+                      <input type="text" name="website" value="<%= v.website || '' %>" />
+                    </label>
+                    <label>
+                      Login Username
+                      <input type="text" name="login_username" value="<%= v.login_username || '' %>" />
+                    </label>
+                  </div>
+                  <label>
+                    Where the Password Is Kept
+                    <input type="text" name="password_location" value="<%= v.password_location || '' %>" />
+                    <span class="muted small" style="display:block; margin-top:.3rem;">Just a note about where to find it — never type the password itself.</span>
+                  </label>
+                  <div class="grid two">
+                    <label>
+                      Support Phone
+                      <input type="tel" name="support_phone" value="<%= v.support_phone || '' %>" />
+                    </label>
+                    <label>
+                      Support Email
+                      <input type="text" name="support_email" value="<%= v.support_email || '' %>" />
+                    </label>
+                  </div>
+                  <div class="grid three">
+                    <label>
+                      Cost
+                      <input type="text" name="cost" value="<%= v.cost || '' %>" />
+                    </label>
+                    <label>
+                      Billing Cycle
+                      <select name="billing_cycle">
+                        <option value="">—</option>
+                        <% CYCLES.forEach(function(c) { %>
+                        <option value="<%= c %>" <%= v.billing_cycle === c ? 'selected' : '' %>><%= c %></option>
+                        <% }); %>
+                      </select>
+                    </label>
+                    <label>
+                      Renewal Date
+                      <input type="text" name="renewal_date" value="<%= v.renewal_date || '' %>" />
+                    </label>
+                  </div>
+                  <label>
+                    Notes
+                    <input type="text" name="notes" value="<%= v.notes || '' %>" />
+                  </label>
+                  <div>
+                    <button class="btn btn-primary" type="submit">Save Changes</button>
+                    <button class="btn btn-ghost" type="button" onclick="vendorEdit(<%= v.id %>)">Cancel</button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <% }); %>
+
+    <% } %>
+  </div>
+</main>
+
+<script>
+// Show/hide the edit row underneath a vendor.
+function vendorEdit(id) {
+  var row = document.getElementById('vendor-edit-' + id);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+
+(function () {
+  /* ---- Client-side search: name / category / account number / what it's for ---- */
+  var input = document.getElementById('vendor-search');
+  var count = document.getElementById('vendor-search-count');
+  var rows = document.querySelectorAll('tr[data-search]');
+  var groupEls = document.querySelectorAll('.vendor-group');
+  var totalVendors = document.querySelectorAll('.vendor-row').length;
+
+  if (input) {
+    input.addEventListener('input', function () {
+      var q = input.value.trim().toLowerCase();
+      var found = 0;
+
+      rows.forEach(function (r) {
+        // Both a vendor row and its edit row carry the same haystack, so they
+        // hide together. Any open edit form closes while a search is running.
+        var match = !q || r.getAttribute('data-search').indexOf(q) > -1;
+        var show = match && !r.classList.contains('vendor-edit-row');
+        r.style.display = show ? '' : 'none';
+        if (show) found++;
+      });
+
+      // Hide a whole category once nothing in it matches.
+      groupEls.forEach(function (g) {
+        var visible = 0;
+        g.querySelectorAll('.vendor-row').forEach(function (r) {
+          if (r.style.display !== 'none') visible++;
+        });
+        g.style.display = visible ? '' : 'none';
+      });
+
+      if (!q) { count.textContent = ''; }
+      else if (found === 0) { count.textContent = 'Nothing matched that search.'; }
+      else { count.textContent = 'Showing ' + found + ' of ' + totalVendors + '.'; }
+    });
+  }
+
+  /* ---- Copy an account number. Falls back to the old command, and if neither
+         works the number is still on screen to read. ---- */
+  function flash(btn) {
+    var original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function () { btn.textContent = original; }, 1200);
+  }
+
+  // Copy failed — select the number on screen so it can be copied by hand,
+  // rather than telling the admin it worked when it didn't.
+  function selectAccountNumber(btn) {
+    var cell = btn.closest('td') || btn.parentNode;
+    var el = cell && cell.querySelector('.vendor-acct');
+    if (!el) return;
+    try {
+      var r = document.createRange();
+      r.selectNodeContents(el);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+    } catch (e) { /* selection is a convenience only */ }
+    btn.textContent = 'Copy failed';
+    setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+  }
+
+  function legacyCopy(text, btn) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      // execCommand returns false instead of throwing when the browser refuses,
+      // so never flash "Copied!" without checking. This is the path that runs on
+      // the shop LAN, where plain HTTP means navigator.clipboard is unavailable.
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) flash(btn);
+      else selectAccountNumber(btn);
+    } catch (e) { selectAccountNumber(btn); }
+  }
+
+  document.querySelectorAll('.vendor-copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy') || '';
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { flash(btn); },
+                                                 function () { legacyCopy(text, btn); });
+      } else {
+        legacyCopy(text, btn);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

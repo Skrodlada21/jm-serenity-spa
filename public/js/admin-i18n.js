@@ -152,7 +152,26 @@
     "Accept & Seat": "接受并安排入座",
     "Assign therapist…": "指派按摩师…",
     "Service…": "服务…",
-    "Preferred Therapist": "偏好按摩师"
+    "Preferred Therapist": "偏好按摩师",
+    // ---- Vendors & Accounts ----
+    "Vendors": "供应商", "Vendors & Accounts": "供应商与账户",
+    "Add Vendor / Account": "添加供应商 / 账户", "Save Vendor": "保存供应商",
+    "Company / Vendor Name": "公司 / 供应商名称", "What This Is For": "用途",
+    "Account Number": "账号", "Website / Portal": "网站 / 登录页面",
+    "Login": "登录信息", "Login Username": "登录用户名", "User:": "用户名：",
+    "Where the Password Is Kept": "密码存放位置", "Password kept in:": "密码存放于：",
+    "Contact": "联系方式", "Support Phone": "客服电话", "Support Email": "客服邮箱",
+    "Open portal": "打开网站", "Copy": "复制", "Deactivate": "停用", "Inactive": "已停用",
+    "Cost": "费用", "Billing Cycle": "账单周期", "Renewal Date": "续费日期", "Renews": "续费于",
+    // Vendor categories
+    "Utility": "公用事业", "Internet & Phone": "网络与电话", "Supplier": "供应商",
+    "Landlord": "房东", "Government": "政府机构", "Bank & Payments": "银行与支付",
+    // Billing cycles
+    "Monthly": "每月", "Annual": "每年", "As needed": "按需", "One-time": "一次性",
+    // Password guidance
+    "Passwords are not kept here.": "此处不保存密码。",
+    "Keep the real passwords in a password manager and use “Where the Password Is Kept” to note which one holds it, for example “Bitwarden — J&M Shared”.": "请将真正的密码保存在密码管理器中，并在“密码存放位置”注明由哪个管理器保存，例如“Bitwarden — J&M Shared”。",
+    "Just a note about where to find it — never type the password itself.": "这里只填写在哪里可以找到密码 —— 切勿输入密码本身。"
   };
 
   function isBi() { try { return localStorage.getItem(KEY) === "bi"; } catch (e) { return false; } }
