@@ -499,6 +499,12 @@ app.get("/book", (req, res) => {
     addons: db.getActiveAddons(),
     therapists: db.getActiveTherapists(),
     preselect: req.query.service || "",
+    // The "Book with <name>" buttons on /about link to /book?therapist=<id>.
+    // Without this the param was dropped and the customer landed on a form that
+    // had forgotten the therapist they just chose.
+    preselectTherapist: req.query.therapist || "",
+    bookingError: req.query.error || "",
+    waitlisted: req.query.waitlisted === "1",
   });
 });
 
@@ -506,6 +512,20 @@ app.post("/book", rateLimit, (req, res) => {
   const { client_name, client_phone, client_email, service_id, therapist_id, therapist2_id, gender_pref, date, time, areas, notes, addon_ids } = req.body;
   const service = db.getServiceById(parseInt(service_id, 10));
   if (!service) return res.redirect("/book?error=invalid_service");
+
+  // The availability check the customer saw happened in their browser, possibly
+  // minutes ago. Re-validate here or two people with the same slot open in two
+  // tabs both get a confirmation text and both show up.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || "")) || !/^\d{2}:\d{2}$/.test(String(time || ""))) {
+    return res.redirect("/book?error=invalid_time");
+  }
+  const stillOpen = db.getAvailableSlots(
+    service.id, date,
+    therapist_id ? parseInt(therapist_id, 10) : null,
+    therapist2_id ? parseInt(therapist2_id, 10) : null,
+    gender_pref || ""
+  ).some((s) => s.time === time);
+  if (!stillOpen) return res.redirect("/book?error=slot_taken");
 
   // Auto-save/update client profile
   if (client_phone) db.upsertClient(client_phone, client_name || "", client_email || "");
@@ -645,9 +665,12 @@ app.get("/api/client-lookup", lookupRateLimit, (req, res) => {
 });
 
 // Therapists API (for dynamic filtering)
-app.get("/api/therapists", (req, res) => {
-  res.json({ therapists: db.getActiveTherapists() });
-});
+// REMOVED: GET /api/therapists — it returned SELECT * from therapists to any
+// anonymous caller, which included every therapist's employee PIN, their work
+// schedule and their employment status. Nothing in the app ever called it; the
+// pages that show therapists render them server-side. If a public therapist
+// feed is ever needed, return an explicit whitelist of columns (id, name,
+// gender, specialties, photo, bio) — never the row.
 
 // Unsubscribe from update emails (CAN-SPAM). GET = the link people click;
 // POST = one-click List-Unsubscribe from the mail client. Both just work.
@@ -1275,17 +1298,10 @@ app.get("/api/admin/pin-check", requireStaff, (req, res) => {
   }
 });
 
-// API: Check membership by phone (used in booking form)
-app.get("/api/member-check", lookupRateLimit, (req, res) => {
-  const phone = req.query.phone || "";
-  if (!phone) return res.json({ member: null });
-  const member = db.getMemberByPhone(phone);
-  if (member) {
-    res.json({ member: { name: member.client_name, plan: member.plan_name, visitsRemaining: member.visits_remaining, discount: member.discount_percent } });
-  } else {
-    res.json({ member: null });
-  }
-});
+// REMOVED: GET /api/member-check — the comment claimed it was "used in booking
+// form" but nothing ever called it. It disclosed a member's name, plan, visits
+// remaining and discount to any anonymous caller who supplied a phone number.
+// Membership status is shown at the front desk (/desk/members), which is authed.
 
 // API: Get quarterly tax summary
 app.get("/api/admin/quarterly-tax", requireAdmin, (req, res) => {

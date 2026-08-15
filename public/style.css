@@ -604,3 +604,45 @@ input:focus, textarea:focus{
 .featured-review{
   border-left: 4px solid var(--accent);
 }
+/* ==========================================================================
+   Time-slot picker (public booking page)
+   These rules previously lived ONLY in admin.css, which the public pages never
+   load — so the one interaction the whole booking form exists to capture
+   rendered as unstyled default buttons, and "selected" had no visible effect.
+   Sized for thumbs: 48px minimum touch target.
+   ========================================================================== */
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: .55rem;
+  margin-bottom: .25rem;
+}
+
+.slot-btn {
+  min-height: 48px;
+  padding: .6rem .5rem;
+  border: 1.5px solid var(--line, #ddd);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text, #2c2c2c);
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.slot-btn:hover,
+.slot-btn:focus-visible {
+  border-color: var(--brand, #1f6f78);
+  background: rgba(31, 111, 120, .06);
+  outline: none;
+}
+
+/* The ONLY signal that a time was chosen — make it unmissable. */
+.slot-btn.selected {
+  background: var(--brand, #1f6f78);
+  color: #fff;
+  border-color: var(--brand, #1f6f78);
+  box-shadow: 0 2px 10px rgba(31, 111, 120, .3);
+}
+.slot-btn.selected::after { content: " ✓"; }

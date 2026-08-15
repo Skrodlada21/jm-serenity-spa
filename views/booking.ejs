@@ -20,6 +20,21 @@
       <div class="card reveal">
         <h2>Schedule Your Appointment</h2>
 
+        <% if (typeof bookingError !== 'undefined' && bookingError) { %>
+        <div class="admin-alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.85rem 1rem; margin-bottom:1rem;">
+          <% if (bookingError === 'slot_taken') { %>
+            <strong>Sorry — that time was just booked.</strong><br />
+            Someone else took it while you were filling out the form. Please pick another time below.
+          <% } else if (bookingError === 'invalid_time') { %>
+            <strong>Please choose a date and a time.</strong><br />
+            Pick your service first, then a date, then tap one of the available times.
+          <% } else { %>
+            <strong>Sorry, something went wrong.</strong><br />
+            Please check your details and try again, or call us at <%= settings.phone || '' %>.
+          <% } %>
+        </div>
+        <% } %>
+
         <form class="form" method="POST" action="/book" id="booking-form">
           <label>
             Phone Number <span class="muted small">(required — we'll look you up)</span>
@@ -81,7 +96,8 @@
             <select name="therapist_id" id="therapist-select">
               <option value="">No preference</option>
               <% therapists.forEach(function(t) { %>
-              <option value="<%= t.id %>" data-gender="<%= t.gender %>">
+              <option value="<%= t.id %>" data-gender="<%= t.gender %>"
+                <%= (typeof preselectTherapist !== 'undefined' && String(preselectTherapist) === String(t.id)) ? 'selected' : '' %>>
                 <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
               </option>
               <% }); %>
