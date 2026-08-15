@@ -392,6 +392,36 @@ function requireDesk(req, res, next) {
   res.redirect("/desk/login");
 }
 
+/* -------------------------------------------------------------------------
+   Kiosk gate — the lobby tablet (/arrive and /checkin)
+   -------------------------------------------------------------------------
+   These pages take no login by design: a client walks up and uses them. But
+   they were reachable by ANYONE on the internet, which meant a stranger could
+   overwrite a real client's health intake (conditions, medications, pregnancy)
+   and record a consent signature in their name, or query who is at the spa
+   today. Intake links are never emailed to clients — these pages are only ever
+   used on the tablet in the lobby — so the device is authorized once with the
+   front-desk PIN and then stays authorized. Clients still touch nothing but
+   the form itself.
+   ------------------------------------------------------------------------- */
+const KIOSK_SESSION_MS = 180 * 24 * 60 * 60 * 1000; // ~6 months between unlocks
+
+function isKiosk(req) {
+  return !!(req.session && (req.session.kiosk || req.session.desk || req.session.admin));
+}
+
+// For full page loads — show the unlock screen instead of the kiosk page.
+function requireKioskPage(req, res, next) {
+  if (isKiosk(req)) return next();
+  res.status(401).render("kiosk-unlock", { next: req.originalUrl, error: "" });
+}
+
+// For the kiosk's own fetch() calls — never redirect, just refuse.
+function requireKioskApi(req, res, next) {
+  if (isKiosk(req)) return next();
+  res.status(403).json({ ok: false, error: "This device is not set up for check-in." });
+}
+
 /* =========================================================================
    COMING SOON MODE
    ========================================================================= */
@@ -420,7 +450,7 @@ app.use((req, res, next) => {
 
   // These paths always bypass coming-soon mode
   const bypass = [
-    "/admin", "/desk", "/api/", "/checkin", "/arrive",
+    "/admin", "/desk", "/api/", "/checkin", "/arrive", "/kiosk/",
     "/coming-soon", "/preview", "/unsubscribe",
     "/menu", "/tv/",
     "/style.css", "/script.js", "/images/", "/favicon"
@@ -721,12 +751,33 @@ app.post("/api/signup", rateLimit, (req, res) => {
    SELF CHECK-IN KIOSK (tablet at the front desk)
    ========================================================================= */
 
-app.get("/arrive", (req, res) => {
+/* Kiosk device setup. Done once per tablet by a staff member using the
+   front-desk PIN; the session is then kept alive for ~6 months so clients
+   never see this screen. */
+app.post("/kiosk/unlock", authRateLimit, (req, res) => {
+  const deskPw = db.getSetting("desk_password") || "1234";
+  const adminPw = db.getSetting("admin_password") || "";
+  const entered = String(req.body.password || "");
+  const dest = typeof req.body.next === "string" && req.body.next.startsWith("/") && !req.body.next.startsWith("//")
+    ? req.body.next
+    : "/arrive";
+  if (entered && (entered === deskPw || (adminPw && entered === adminPw))) {
+    return req.session.regenerate((err) => {
+      if (err) return res.status(500).render("kiosk-unlock", { next: dest, error: "Something went wrong. Try again." });
+      req.session.kiosk = true;
+      req.session.cookie.maxAge = KIOSK_SESSION_MS;
+      res.redirect(dest);
+    });
+  }
+  res.status(401).render("kiosk-unlock", { next: dest, error: "Wrong PIN. Try again." });
+});
+
+app.get("/arrive", requireKioskPage, (req, res) => {
   res.render("arrive", { services: db.getActiveServices() });
 });
 
 // Look up today's appointments for a phone number
-app.post("/api/arrive/lookup", lookupRateLimit, (req, res) => {
+app.post("/api/arrive/lookup", requireKioskApi, lookupRateLimit, (req, res) => {
   const phone = (req.body.phone || "").trim();
   if (!phone || phone.replace(/\D/g, "").length < 7) return res.json({ bookings: [] });
   const bookings = db.getTodayBookingsByPhone(phone).map(function (b) {
@@ -743,7 +794,7 @@ app.post("/api/arrive/lookup", lookupRateLimit, (req, res) => {
 });
 
 // Mark an appointment as arrived / checked in
-app.post("/api/arrive/checkin", (req, res) => {
+app.post("/api/arrive/checkin", requireKioskApi, (req, res) => {
   const id = parseInt(req.body.booking_id, 10);
   if (!id) return res.json({ ok: false });
   db.markBookingArrived(id);
@@ -751,7 +802,7 @@ app.post("/api/arrive/checkin", (req, res) => {
 });
 
 // Walk-in: add to the front-desk waiting list
-app.post("/api/arrive/walkin", (req, res) => {
+app.post("/api/arrive/walkin", requireKioskApi, (req, res) => {
   const name = (req.body.name || "").trim();
   const phone = (req.body.phone || "").trim();
   const serviceId = req.body.service_id ? parseInt(req.body.service_id, 10) : null;
@@ -773,11 +824,11 @@ app.post("/api/arrive/walkin", (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/checkin", (req, res) => {
+app.get("/checkin", requireKioskPage, (req, res) => {
   res.render("checkin", {});
 });
 
-app.post("/checkin", (req, res) => {
+app.post("/checkin", requireKioskPage, (req, res) => {
   const { phone, name, email, birthday, address,
     emergency_name, emergency_phone,
     health_conditions, allergies, medications,
