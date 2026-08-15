@@ -4,13 +4,32 @@
   activePage: 'book'
 }) %>
 
+<%
+  /* Price. The bookings row stores no price of its own, so this only renders
+     when the query behind `booking` exposes the service price (service_price).
+     If it isn't there we show no number at all rather than guess — some
+     services (Water Head Massage) have no published price. */
+  var svcPrice = null;
+  if (booking.service_price != null && Number(booking.service_price) > 0) {
+    svcPrice = Number(booking.service_price);
+  } else if (booking.price != null && Number(booking.price) > 0) {
+    svcPrice = Number(booking.price);
+  }
+  var confirmAddons = (typeof bookingAddons !== 'undefined' && bookingAddons) ? bookingAddons : [];
+  var addonTotal = confirmAddons.reduce(function (sum, a) { return sum + (Number(a.price) || 0); }, 0);
+  var bookingTotal = svcPrice === null ? null : svcPrice + addonTotal;
+
+  var spaPhoneHref = fmt.telHref(settings.phone);
+  var manageUrl = '/booking/manage/' + booking.cancel_token;
+%>
+
 <main>
   <section class="page-hero">
     <div class="container">
       <p class="eyebrow reveal">Confirmed</p>
       <h1 class="reveal">You're All Set!</h1>
       <p class="lead muted reveal" style="max-width: 60ch;">
-        Your appointment has been booked. Here are your details.
+        <%= fmt.dateTime(booking.date, booking.time) %> — <%= booking.service_name %>.
       </p>
     </div>
   </section>
@@ -18,45 +37,86 @@
   <section class="section">
     <div class="container content">
       <div class="card reveal">
-        <h2>Appointment Details</h2>
+        <h2>Your Appointment</h2>
         <ul class="contact-list">
-          <li><strong>Name:</strong> <%= booking.client_name %></li>
-          <li><strong>Phone:</strong> <%= booking.client_phone %></li>
-          <li><strong>Service:</strong> <%= booking.service_name %></li>
-          <li><strong>Therapist:</strong> <%= booking.therapist_name || 'No preference (assigned at arrival)' %></li>
+          <li><strong>When:</strong> <%= fmt.dateTime(booking.date, booking.time) %></li>
+          <li><strong>Treatment:</strong> <%= booking.service_name %> (<%= fmt.prettyDuration(booking.duration) %>)</li>
+          <li><strong>Therapist:</strong> <%= booking.therapist_name || 'Assigned when you arrive' %></li>
           <% if (booking.therapist2_name) { %>
-          <li><strong>Second Therapist:</strong> <%= booking.therapist2_name %></li>
+          <li><strong>Second therapist:</strong> <%= booking.therapist2_name %></li>
           <% } %>
-          <% if (booking.gender_pref) { %>
-          <li><strong>Gender Preference:</strong> <%= booking.gender_pref === 'female' ? 'Female' : 'Male' %></li>
+          <% if (!booking.therapist_name && booking.gender_pref) { %>
+          <li><strong>You asked for:</strong> <%= booking.gender_pref === 'female' ? 'A female therapist' : 'A male therapist' %></li>
           <% } %>
-          <li><strong>Date:</strong> <%= booking.date %></li>
-          <li><strong>Time:</strong> <%= booking.time %></li>
-          <li><strong>Duration:</strong> <%= booking.duration %> minutes</li>
-          <% if (bookingAddons && bookingAddons.length > 0) { %>
-          <li><strong>Add-Ons:</strong> <%= bookingAddons.map(function(a) { return a.name + ' (+$' + a.price + ')'; }).join(', ') %></li>
+          <% if (confirmAddons.length > 0) { %>
+          <li><strong>Add-ons:</strong> <%= confirmAddons.map(function (a) { return a.name + ' (+' + fmt.money(a.price) + ')'; }).join(', ') %></li>
           <% } %>
-          <% if (booking.areas) { %>
-          <li><strong>Focus Areas:</strong> <%= booking.areas %></li>
+          <%# When no name was given the server stores the phone number as the
+              name, so only show this row when it is actually a name. %>
+          <% if (booking.client_name && booking.client_name !== booking.client_phone) { %>
+          <li><strong>Name:</strong> <%= booking.client_name %></li>
           <% } %>
-          <% if (booking.notes) { %>
-          <li><strong>Notes:</strong> <%= booking.notes %></li>
-          <% } %>
+          <li><strong>Phone:</strong> <%= booking.client_phone %></li>
         </ul>
+
+        <div class="pay-note">
+          <% if (bookingTotal !== null) { %>
+          <p class="pay-total"><strong>Total: <%= fmt.money(bookingTotal) %></strong></p>
+          <% } %>
+          <p class="muted" style="margin: 0;">
+            Pay in person after your appointment. We don't take payment online.
+          </p>
+        </div>
+      </div>
+
+      <!-- Changing plans is the single most likely reason this person comes
+           back to the site. The link used to exist only in the confirmation
+           email — anyone who didn't leave an email address had no way to
+           cancel except phoning a front desk that can't take the call in
+           English. It is a primary action now. -->
+      <div class="card reveal">
+        <h2>Need to change it?</h2>
+        <p class="muted">
+          You can move or cancel this appointment yourself, any time. Please give us
+          at least 24 hours' notice.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="<%= manageUrl %>">Change or cancel this appointment</a>
+        </div>
+        <p class="muted small" style="margin-top: .6rem;">
+          Bookmark that link — it's the only one that opens this appointment.
+        </p>
       </div>
 
       <div class="card reveal">
-        <h2>Reminders</h2>
-        <ul class="bullets">
-          <li>Please arrive 5–10 minutes early for your appointment.</li>
-          <li>Payment is due at your appointment — no online payment required.</li>
-          <li>To cancel or reschedule, please give at least 24 hours' notice.</li>
-          <li>If you have any questions, <a href="/contact">contact us</a>.</li>
+        <h2>Getting here</h2>
+        <ul class="contact-list">
+          <% if (settings.address) { %>
+          <li>
+            <strong>Address:</strong>
+            <a href="https://maps.google.com/?q=<%= encodeURIComponent(settings.address) %>" target="_blank" rel="noopener">
+              <%= settings.address %>
+            </a>
+            <span class="muted small">(opens in Maps)</span>
+          </li>
+          <% } %>
+          <li><strong>Parking:</strong> Free parking directly in front of the suite.</li>
+          <li><strong>Arrival:</strong> Please arrive 5–10 minutes early.</li>
+          <% if (settings.phone) { %>
+          <li>
+            <strong>Phone:</strong>
+            <% if (spaPhoneHref) { %>
+              <a href="tel:<%= spaPhoneHref %>"><%= settings.phone %></a>
+            <% } else { %>
+              <%= settings.phone %>
+            <% } %>
+          </li>
+          <% } %>
         </ul>
       </div>
 
       <div class="cta-row reveal">
-        <a class="btn btn-primary" href="/">Back to Home</a>
+        <a class="btn btn-ghost" href="/">Back to Home</a>
         <a class="btn btn-ghost" href="/book">Book Another</a>
       </div>
     </div>

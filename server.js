@@ -14,6 +14,7 @@ const db = require("./lib/db");
 const email = require("./lib/email");
 const sms = require("./lib/sms");
 const square = require("./lib/square");
+const fmt = require("./lib/fmt");
 
 // Image uploads: only accept real image types, and derive the stored
 // extension from the (validated) mimetype — never from the client filename.
@@ -148,7 +149,9 @@ function publicBaseUrl(req) {
  */
 function formatBusinessHours(settings) {
   const s = settings || {};
-  const fmt = (value, fallback) => {
+  // Signage style ("9am", "7:30pm"), which is not the same as lib/fmt's
+  // prettyTime ("9 AM") — named so it can't be confused with the shared helper.
+  const hourLabel = (value, fallback) => {
     const m = /^(\d{1,2}):(\d{2})$/.exec(String(value || ""));
     if (!m) return fallback;
     const h = parseInt(m[1], 10);
@@ -156,8 +159,8 @@ function formatBusinessHours(settings) {
     if (isNaN(h) || h > 23) return fallback;
     return ((h % 12) || 12) + (mins === "00" ? "" : ":" + mins) + (h >= 12 ? "pm" : "am");
   };
-  const open = fmt(s.open_time, "9am");
-  const close = fmt(s.close_time, "7pm");
+  const open = hourLabel(s.open_time, "9am");
+  const close = hourLabel(s.close_time, "7pm");
 
   const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const nums = String(s.open_days || "1,2,3,4,5,6")
@@ -269,6 +272,144 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 /* =========================================================================
+   Outbound send ledger
+   -------------------------------------------------------------------------
+   Booking a slot makes us text and email whatever recipient the form names.
+   That is an open relay paid for out of prepaid texting credit, and a burst of
+   junk messages is also how a business loses its A2P registration. The per-IP
+   limiter above does not help: an abuser with a handful of IPs, or one who is
+   simply patient, stays under it.
+
+   So the *recipients* are metered too, independent of who asked. Nobody gets
+   more than a few confirmations a day, and the whole spa cannot send more than
+   a day's worth of legitimate traffic no matter what. Refusing only skips the
+   message — the appointment is still booked, and staff still see it.
+   ========================================================================= */
+
+const SEND_WINDOW = 24 * 60 * 60 * 1000;
+const SEND_MAX_PER_RECIPIENT = 3;  // per phone number / email address per day
+const SEND_MAX_PER_DAY = 200;      // total outbound confirmations per day
+
+const sendLedger = new Map();
+let sendTotal = { start: Date.now(), count: 0 };
+
+// Normalized ledger key, or "" when there is nothing worth sending to.
+function sendKey(channel, value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (channel === "sms") {
+    let digits = raw.replace(/\D/g, "");
+    // sendSMS() normalizes 10-digit and leading-1 11-digit numbers to the SAME
+    // +1 destination, so key on the last 10 digits or one phone gets two
+    // buckets and twice the allowance just by varying the format.
+    if (digits.length === 11 && digits.charAt(0) === "1") digits = digits.slice(1);
+    return digits.length >= 7 ? "sms:" + digits.slice(-10) : "";
+  }
+  return raw.includes("@") ? "email:" + raw : "";
+}
+
+// Only shows enough of a recipient to recognize it in the log.
+function maskRecipient(channel, value) {
+  const raw = String(value || "").trim();
+  if (channel === "sms") return "***" + raw.replace(/\D/g, "").slice(-4);
+  const at = raw.indexOf("@");
+  return at > 0 ? "***" + raw.slice(at) : "***";
+}
+
+/**
+ * True if we should send, and records the send. False means skip it quietly.
+ * Never throws — a bookkeeping problem must not cost the customer a booking.
+ */
+function outboundAllowed(channel, value) {
+  try {
+    const key = sendKey(channel, value);
+    if (!key) return false; // no usable address — nothing to send
+
+    const now = Date.now();
+    if (now - sendTotal.start > SEND_WINDOW) sendTotal = { start: now, count: 0 };
+    if (sendTotal.count >= SEND_MAX_PER_DAY) {
+      console.warn("Outbound " + channel + " skipped: daily cap of " + SEND_MAX_PER_DAY + " reached");
+      return false;
+    }
+
+    let entry = sendLedger.get(key);
+    if (!entry || now - entry.start > SEND_WINDOW) entry = { start: now, count: 0 };
+    if (entry.count >= SEND_MAX_PER_RECIPIENT) {
+      sendLedger.set(key, entry);
+      console.warn("Outbound " + channel + " skipped: " + maskRecipient(channel, value) +
+        " already received " + entry.count + " today");
+      return false;
+    }
+
+    entry.count++;
+    sendLedger.set(key, entry);
+    sendTotal.count++;
+    return true;
+  } catch (e) {
+    console.warn("Outbound send ledger error — skipping " + channel + ":", e.message);
+    return false;
+  }
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of sendLedger) {
+    if (now - entry.start > SEND_WINDOW) sendLedger.delete(key);
+  }
+}, 60 * 60 * 1000);
+
+/* =========================================================================
+   Dates
+   ========================================================================= */
+
+/**
+ * Local calendar date as "YYYY-MM-DD", offset by whole days.
+ *   localDate(0) -> today   localDate(-2) -> two days ago   localDate(90) -> 90 days out
+ * Built from local parts on purpose: toISOString() is UTC and rolls the date
+ * over in the evening in Colorado.
+ */
+function localDate(offsetDays) {
+  const d = new Date();
+  if (offsetDays) d.setDate(d.getDate() + offsetDays);
+  return d.getFullYear() + "-" +
+    String(d.getMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getDate()).padStart(2, "0");
+}
+
+// How far ahead the public booking form will accept an appointment. Staff are
+// not held to this — /admin/phone-booking can book any date.
+const MAX_BOOKING_DAYS_AHEAD = 90;
+
+// A booking link (confirm / manage / cancel / reschedule) stops working a
+// couple of days after the appointment. The token is in a text message and an
+// email that live in the customer's phone forever; without an expiry, anyone
+// who later reads that message can pull up the customer's name, phone and
+// history years from now.
+const BOOKING_LINK_GRACE_DAYS = 2;
+
+function bookingLinkExpired(booking) {
+  if (!booking || !booking.date) return false;
+  return String(booking.date) < localDate(-BOOKING_LINK_GRACE_DAYS);
+}
+
+// Positive integer id from a form field, or null. Keeps NaN out of SQL.
+function toId(value) {
+  const n = parseInt(value, 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+// Was a value actually supplied by the form (vs. left blank)?
+function wasSupplied(value) {
+  return String(value == null ? "" : value).trim() !== "";
+}
+
+function isActiveTherapistId(id) {
+  if (!id) return false;
+  const therapist = db.getTherapistById(id);
+  return !!(therapist && therapist.active);
+}
+
+/* =========================================================================
    HTML Escaping (for XSS prevention)
    ========================================================================= */
 
@@ -368,6 +509,9 @@ app.use((req, res, next) => {
   res.locals.settings = db.getAllSettings();
   res.locals.hoursText = formatBusinessHours(res.locals.settings);
   res.locals.isAdmin = !!req.session.admin;
+  // Shared display formatting (dates, times, money, tel: links) for every view,
+  // so no template has to reinvent "2:30 PM" or "Thursday, August 20".
+  res.locals.fmt = fmt;
   // Prevent browser caching of HTML pages so setting changes take effect immediately
   if (!req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$/)) {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate");
@@ -539,21 +683,42 @@ app.get("/book", (req, res) => {
 });
 
 app.post("/book", rateLimit, (req, res) => {
-  const { client_name, client_phone, client_email, service_id, therapist_id, therapist2_id, gender_pref, date, time, areas, notes, addon_ids } = req.body;
-  const service = db.getServiceById(parseInt(service_id, 10));
-  if (!service) return res.redirect("/book?error=invalid_service");
+  const { client_name, client_phone, client_email, service_id, therapist_id, therapist2_id, gender_pref, areas, notes, addon_ids } = req.body;
+  // Normalized here so the same value is validated, checked for availability
+  // and written — a duplicated field arrives as an array otherwise.
+  const date = String(req.body.date || "");
+  const time = String(req.body.time || "");
+
+  // An inactive service is one the spa has taken off the menu. It is still in
+  // the table (bookings reference it), so it must be rejected explicitly or an
+  // old form — or a hand-made POST — can still book a treatment nobody offers.
+  const service = db.getServiceById(toId(service_id));
+  if (!service || !service.active) return res.redirect("/book?error=invalid_service");
 
   // The availability check the customer saw happened in their browser, possibly
   // minutes ago. Re-validate here or two people with the same slot open in two
   // tabs both get a confirmation text and both show up.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || "")) || !/^\d{2}:\d{2}$/.test(String(time || ""))) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
     return res.redirect("/book?error=invalid_time");
   }
+  // Nothing in the past, and nothing so far out that it is either a typo or
+  // someone filling the calendar with junk the staff would have to clear by hand.
+  if (date < localDate(0) || date > localDate(MAX_BOOKING_DAYS_AHEAD)) {
+    return res.redirect("/book?error=invalid_time");
+  }
+
+  // A therapist id only ever comes from our own <select>. If one arrives that
+  // is not a real, active therapist it is either a stale page or a forged post,
+  // and letting it through writes a booking assigned to nobody.
+  const therapistId = toId(therapist_id);
+  const therapist2Id = toId(therapist2_id);
+  if ((wasSupplied(therapist_id) && !isActiveTherapistId(therapistId)) ||
+      (wasSupplied(therapist2_id) && !isActiveTherapistId(therapist2Id))) {
+    return res.redirect("/book?error=other");
+  }
+
   const stillOpen = db.getAvailableSlots(
-    service.id, date,
-    therapist_id ? parseInt(therapist_id, 10) : null,
-    therapist2_id ? parseInt(therapist2_id, 10) : null,
-    gender_pref || ""
+    service.id, date, therapistId, therapist2Id, gender_pref || ""
   ).some((s) => s.time === time);
   if (!stillOpen) return res.redirect("/book?error=slot_taken");
 
@@ -567,9 +732,9 @@ app.post("/book", rateLimit, (req, res) => {
     clientName: client_name || client_phone,
     clientPhone: client_phone,
     clientEmail: client_email || "",
-    serviceId: parseInt(service_id, 10),
-    therapistId: therapist_id ? parseInt(therapist_id, 10) : null,
-    therapist2Id: therapist2_id ? parseInt(therapist2_id, 10) : null,
+    serviceId: service.id,
+    therapistId,
+    therapist2Id,
     genderPref: gender_pref || "",
     notes: notes || "",
     areas: areas || "",
@@ -580,12 +745,18 @@ app.post("/book", rateLimit, (req, res) => {
     cancelToken,
   });
 
-  // Send email & SMS confirmation (async, non-blocking)
+  // Send email & SMS confirmation (async, non-blocking). The booking is already
+  // written — if the ledger refuses the send, the appointment still stands and
+  // shows up on the front desk screen like any other.
   const booking = db.getBookingById(result.lastInsertRowid);
   const addons = aidStr ? db.getAddonsByIds(aidStr.split(",").map(Number)) : [];
   const baseUrl = publicBaseUrl(req);
-  email.sendBookingConfirmation(booking, addons, baseUrl).catch(() => {});
-  sms.sendBookingConfirmationSMS(booking, baseUrl).catch(() => {});
+  if (outboundAllowed("email", booking.client_email)) {
+    email.sendBookingConfirmation(booking, addons, baseUrl).catch(() => {});
+  }
+  if (outboundAllowed("sms", booking.client_phone)) {
+    sms.sendBookingConfirmationSMS(booking, baseUrl).catch(() => {});
+  }
 
   // Redirect using the unguessable cancel token, not the sequential id,
   // so confirmation pages can't be enumerated to harvest customer PII.
@@ -594,17 +765,45 @@ app.post("/book", rateLimit, (req, res) => {
 
 app.get("/booking-confirm/:token", (req, res) => {
   const booking = db.getBookingByToken(req.params.token);
-  if (!booking) return res.redirect("/book");
+  if (!booking || bookingLinkExpired(booking)) return res.redirect("/book");
   const bookingAddons = booking.addon_ids ? db.getAddonsByIds(booking.addon_ids.split(",").map(Number)) : [];
   res.render("booking-confirm", { activePage: "book", booking, bookingAddons });
 });
 
 // Client self-service: manage / cancel / reschedule via token
+function manageUrl(token, query) {
+  return "/booking/manage/" + encodeURIComponent(token) + (query || "");
+}
+
+// Renders the "we can't show you this" version of the manage page.
+function renderManageError(res, message) {
+  res.render("booking-manage", {
+    activePage: "book",
+    booking: null,
+    error: message,
+    services: [],
+    therapists: [],
+    slots: [],
+  });
+}
+
 app.get("/booking/manage/:token", (req, res) => {
   const booking = db.getBookingByToken(req.params.token);
-  if (!booking || booking.status === "cancelled") {
-    return res.render("booking-manage", { activePage: "book", booking: null, error: "Booking not found or already cancelled.", services: [], therapists: [], slots: [] });
+  const helpLine = db.getSetting("phone") || "";
+
+  // A cancelled booking is NOT a missing one. Collapsing the two told a customer
+  // who had just cancelled that their booking did not exist, which reads as "the
+  // cancellation didn't work" — and the next thing they do is phone a front desk
+  // that cannot answer them in English. Show the booking, marked cancelled.
+  if (!booking) {
+    return renderManageError(res, "We couldn't find that booking." +
+      (helpLine ? " Please call us at " + helpLine + " and we'll help." : ""));
   }
+  if (bookingLinkExpired(booking)) {
+    return renderManageError(res, "This booking link has expired." +
+      (helpLine ? " Please call us at " + helpLine + " to book again." : ""));
+  }
+
   res.render("booking-manage", {
     activePage: "book",
     booking,
@@ -612,26 +811,71 @@ app.get("/booking/manage/:token", (req, res) => {
     services: db.getActiveServices(),
     therapists: db.getActiveTherapists(),
     slots: [],
+    // Left undefined (not false) when absent: the view tests these with typeof,
+    // so a defined-but-false value would show the banner on every visit.
+    cancelled: req.query.cancelled === "1" ? true : undefined,
+    rescheduled: req.query.rescheduled === "1" ? true : undefined,
+    rescheduleError: req.query.error === "slot_taken"
+      ? "That time is no longer available. Please pick another one."
+      : (req.query.error === "invalid_time"
+        ? "Please choose a date and time within the next " + MAX_BOOKING_DAYS_AHEAD + " days."
+        : undefined),
   });
 });
 
 app.post("/booking/cancel/:token", (req, res) => {
   const booking = db.getBookingByToken(req.params.token);
-  if (!booking || booking.status === "cancelled") return res.redirect("/booking/manage/" + req.params.token);
+  // Only a live booking can be cancelled: an expired link or an already
+  // cancelled/completed appointment just goes back to the page.
+  if (!booking || bookingLinkExpired(booking) || booking.status !== "confirmed") {
+    return res.redirect(manageUrl(req.params.token));
+  }
   db.cancelBooking(booking.id);
-  email.sendCancellationEmail(booking).catch(() => {});
-  sms.sendCancellationSMS(booking).catch(() => {});
-  res.redirect("/booking/manage/" + req.params.token + "?cancelled=1");
+  if (outboundAllowed("email", booking.client_email)) {
+    email.sendCancellationEmail(booking).catch(() => {});
+  }
+  // Ledger these too. The whole path is anonymous-reachable: book with a
+  // victim's number, read the token out of the confirm redirect, then cancel —
+  // an unmetered send here would defeat the per-recipient cap entirely.
+  if (outboundAllowed("sms", booking.client_phone)) {
+    sms.sendCancellationSMS(booking).catch(() => {});
+  }
+  res.redirect(manageUrl(req.params.token, "?cancelled=1"));
 });
 
 app.post("/booking/reschedule/:token", (req, res) => {
   const booking = db.getBookingByToken(req.params.token);
-  if (!booking || booking.status !== "confirmed") return res.redirect("/booking/manage/" + req.params.token);
-  const { date, time } = req.body;
-  if (date && time) {
-    db.rescheduleBooking(booking.id, date, time);
+  if (!booking || bookingLinkExpired(booking) || booking.status !== "confirmed") {
+    return res.redirect(manageUrl(req.params.token));
   }
-  res.redirect("/booking/manage/" + req.params.token + "?rescheduled=1");
+
+  // Same treatment as POST /book: this route wrote whatever date and time it was
+  // handed, so a customer (or a bot) could move an appointment to 3am, to last
+  // year, or on top of a slot that is already taken.
+  const date = String(req.body.date || "");
+  const time = String(req.body.time || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time) ||
+      date < localDate(0) || date > localDate(MAX_BOOKING_DAYS_AHEAD)) {
+    return res.redirect(manageUrl(req.params.token, "?error=invalid_time"));
+  }
+
+  // Submitting the form unchanged is not a reschedule. Worth short-circuiting:
+  // the appointment still occupies its own slot, so the availability check below
+  // would report the customer's own time as taken.
+  if (date === booking.date && time === booking.time) {
+    return res.redirect(manageUrl(req.params.token, "?rescheduled=1"));
+  }
+
+  const stillOpen = db.getAvailableSlots(
+    booking.service_id, date,
+    booking.therapist_id || null,
+    booking.therapist2_id || null,
+    booking.gender_pref || ""
+  ).some((s) => s.time === time);
+  if (!stillOpen) return res.redirect(manageUrl(req.params.token, "?error=slot_taken"));
+
+  db.rescheduleBooking(booking.id, date, time);
+  res.redirect(manageUrl(req.params.token, "?rescheduled=1"));
 });
 
 // Waitlist (public form submission)
@@ -2195,6 +2439,76 @@ app.get("/tv/therapists", (req, res) => {
 });
 
 /* =========================================================================
+   NOT FOUND + ERRORS  (must stay below every route)
+   -------------------------------------------------------------------------
+   With nothing here, Express falls back to its built-in handler: a mistyped URL
+   returned a bare "Cannot GET /x", and any thrown error returned a full stack
+   trace — server file paths, module versions and internals — to whoever sent the
+   malformed request. Both are replaced with a plain page that says one useful
+   thing: call the spa.
+
+   These pages are built as strings rather than rendered as views on purpose. If
+   the view layer is what failed, res.render() here would fail too and Express
+   would hand the visitor its stack-trace page anyway.
+   ========================================================================= */
+
+function plainPage(heading, message) {
+  let spaName = "J&M Serenity Spa";
+  let phone = "";
+  try {
+    spaName = db.getSetting("spa_name") || spaName;
+    phone = db.getSetting("phone") || "";
+  } catch (e) { /* database unavailable — the page still works without it */ }
+
+  const tel = fmt.telHref(phone);
+  const callLine = phone
+    ? "<p>Call us at " + (tel
+      ? "<a href=\"tel:" + escapeHtml(tel) + "\">" + escapeHtml(phone) + "</a>"
+      : escapeHtml(phone)) + " and we'll take care of it.</p>"
+    : "";
+
+  return "<!doctype html>\n" +
+    "<html lang=\"en\"><head><meta charset=\"utf-8\" />" +
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />" +
+    "<title>" + escapeHtml(heading) + " · " + escapeHtml(spaName) + "</title>" +
+    "<style>" +
+    "body{margin:0;padding:3rem 1.25rem;font-family:Georgia,'Times New Roman',serif;" +
+    "background:#f7f4ef;color:#33322e;line-height:1.6;}" +
+    "main{max-width:32rem;margin:0 auto;text-align:center;}" +
+    "h1{font-size:1.6rem;margin:0 0 .75rem;color:#1f6f78;}" +
+    "a{color:#1f6f78;}" +
+    ".links{margin-top:2rem;}" +
+    ".links a{display:inline-block;margin:.35rem .5rem;padding:.7rem 1.2rem;" +
+    "border:1px solid #1f6f78;border-radius:999px;text-decoration:none;}" +
+    "</style></head><body><main>" +
+    "<h1>" + escapeHtml(heading) + "</h1>" +
+    "<p>" + escapeHtml(message) + "</p>" +
+    callLine +
+    "<div class=\"links\"><a href=\"/\">Home</a><a href=\"/book\">Book an appointment</a></div>" +
+    "</main></body></html>";
+}
+
+app.use((req, res) => {
+  if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });
+  res.status(404).type("html").send(
+    plainPage("Page not found", "That page isn't here. It may have moved, or the link may be out of date.")
+  );
+});
+
+// Four arguments — this is Express's error handler signature, and `next` has to
+// stay in it even though it is only used for the headers-already-sent case.
+app.use((err, req, res, next) => {
+  console.error("Unhandled error on " + req.method + " " + req.originalUrl + ":", err);
+  if (res.headersSent) return next(err);
+  // Never echo err.message to the browser: it routinely carries file paths,
+  // SQL and other internals.
+  if (req.path.startsWith("/api/")) return res.status(500).json({ error: "Something went wrong." });
+  res.status(500).type("html").send(
+    plainPage("Something went wrong", "Sorry — this page didn't load. Please try again in a moment.")
+  );
+});
+
+/* =========================================================================
    Start server
    ========================================================================= */
 
@@ -2226,3 +2540,24 @@ setTimeout(() => {
     });
   }
 }, 10 * 1000); // 10 seconds after startup
+
+/* =========================================================================
+   Membership Renewal Scheduler
+   Nobody bills memberships automatically — it happens at the front desk. So
+   without this, visits_remaining only ever counts down and a member who joined
+   in March still shows March's leftover visits in August. Once a day, every
+   member whose billing date has passed gets their monthly visits back and their
+   billing date moved forward.
+   ========================================================================= */
+
+function runMembershipRenewals() {
+  try {
+    const renewed = db.renewDueMemberships();
+    console.log("Membership renewal: " + renewed + " renewed");
+  } catch (err) {
+    console.error("Membership renewal error:", err.message);
+  }
+}
+
+setInterval(runMembershipRenewals, 24 * 60 * 60 * 1000); // once a day
+setTimeout(runMembershipRenewals, 20 * 1000); // and shortly after startup

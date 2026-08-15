@@ -41,6 +41,7 @@ if (revealItems.length) {
   var therapist2Select = document.getElementById("therapist2-select");
   var therapist2Container = document.getElementById("therapist2-container");
   var genderPrefSelect = document.getElementById("gender-pref-select");
+  var prefsDetails = document.getElementById("prefs-details");
   var dateInput = document.getElementById("date-input");
   var slotsContainer = document.getElementById("slots-container");
   var slotsGrid = document.getElementById("slots-grid");
@@ -50,17 +51,24 @@ if (revealItems.length) {
   // Exit if not on a booking page
   if (!serviceSelect || !dateInput) return;
 
-  // Set min date to today
-  var today = new Date().toISOString().slice(0, 10);
+  // Set min date to today. Build it from LOCAL parts — toISOString() is UTC,
+  // which in Colorado becomes tomorrow after ~5-6pm and would block same-day
+  // booking for the busiest hours of the evening.
+  var _n = new Date();
+  var today = _n.getFullYear() + "-" + String(_n.getMonth() + 1).padStart(2, "0") +
+              "-" + String(_n.getDate()).padStart(2, "0");
   dateInput.setAttribute("min", today);
 
-  // Show/hide second therapist based on service category
+  // Show/hide second therapist based on service category.
+  // On the public form the therapist pickers live inside a collapsed <details>,
+  // so a hidden-away second-therapist select would never be seen — open it.
   function checkFourHands() {
     if (!therapist2Container) return;
     var selected = serviceSelect.options[serviceSelect.selectedIndex];
     var category = selected ? selected.getAttribute("data-category") : "";
     if (category === "four_hands") {
       therapist2Container.style.display = "block";
+      if (prefsDetails) prefsDetails.open = true;
     } else {
       therapist2Container.style.display = "none";
       if (therapist2Select) therapist2Select.value = "";
@@ -90,6 +98,21 @@ if (revealItems.length) {
     });
   }
 
+  /**
+   * Render a plain message where the time buttons would go.
+   * textContent, never innerHTML — nothing here is ever trusted markup.
+   */
+  function showSlotsMessage(message) {
+    slotsContainer.style.display = "block";
+    slotsGrid.innerHTML = "";
+    var p = document.createElement("p");
+    p.className = "muted small slots-hint";
+    p.textContent = message;
+    slotsGrid.appendChild(p);
+    timeInput.value = "";
+    updateSubmitBtn();
+  }
+
   function fetchSlots() {
     var serviceId = serviceSelect.value;
     var date = dateInput.value;
@@ -97,11 +120,14 @@ if (revealItems.length) {
     var therapist2Id = therapist2Select ? therapist2Select.value : "";
     var genderPref = genderPrefSelect ? genderPrefSelect.value : "";
 
-    if (!serviceId || !date) {
-      slotsContainer.style.display = "none";
-      slotsGrid.innerHTML = "";
-      timeInput.value = "";
-      updateSubmitBtn();
+    // Picking a date before a service used to return here silently: the client
+    // chose a day, nothing appeared, and there was no way to tell why.
+    if (!serviceId) {
+      showSlotsMessage("Choose a service first.");
+      return;
+    }
+    if (!date) {
+      showSlotsMessage("Now pick a date.");
       return;
     }
 
@@ -118,9 +144,9 @@ if (revealItems.length) {
         updateSubmitBtn();
 
         if (!data.slots || data.slots.length === 0) {
-          slotsContainer.style.display = "block";
-          slotsGrid.innerHTML =
-            '<p class="muted small">No available times for this date. Try another date, therapist, or gender preference.</p>';
+          showSlotsMessage(
+            "No times left on this date. Try another date, or remove your therapist preference."
+          );
           return;
         }
 
@@ -146,20 +172,23 @@ if (revealItems.length) {
         });
       })
       .catch(function () {
-        slotsContainer.style.display = "block";
-        slotsGrid.innerHTML =
-          '<p class="muted small">Error loading times. Please try again.</p>';
+        showSlotsMessage("Could not load times. Please try again.");
       });
   }
+
+  // The button says different things on different pages (booking vs. reschedule),
+  // so each page can supply its own wording via data attributes.
+  var readyLabel = (submitBtn && submitBtn.getAttribute("data-ready-label")) || "Confirm Booking";
+  var waitingLabel = (submitBtn && submitBtn.getAttribute("data-waiting-label")) || "Select a time to continue";
 
   function updateSubmitBtn() {
     if (!submitBtn) return;
     if (timeInput.value) {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Confirm Booking";
+      submitBtn.textContent = readyLabel;
     } else {
       submitBtn.disabled = true;
-      submitBtn.textContent = "Select a time to continue";
+      submitBtn.textContent = waitingLabel;
     }
   }
 
@@ -178,11 +207,9 @@ if (revealItems.length) {
     });
   }
 
-  // Initialize
+  // Initialize. Always run fetchSlots: with nothing chosen yet it renders the
+  // "Choose a service first" hint, so the time step is never a blank void.
   checkFourHands();
   filterTherapistsByGender();
-
-  if (serviceSelect.value && dateInput.value) {
-    fetchSlots();
-  }
+  fetchSlots();
 })();

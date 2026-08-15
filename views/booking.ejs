@@ -1,6 +1,6 @@
 <%- include('partials/header', {
   title: 'Book | J&M Serenity Spa',
-  description: 'Book online with J&M Serenity Spa. Choose your therapist and schedule a Signature Treatment.',
+  description: 'Book online with J&M Serenity Spa. Choose your treatment and pick a time — no payment online.',
   activePage: 'book'
 }) %>
 
@@ -10,7 +10,8 @@
       <p class="eyebrow reveal">Booking</p>
       <h1 class="reveal">Book a Signature Treatment</h1>
       <p class="lead muted reveal" style="max-width: 70ch;">
-        Fill in your details, choose a service and therapist, then pick an available time. No payment required online — pay at your appointment.
+        Choose a treatment, pick a time, and leave a phone number. That's it —
+        no payment online. You pay at the spa after your session.
       </p>
     </div>
   </section>
@@ -35,10 +36,120 @@
         </div>
         <% } %>
 
+        <% if (typeof waitlisted !== 'undefined' && waitlisted) { %>
+        <div class="admin-alert" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.85rem 1rem; margin-bottom:1rem;">
+          <strong>You're on the waitlist.</strong><br />
+          We'll call you if that time opens up. You can also book an available time below.
+        </div>
+        <% } %>
+
         <form class="form" method="POST" action="/book" id="booking-form">
+
+          <!-- 1) Service ----------------------------------------------------
+               Service comes first: it decides the duration, and therefore which
+               times are even available. -->
           <label>
-            Phone Number <span class="muted small">(required — we'll look you up)</span>
-            <input type="tel" name="client_phone" id="client-phone" placeholder="(555) 555-5555" required autofocus />
+            <span class="step-label"><span class="step-num">1</span> Choose your treatment</span>
+            <select name="service_id" id="service-select" required>
+              <option value="">— Choose a service —</option>
+              <% services.forEach(function(svc) { %>
+              <option value="<%= svc.id %>"
+                data-duration="<%= svc.duration %>"
+                data-category="<%= svc.category %>"
+                <%= preselect == svc.id ? 'selected' : '' %>>
+                <%# Some services (Water Head Massage) have no price set — never quote one. %>
+                <%= svc.name %> — <%= fmt.prettyDuration(svc.duration) %><%= Number(svc.price) > 0 ? ' · ' + fmt.money(svc.price) : '' %>
+              </option>
+              <% }); %>
+            </select>
+          </label>
+
+          <!-- Therapist preferences are optional and deliberately secondary:
+               most clients have none, and every extra visible field is another
+               question the front desk may be asked to explain in English.
+               Opened automatically when the client arrived from a "Book with
+               <name>" link, or when a Four Hands service needs a 2nd therapist. -->
+          <details class="booking-prefs" id="prefs-details" <%= (typeof preselectTherapist !== 'undefined' && preselectTherapist) ? 'open' : '' %>>
+            <summary>Prefer a particular therapist? <span class="muted small">(optional)</span></summary>
+            <div class="booking-prefs-body">
+              <label>
+                Therapist gender
+                <select name="gender_pref" id="gender-pref-select">
+                  <option value="">No preference</option>
+                  <option value="female">Female therapist</option>
+                  <option value="male">Male therapist</option>
+                </select>
+              </label>
+
+              <label>
+                Therapist
+                <select name="therapist_id" id="therapist-select">
+                  <option value="">No preference</option>
+                  <% therapists.forEach(function(t) { %>
+                  <option value="<%= t.id %>" data-gender="<%= t.gender %>"
+                    <%= (typeof preselectTherapist !== 'undefined' && String(preselectTherapist) === String(t.id)) ? 'selected' : '' %>>
+                    <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
+                  </option>
+                  <% }); %>
+                </select>
+              </label>
+
+              <!-- Second therapist — only shown for Four Hands (script.js) -->
+              <div id="therapist2-container" style="display: none;">
+                <label>
+                  Second therapist <span class="muted small">(for Four Hands)</span>
+                  <select name="therapist2_id" id="therapist2-select">
+                    <option value="">No preference</option>
+                    <% therapists.forEach(function(t) { %>
+                    <option value="<%= t.id %>" data-gender="<%= t.gender %>">
+                      <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
+                    </option>
+                    <% }); %>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </details>
+
+          <!-- 2) Date ------------------------------------------------------- -->
+          <label>
+            <span class="step-label"><span class="step-num">2</span> Pick a date</span>
+            <input type="date" name="date" id="date-input" required />
+          </label>
+
+          <!-- 3) Time -------------------------------------------------------
+               script.js keeps this visible at all times: when a service or date
+               is still missing it renders a hint here instead of failing
+               silently, which is what used to happen. -->
+          <div id="slots-container" style="display:none;">
+            <p class="step-label small" style="font-weight:700; margin-bottom:.5rem;">
+              <span class="step-num">3</span> Pick a time
+            </p>
+            <div id="slots-grid" class="slots-grid" aria-live="polite"></div>
+            <input type="hidden" name="time" id="time-input" required />
+          </div>
+
+          <% if (addons.length > 0) { %>
+          <fieldset class="addons-fieldset">
+            <legend style="font-weight: 700;">Add-Ons <span class="muted small">(optional)</span></legend>
+            <div style="display: flex; flex-wrap: wrap; gap: .8rem;">
+              <% addons.forEach(function(a) { %>
+              <label style="display: inline-flex; align-items: center; gap: .4rem; font-weight: normal; min-width: 200px;">
+                <input type="checkbox" name="addon_ids" value="<%= a.id %>" />
+                <%= a.name %> (+<%= fmt.money(a.price) %>)
+                <% if (a.description) { %><span class="muted small">— <%= a.description %></span><% } %>
+              </label>
+              <% }); %>
+            </div>
+          </fieldset>
+          <% } %>
+
+          <!-- 4) Phone ------------------------------------------------------
+               The only piece of personal data we require. Asked last, once the
+               client has already seen what they're getting and when. -->
+          <label>
+            <span class="step-label"><span class="step-num">4</span> Your phone number</span>
+            <input type="tel" name="client_phone" id="client-phone" placeholder="(555) 555-5555" required />
           </label>
 
           <!-- SMS consent disclosure. Required evidence of opt-in for A2P 10DLC
@@ -46,7 +157,9 @@
           <p class="muted small" style="margin: -.4rem 0 1rem; line-height: 1.5;">
             By providing your phone number and booking, you agree to receive appointment
             confirmations and reminders by text message from
-            <%= settings.spa_name || 'J&amp;M Serenity Spa' %>. Message frequency varies.
+            <%# Fallback is plain text — the output tag escapes it, so an HTML
+                entity written here would show up literally as "J&amp;M". %>
+            <%= settings.spa_name || 'J&M Serenity Spa' %>. Message frequency varies.
             Message and data rates may apply. Reply <strong>STOP</strong> to opt out or
             <strong>HELP</strong> for help. See our
             <a href="/policies#text-messages">Text Message Policy</a>.
@@ -58,102 +171,21 @@
           </div>
 
           <label>
-            Your Name <span class="muted small">(optional — we'll fill it in when you arrive if needed)</span>
+            Your name <span class="muted small">(optional)</span>
             <input type="text" name="client_name" id="client-name" placeholder="Full name" />
           </label>
 
           <label>
-            Email <span class="muted small">(optional — for confirmation email)</span>
+            Email <span class="muted small">(optional — only if you'd like a written confirmation)</span>
             <input type="email" name="client_email" id="client-email" placeholder="you@example.com" />
           </label>
 
-          <label>
-            Service
-            <select name="service_id" id="service-select" required>
-              <option value="">— Choose a service —</option>
-              <% services.forEach(function(svc) { %>
-              <option value="<%= svc.id %>"
-                data-duration="<%= svc.duration %>"
-                data-category="<%= svc.category %>"
-                <%= preselect == svc.id ? 'selected' : '' %>>
-                <%= svc.name %> — <%= svc.duration %> min ($<%= svc.price %>)
-              </option>
-              <% }); %>
-            </select>
-          </label>
-
-          <label>
-            Therapist Preference
-            <select name="gender_pref" id="gender-pref-select">
-              <option value="">No preference</option>
-              <option value="female">Female therapist</option>
-              <option value="male">Male therapist</option>
-            </select>
-          </label>
-
-          <label>
-            Preferred Therapist <span class="muted small">(optional — or leave as "No preference")</span>
-            <select name="therapist_id" id="therapist-select">
-              <option value="">No preference</option>
-              <% therapists.forEach(function(t) { %>
-              <option value="<%= t.id %>" data-gender="<%= t.gender %>"
-                <%= (typeof preselectTherapist !== 'undefined' && String(preselectTherapist) === String(t.id)) ? 'selected' : '' %>>
-                <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
-              </option>
-              <% }); %>
-            </select>
-          </label>
-
-          <!-- Second therapist for Four Hands -->
-          <div id="therapist2-container" style="display: none;">
-            <label>
-              Second Therapist <span class="muted small">(for Four Hands massage)</span>
-              <select name="therapist2_id" id="therapist2-select">
-                <option value="">No preference</option>
-                <% therapists.forEach(function(t) { %>
-                <option value="<%= t.id %>" data-gender="<%= t.gender %>">
-                  <%= t.name %> (<%= t.gender === 'male' ? 'M' : 'F' %>) — <%= t.specialties %>
-                </option>
-                <% }); %>
-              </select>
-            </label>
-          </div>
-
-          <label>
-            Date
-            <input type="date" name="date" id="date-input" required />
-          </label>
-
-          <div id="slots-container" style="display:none;">
-            <p class="small" style="font-weight:700; margin-bottom:.5rem;">Available Times</p>
-            <div id="slots-grid" class="slots-grid"></div>
-            <input type="hidden" name="time" id="time-input" required />
-          </div>
-
-          <% if (addons.length > 0) { %>
-          <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem;">
-            <legend style="font-weight: 700;">Add-Ons <span class="muted small">(optional)</span></legend>
-            <div style="display: flex; flex-wrap: wrap; gap: .8rem;">
-              <% addons.forEach(function(a) { %>
-              <label style="display: inline-flex; align-items: center; gap: .4rem; font-weight: normal; min-width: 200px;">
-                <input type="checkbox" name="addon_ids" value="<%= a.id %>" />
-                <%= a.name %> (+$<%= a.price %>)
-                <% if (a.description) { %><span class="muted small">— <%= a.description %></span><% } %>
-              </label>
-              <% }); %>
-            </div>
-          </fieldset>
-          <% } %>
-
-          <label>
-            Areas to Focus On <span class="muted small">(e.g., lower back, shoulders, neck)</span>
-            <input type="text" name="areas" placeholder="Any specific areas?" />
-          </label>
-
-          <label>
-            Notes for Therapist <span class="muted small">(optional)</span>
-            <textarea name="notes" rows="3" placeholder="Anything your therapist should know — injuries, pressure preference, etc."></textarea>
-          </label>
+          <!-- Replaces the old "Areas to focus on" + "Notes for therapist"
+               fields. Health details belong in the in-spa check-in intake, not
+               in a public form that stores them on our own hardware. -->
+          <p class="muted small" style="margin: -.2rem 0 .6rem;">
+            Tell your therapist about anything they should know when you arrive.
+          </p>
 
           <button class="btn btn-primary btn-block" type="submit" id="submit-btn" disabled>
             Select a time to continue
@@ -177,7 +209,9 @@
 </main>
 
 <script>
-// Auto-fill client info when phone number is entered
+// Auto-fill name/email for returning clients when a known phone is typed.
+// Deliberately does NOT prefill health or preference notes — those fields are
+// gone from this form and are collected at check-in instead.
 (function(){
   var phoneInput = document.getElementById('client-phone');
   var nameInput = document.getElementById('client-name');
@@ -197,22 +231,13 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (data.client) {
-            if (data.client.name) {
+            if (data.client.name && nameInput) {
               nameInput.value = data.client.name;
               banner.style.display = 'block';
               bannerName.textContent = data.client.name;
             }
-            if (data.client.email && !emailInput.value) emailInput.value = data.client.email;
-            if (data.client.areas_to_focus) {
-              var areasInput = document.querySelector('input[name="areas"]');
-              if (areasInput && !areasInput.value) areasInput.value = data.client.areas_to_focus;
-            }
-            if (data.client.notes || data.client.pressure_pref) {
-              var notesInput = document.querySelector('textarea[name="notes"]');
-              var prefill = [];
-              if (data.client.pressure_pref) prefill.push('Pressure: ' + data.client.pressure_pref);
-              if (data.client.areas_to_avoid) prefill.push('Avoid: ' + data.client.areas_to_avoid);
-              if (notesInput && !notesInput.value && prefill.length) notesInput.value = prefill.join('. ');
+            if (data.client.email && emailInput && !emailInput.value) {
+              emailInput.value = data.client.email;
             }
           } else {
             banner.style.display = 'none';

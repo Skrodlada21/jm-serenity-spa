@@ -455,7 +455,7 @@ h3{ margin:.15rem 0 .35rem; }
 
 label{ display:grid; gap:.35rem; font-weight:700; }
 
-input, textarea{
+input, textarea, select{
   font: inherit;
   padding: .75rem .85rem;
   border-radius: 14px;
@@ -463,9 +463,13 @@ input, textarea{
   background:#fff;
 }
 
-input:focus, textarea:focus{
-  outline: 3px solid rgba(31,111,120,.18);
-  border-color: rgba(31,111,120,.35);
+/* Keyboard focus.
+   The old rule was a 18%-opacity teal outline on a white card — technically
+   present, invisible in practice. Anyone navigating by keyboard had no way to
+   tell where they were. One high-contrast ring, everywhere, no exceptions. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible{
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
 }
 
 .contact-list{ list-style:none; padding:0; margin:.9rem 0 0; }
@@ -635,8 +639,10 @@ input:focus, textarea:focus{
 .slot-btn:focus-visible {
   border-color: var(--brand, #1f6f78);
   background: rgba(31, 111, 120, .06);
-  outline: none;
 }
+/* NOTE: no `outline: none` here — this rule is more specific than the global
+   :focus-visible ring and would have cancelled it for the time buttons, which
+   are the one control on the page you actually have to tab through. */
 
 /* The ONLY signal that a time was chosen — make it unmissable. */
 .slot-btn.selected {
@@ -646,3 +652,87 @@ input:focus, textarea:focus{
   box-shadow: 0 2px 10px rgba(31, 111, 120, .3);
 }
 .slot-btn.selected::after { content: " ✓"; }
+
+/* "Choose a service first" / "Now pick a date" / "no times left" messages.
+   They live inside the slots grid, so they have to span every column or they
+   get squeezed into a 104px strip. */
+.slots-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+
+/* ==========================================================================
+   Booking form (public /book, /booking/manage)
+   The form is the business. Every field on it is a question a client may end
+   up asking about at the front desk, where nobody can answer in English — so
+   the layout puts the three that matter (service, date, time) front and
+   centre and tucks the optional ones out of the way.
+   ========================================================================== */
+
+/* Numbered steps: service 1, date 2, time 3, phone 4. */
+.step-label{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.step-num{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Optional therapist preferences — collapsed by default. */
+.booking-prefs{
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .7rem .9rem;
+  background: var(--bg-alt);
+}
+
+.booking-prefs > summary{
+  cursor: pointer;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.booking-prefs[open] > summary{
+  margin-bottom: .75rem;
+}
+
+.booking-prefs-body{
+  display: grid;
+  gap: .75rem;
+}
+
+.addons-fieldset{
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+/* Confirmation page: the price and the "you pay in person" promise sit
+   together, because the question they answer is the same one. */
+.pay-note{
+  margin-top: 1rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--bg-alt);
+}
+
+.pay-total{
+  margin: 0 0 .25rem;
+  font-size: 1.15rem;
+}
