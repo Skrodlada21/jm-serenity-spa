@@ -25,7 +25,7 @@
         <% services.forEach(function(svc) { %>
         <article class="card service reveal">
           <h2><%= svc.name %></h2>
-          <p class="muted"><strong><%= svc.duration %> minutes</strong> &bull; $<%= svc.price %></p>
+          <p class="muted"><strong><%= svc.duration %> minutes</strong><%= Number(svc.price) > 0 ? " • $" + svc.price : " • Call for pricing" %></p>
           <p><%= svc.description %></p>
           <% if (svc.good_for) { %>
           <p class="small muted">Great for: <%= svc.good_for %></p>

@@ -949,7 +949,11 @@ app.get("/api/availability", (req, res) => {
 // Rate limited and intentionally minimal: returns only name/email so the
 // booking form can autofill. Stored preference/health notes are NOT exposed
 // to this unauthenticated endpoint (staff tools use full profiles instead).
-app.get("/api/client-lookup", lookupRateLimit, (req, res) => {
+// Kiosk-or-staff only. Its remaining callers are the kiosk /checkin page and
+// admin phone-booking, both already authenticated. Public, it returned a name
+// and email for ANY phone number — and for a massage spa, merely confirming a
+// number belongs to a client is itself sensitive.
+app.get("/api/client-lookup", requireKioskApi, lookupRateLimit, (req, res) => {
   const phone = (req.query.phone || "").trim();
   if (!phone || phone.replace(/\D/g, "").length < 7) return res.json({ client: null });
   const client = db.getClientByPhone(phone);
@@ -1099,7 +1103,7 @@ app.post("/api/arrive/walkin", requireKioskApi, (req, res) => {
     clientEmail: "",
     serviceId: serviceId,
     therapistId: null,
-    preferredDate: now.toISOString().slice(0, 10),
+    preferredDate: localDate(0),
     preferredTime: "Walk-in",
     notes: "Walk-in — checked in at " + h12 + ":" + mm + " " + ampm,
   });
@@ -1171,7 +1175,7 @@ app.get("/admin/logout", (req, res) => { req.session.destroy(); res.redirect("/"
 
 // Front Desk (simplified view)
 app.get("/admin/front-desk", requireAdmin, (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(0);
   const todayBookings = db.getBookingsForDate(today).map((b) => {
     b.is_member = b.client_phone ? !!db.getMemberByPhone(b.client_phone) : false;
     return b;
@@ -1191,7 +1195,7 @@ app.get("/admin/front-desk", requireAdmin, (req, res) => {
 
 // Dashboard
 app.get("/admin", requireAdmin, (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(0);
   const viewDate = req.query.date || today;
   const todayBookings = db.getBookingsForDate(viewDate).map((b) => {
     b.is_member = b.client_phone ? !!db.getMemberByPhone(b.client_phone) : false;
@@ -1374,9 +1378,15 @@ app.post("/admin/phone-booking", requireStaff, (req, res) => {
   // Create recurring bookings if specified
   if (recurringId && weeksCount > 0) {
     for (let w = 1; w <= weeksCount; w++) {
-      const d = new Date(date);
+      // Anchor at local noon and read back local parts. new Date("YYYY-MM-DD")
+      // parses as UTC midnight, and mixing that with toISOString() drops or
+      // adds a day across the spring-forward boundary.
+      const [ry, rm, rd] = String(date).split("-").map(Number);
+      const d = new Date(ry, rm - 1, rd, 12, 0, 0);
       d.setDate(d.getDate() + 7 * w);
-      const futureDate = d.toISOString().slice(0, 10);
+      const futureDate = d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0");
       const futureToken = crypto.randomBytes(16).toString("hex");
       db.createBooking({
         clientName: client_name,
@@ -1414,36 +1424,43 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
   const { payment_method, tip_amount, completed_by, gift_cert_code, discount_code } = req.body;
   const bookingId = parseInt(req.params.id, 10);
 
-  // If paying with gift certificate, look it up and deduct
+  // What the customer actually owes: service + add-ons, less a VALIDATED
+  // discount. Discounts used to only bump a usage counter — the customer was
+  // charged full price — and an expired or used-up code was accepted.
+  const quote = db.quoteBooking(bookingId, discount_code);
+  const charged = quote ? quote.total : 0;
+  const discountAmt = quote ? quote.discount : 0;
+  let paid = charged;
+
   if (payment_method === "Gift Certificate" && gift_cert_code) {
-    const cert = db.getGiftCertificateByCode(gift_cert_code.trim().toUpperCase());
-    if (cert && cert.balance > 0) {
-      const booking = db.getBookingById(bookingId);
-      const service = booking ? db.getServiceById(booking.service_id) : null;
-      let total = service ? service.price : 0;
-      // Add-on totals
-      if (booking && booking.addon_ids) {
-        const addons = db.getAddonsByIds(booking.addon_ids.split(",").map(Number));
-        total += addons.reduce((sum, a) => sum + a.price, 0);
-      }
-      // Apply discount code if present
-      if (discount_code) {
-        const disc = db.getDiscountCodeByCode(discount_code);
-        if (disc) {
-          if (disc.type === "percent") total = total * (1 - disc.value / 100);
-          else total = Math.max(0, total - disc.value);
-          db.incrementDiscountUse(disc.id);
-        }
-      }
-      db.redeemGiftCertificate(cert.id, total, booking ? booking.client_name : "", "Booking #" + bookingId);
+    const cert = db.getGiftCertificateByCode(String(gift_cert_code).trim().toUpperCase());
+    if (!cert || cert.status !== "active" || cert.balance <= 0) {
+      return res.redirect(safeBack(req, "/admin") + "?gc_error=1");
     }
-  } else if (discount_code) {
-    // Track discount code usage even for non-gift-cert payments
-    const disc = db.getDiscountCodeByCode(discount_code);
-    if (disc) db.incrementDiscountUse(disc.id);
+    // A card that only partly covers the bill used to be marked PAID IN FULL —
+    // a $20 card silently settled a $95 massage. Stop and tell the desk what is
+    // still owed instead of quietly losing the difference.
+    if (cert.balance + 0.001 < charged) {
+      const remaining = Math.round((charged - cert.balance) * 100) / 100;
+      return res.redirect(
+        safeBack(req, "/admin") +
+        "?gc_short=1&gc_covers=" + encodeURIComponent(cert.balance.toFixed(2)) +
+        "&gc_owed=" + encodeURIComponent(remaining.toFixed(2))
+      );
+    }
+    db.redeemGiftCertificate(
+      cert.id, charged,
+      (db.getBookingById(bookingId) || {}).client_name || "",
+      "Booking #" + bookingId
+    );
   }
 
-  db.completeBooking(bookingId, payment_method, parseFloat(tip_amount) || 0, completed_by || "");
+  // Count the discount once, only if it was genuinely applied.
+  if (quote && quote.discountRow) db.incrementDiscountUse(quote.discountRow.id);
+
+  db.completeBooking(bookingId, payment_method, parseFloat(tip_amount) || 0, completed_by || "", {
+    charged, paid, discount: discountAmt,
+  });
   const back = safeBack(req, "/admin");
   res.redirect(back);
 });
@@ -1551,7 +1568,7 @@ app.post("/admin/memberships/plans/:id/toggle", requireAdmin, (req, res) => {
 
 app.post("/admin/memberships/members", requireAdmin, (req, res) => {
   const { client_name, client_phone, client_email, plan_id, start_date, square_subscription_id, notes } = req.body;
-  db.addMember(client_name, client_phone, client_email, parseInt(plan_id, 10), start_date || new Date().toISOString().slice(0, 10), square_subscription_id, notes);
+  db.addMember(client_name, client_phone, client_email, parseInt(plan_id, 10), start_date || localDate(0), square_subscription_id, notes);
   res.redirect("/admin/memberships#members");
 });
 
@@ -2033,7 +2050,7 @@ app.get("/admin/expenses", requireAdmin, (req, res) => {
     grandTotal: totals.reduce((sum, t) => sum + t.total, 0),
     taxSummary,
     outstanding,
-    today: new Date().toISOString().slice(0, 10),
+    today: localDate(0),
     recorded: req.query.recorded || null,
     month,
   });
@@ -2106,7 +2123,7 @@ app.post("/admin/expenses/:id/payment", requireAdmin, (req, res) => {
   const amt = parseFloat(b.amount) || 0;
   db.addExpensePayment(id, {
     amount: amt,
-    date: b.date || new Date().toISOString().slice(0, 10),
+    date: b.date || localDate(0),
     method: b.method || "",
     paid_by: b.paid_by || "",
     note: b.note || "",
@@ -2293,7 +2310,7 @@ app.post("/desk/verify-pin", authRateLimit, (req, res) => {
 
 // Front desk main view (reuses front-desk.ejs with deskMode flag)
 app.get("/desk", requireDesk, (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(0);
   const todayBookings = db.getBookingsForDate(today).map((b) => {
     b.is_member = b.client_phone ? !!db.getMemberByPhone(b.client_phone) : false;
     return b;
@@ -2341,7 +2358,7 @@ app.post("/desk/waitlist/:id/accept", requireStaff, (req, res) => {
     genderPref: "",
     notes: entry.notes || "",
     areas: "",
-    date: now.toISOString().slice(0, 10),
+    date: localDate(0),
     time: hh + ":" + mm,
     duration: service.duration,
     source: "walk-in",
@@ -2361,7 +2378,7 @@ app.post("/desk/waitlist/:id/accept", requireStaff, (req, res) => {
 // Employee-room prep board — today's appointments with what each customer wants,
 // bilingual (Mandarin-forward). For an always-on monitor in the back room.
 app.get("/desk/prep", requireDesk, (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(0);
   const bookings = db.getBookingsForDate(today).map((b) => {
     b.is_member = b.client_phone ? !!db.getMemberByPhone(b.client_phone) : false;
     b.addonNames = b.addon_ids ? db.getAddonsByIds(b.addon_ids.split(",").map(Number)).map((a) => a.name) : [];
@@ -2412,7 +2429,7 @@ app.post("/desk/walkin", requireDesk, (req, res) => {
     clientEmail: "",
     serviceId: serviceId,
     therapistId: therapistId,
-    preferredDate: now.toISOString().slice(0, 10),
+    preferredDate: localDate(0),
     preferredTime: "Walk-in",
     notes: notes,
   });
@@ -2447,7 +2464,7 @@ app.post("/desk/members", requireDesk, (req, res) => {
   const { client_name, client_phone, client_email, plan_id, start_date } = req.body;
   if (client_name && client_phone && plan_id) {
     db.addMember(client_name, client_phone, client_email || "", parseInt(plan_id, 10),
-      start_date || new Date().toISOString().slice(0, 10), "", "Signed up at front desk");
+      start_date || localDate(0), "", "Signed up at front desk");
   }
   res.redirect("/desk/members?saved=1");
 });

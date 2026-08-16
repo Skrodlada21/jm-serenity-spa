@@ -59,7 +59,7 @@
         <% services.forEach(function(svc) { %>
         <article class="card reveal">
           <h3><%= svc.name %></h3>
-          <p class="muted" style="font-weight: 600; margin-bottom: .3rem;"><%= svc.duration %> min &bull; $<%= svc.price %></p>
+          <p class="muted" style="font-weight: 600; margin-bottom: .3rem;"><%= svc.duration %> min<%= Number(svc.price) > 0 ? " • $" + svc.price : " • Call for pricing" %></p>
           <p><%= svc.description %></p>
           <% if (svc.good_for) { %>
           <p class="small muted">Great for: <%= svc.good_for %></p>
