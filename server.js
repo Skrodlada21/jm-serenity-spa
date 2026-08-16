@@ -632,9 +632,47 @@ app.get("/about", (req, res) => {
   res.render("about", { activePage: "about", therapists: db.getActiveTherapists() });
 });
 
-app.get("/contact", (req, res) => res.render("contact", { activePage: "contact" }));
+app.get("/contact", (req, res) =>
+  res.render("contact", {
+    activePage: "contact",
+    sent: req.query.sent === "1",
+    contactError: req.query.error === "1",
+  })
+);
 app.get("/policies", (req, res) => res.render("policies", { activePage: "policies" }));
-app.post("/contact", (req, res) => res.redirect("/contact?sent=1"));
+/* Contact form. This used to be a bare redirect — the customer was told their
+   message was sent and it was thrown away. It now actually emails the spa.
+   Rate-limited and ledgered like every other outbound path, because a public
+   form that sends mail is a spam relay otherwise. */
+app.post("/contact", rateLimit, (req, res) => {
+  const name = String(req.body.name || "").trim().slice(0, 120);
+  const from = String(req.body.email || "").trim().slice(0, 200);
+  const message = String(req.body.message || "").trim().slice(0, 4000);
+
+  if (!name || !from || !message || !from.includes("@")) {
+    return res.redirect("/contact?error=1");
+  }
+
+  const settings = db.getAllSettings();
+  const to = settings.email || settings.smtp_from || settings.smtp_user;
+
+  // Ledger on the SENDER's address so one person cannot flood the inbox, and
+  // deliver to the spa. Reply-To is the customer so staff can just hit reply.
+  if (to && outboundAllowed("email", from)) {
+    email
+      .sendEmail(
+        to,
+        "Website message from " + name,
+        "From: " + name + " <" + from + ">\n\n" + message,
+        { replyTo: from }
+      )
+      .catch((err) => console.error("Contact form email failed:", err.message));
+  } else if (!to) {
+    console.error("Contact form: no destination address configured (settings.email).");
+  }
+
+  res.redirect("/contact?sent=1");
+});
 
 // Gallery page
 app.get("/gallery", (req, res) => {

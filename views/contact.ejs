@@ -70,6 +70,21 @@
 
         <div class="card reveal">
           <h2>Send a Message</h2>
+
+          <% if (typeof sent !== 'undefined' && sent) { %>
+          <div role="status" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.85rem 1rem; margin-bottom:1rem;">
+            <strong>Thank you — your message is on its way.</strong><br />
+            We'll reply by email as soon as we can. If it's urgent, please call us
+            at <a href="tel:<%= fmt.telHref(settings.phone) %>" style="color:#2e7d32;"><%= settings.phone %></a>.
+          </div>
+          <% } %>
+
+          <% if (typeof contactError !== 'undefined' && contactError) { %>
+          <div role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.85rem 1rem; margin-bottom:1rem;">
+            <strong>Please fill in your name, a valid email, and a message.</strong>
+          </div>
+          <% } %>
+
           <form class="form" method="POST" action="/contact">
             <label>
               Name
