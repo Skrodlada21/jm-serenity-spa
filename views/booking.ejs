@@ -165,10 +165,6 @@
             <a href="/policies#text-messages">Text Message Policy</a>.
           </p>
 
-          <div id="returning-banner" style="display:none; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 10px; padding: .8rem 1rem; margin-bottom: .5rem;">
-            <strong style="color: #2e7d32;">Welcome back!</strong>
-            <span id="returning-name" style="color: #2e7d32;"></span>
-          </div>
 
           <label>
             Your name <span class="muted small">(optional)</span>
@@ -193,6 +189,59 @@
         </form>
       </div>
 
+      <%# Waitlist — for the case the booking form cannot serve: the day is full,
+          or the client wants a time that isn't offered. POST /waitlist and the
+          success banner above already existed; this form is what feeds them.
+          Entries land in the front desk's "Waiting / Walk-Ins" panel, where
+          staff can reply by TEXT rather than having to phone anyone in English. %>
+      <details class="card reveal" id="waitlist-card">
+        <summary style="cursor:pointer; font-weight:700; font-size:1.05rem;">
+          Don't see the time you want?
+        </summary>
+        <p class="muted" style="margin:.8rem 0 1rem;">
+          Leave your details and we'll text you if that time opens up. This is not
+          a booking — you'll hear from us before anything is reserved.
+        </p>
+        <form class="form" method="POST" action="/waitlist">
+          <div class="grid two">
+            <label>
+              Your name
+              <input type="text" name="client_name" required />
+            </label>
+            <label>
+              Mobile number
+              <input type="tel" name="client_phone" required placeholder="(303) 555-1234" />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              Treatment
+              <select name="service_id">
+                <option value="">— Any treatment —</option>
+                <% services.forEach(function(svc) { %>
+                <option value="<%= svc.id %>"><%= svc.name %> — <%= fmt.prettyDuration(svc.duration) %></option>
+                <% }); %>
+              </select>
+            </label>
+            <label>
+              Preferred date
+              <input type="date" name="preferred_date" required />
+            </label>
+          </div>
+          <label>
+            Preferred time of day <span class="muted small">(optional)</span>
+            <input type="text" name="preferred_time" placeholder="e.g. weekday evenings, Saturday morning" />
+          </label>
+          <p class="muted small" style="margin:-.4rem 0 1rem; line-height:1.5;">
+            By giving us your number you agree to receive a text about this request from
+            <%= settings.spa_name || 'J&amp;M Serenity Spa' %>. Message and data rates may apply.
+            Reply <strong>STOP</strong> to opt out. See our
+            <a href="/policies#text-messages">Text Message Policy</a>.
+          </p>
+          <button class="btn btn-secondary" type="submit">Add me to the waitlist</button>
+        </form>
+      </details>
+
       <div class="card reveal">
         <h2>Policies</h2>
         <h3>Cancellation</h3>
@@ -208,44 +257,11 @@
   </section>
 </main>
 
-<script>
-// Auto-fill name/email for returning clients when a known phone is typed.
-// Deliberately does NOT prefill health or preference notes — those fields are
-// gone from this form and are collected at check-in instead.
-(function(){
-  var phoneInput = document.getElementById('client-phone');
-  var nameInput = document.getElementById('client-name');
-  var emailInput = document.getElementById('client-email');
-  var banner = document.getElementById('returning-banner');
-  var bannerName = document.getElementById('returning-name');
-  if (!phoneInput) return;
-
-  var timer;
-  phoneInput.addEventListener('input', function() {
-    clearTimeout(timer);
-    var phone = phoneInput.value.replace(/\D/g, '');
-    if (phone.length < 7) { banner.style.display = 'none'; return; }
-
-    timer = setTimeout(function() {
-      fetch('/api/client-lookup?phone=' + encodeURIComponent(phoneInput.value))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.client) {
-            if (data.client.name && nameInput) {
-              nameInput.value = data.client.name;
-              banner.style.display = 'block';
-              bannerName.textContent = data.client.name;
-            }
-            if (data.client.email && emailInput && !emailInput.value) {
-              emailInput.value = data.client.email;
-            }
-          } else {
-            banner.style.display = 'none';
-          }
-        }).catch(function() {});
-    }, 500);
-  });
-})();
-</script>
+<%# The returning-client prefill that used to live here called
+   /api/client-lookup, which returns a name and email for ANY phone number to
+   any anonymous visitor. On a massage spa's public page that also confirms
+   whether a given number belongs to a client, which is itself sensitive.
+   The convenience is kept where the person is physically present or signed in
+   (the lobby kiosk and the front desk); it does not belong on the open web. %>
 
 <%- include('partials/footer') %>
