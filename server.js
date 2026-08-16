@@ -181,6 +181,14 @@ function formatBusinessHours(settings) {
     (closed.length ? " · Closed " + closed.join(", ") : "");
 }
 
+/* Desk staff work at /desk/gift-certificates; the manager at /admin. Success
+   paths used to hard-code /admin, which is requireAdmin — so a CORRECT action
+   by a desk user bounced them to the manager's password screen while the sale
+   had already gone through. They would then redo it and duplicate the record. */
+function giftBase(req) {
+  return req.session && req.session.admin ? "/admin" : "/desk";
+}
+
 function safeBack(req, fallback) {
   const ref = req.get("Referrer") || req.get("Referer");
   if (ref) {
@@ -226,15 +234,20 @@ setInterval(() => {
 // online password/PIN brute-forcing. Keyed per-IP; short window, low ceiling.
 const authLimitMap = new Map();
 const AUTH_WINDOW = 15 * 60 * 1000; // 15 minutes
-const AUTH_MAX = 8; // attempts per IP per window
+const AUTH_MAX = 25; // attempts per IP per window
 
 function authRateLimit(req, res, next) {
+  // Key per ROUTE as well as per IP. The whole spa NATs to one address, so a
+  // single shared budget meant the manager, the desk and the lobby tablet
+  // competed for the same handful of logins — and an anonymous prod of one
+  // endpoint could lock staff out of all the others.
   const ip = req.ip || req.connection.remoteAddress;
+  const key = req.path + "|" + ip;
   const now = Date.now();
-  let entry = authLimitMap.get(ip);
+  let entry = authLimitMap.get(key);
   if (!entry || now - entry.start > AUTH_WINDOW) entry = { start: now, count: 0 };
   entry.count++;
-  authLimitMap.set(ip, entry);
+  authLimitMap.set(key, entry);
   if (entry.count > AUTH_MAX) {
     return res.status(429).send("Too many attempts. Please wait a few minutes and try again.");
   }
@@ -1051,6 +1064,7 @@ app.post("/kiosk/unlock", authRateLimit, (req, res) => {
     return req.session.regenerate((err) => {
       if (err) return res.status(500).render("kiosk-unlock", { next: dest, error: "Something went wrong. Try again." });
       req.session.kiosk = true;
+      authLimitMap.delete("/kiosk/unlock|" + (req.ip || ""));
       req.session.cookie.maxAge = KIOSK_SESSION_MS;
       res.redirect(dest);
     });
@@ -1181,6 +1195,7 @@ app.get("/admin/front-desk", requireAdmin, (req, res) => {
     return b;
   });
   res.render("admin/front-desk", {
+    query: req.query,
     activePage: "admin-dashboard",
     todayBookings,
     upcoming: db.getUpcomingBookings(10),
@@ -1523,7 +1538,7 @@ app.post("/admin/bookings/:id/charge", requireStaff, async (req, res) => {
 });
 
 // Check terminal checkout status (AJAX endpoint)
-app.get("/api/admin/checkout-status/:checkoutId", requireAdmin, async (req, res) => {
+app.get("/api/admin/checkout-status/:checkoutId", requireStaff, async (req, res) => {
   const checkout = await square.getTerminalCheckout(req.params.checkoutId);
   if (!checkout) return res.json({ status: "unknown" });
   res.json({
@@ -1794,15 +1809,15 @@ app.post("/admin/gift-certificates", requireStaff, async (req, res) => {
       const checkout = await square.createTerminalCheckout(Math.round(parsedAmount * 100), "Gift Certificate " + code + " - " + purchaser_name, { allowTip: false });
       if (checkout) {
         db.markGiftCertificatePaid(cert.id, "Square Terminal");
-        return res.redirect("/admin/gift-certificates?terminal_sent=1");
+        return res.redirect(giftBase(req) + "/gift-certificates?terminal_sent=1");
       }
     }
-    return res.redirect("/admin/gift-certificates?terminal_error=1");
+    return res.redirect(giftBase(req) + "/gift-certificates?terminal_error=1");
   }
 
   // All other payment methods — mark as paid immediately
   db.createGiftCertificate(code, purchaser_name, purchaser_email || "", recipient_name || "", parsedAmount, message || "", payment_method || "", createdBy);
-  res.redirect("/admin/gift-certificates");
+  res.redirect(giftBase(req) + "/gift-certificates");
 });
 
 // Mark a gift certificate as paid (if created without payment initially)
@@ -1815,13 +1830,13 @@ app.post("/admin/gift-certificates/:id/mark-paid", requireStaff, (req, res) => {
     return res.redirect(back + "?pin_error=1");
   }
   db.markGiftCertificatePaid(parseInt(req.params.id, 10), payment_method || "Cash");
-  res.redirect("/admin/gift-certificates");
+  res.redirect(giftBase(req) + "/gift-certificates");
 });
 
 // Send gift cert charge to Square Terminal
 app.post("/admin/gift-certificates/:id/charge", requireStaff, async (req, res) => {
   const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
-  if (!cert) return res.redirect("/admin/gift-certificates");
+  if (!cert) return res.redirect(giftBase(req) + "/gift-certificates");
 
   const amountCents = Math.round(cert.amount * 100);
   const note = "Gift Certificate " + cert.code + " - " + cert.purchaser_name;
@@ -1830,17 +1845,17 @@ app.post("/admin/gift-certificates/:id/charge", requireStaff, async (req, res) =
   if (checkout) {
     // Mark as paid immediately (terminal will handle the actual charge)
     db.markGiftCertificatePaid(cert.id, "Square Terminal");
-    res.redirect("/admin/gift-certificates?terminal_sent=1");
+    res.redirect(giftBase(req) + "/gift-certificates?terminal_sent=1");
   } else {
-    res.redirect("/admin/gift-certificates?terminal_error=1");
+    res.redirect(giftBase(req) + "/gift-certificates?terminal_error=1");
   }
 });
 
 // Barcode label for the back of a pre-printed gift card (browser-print fallback)
 app.get("/admin/gift-certificates/:id/label", requireStaff, (req, res) => {
   const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
-  if (!cert) return res.redirect("/admin/gift-certificates");
-  if (!cert.paid) return res.redirect("/admin/gift-certificates?not_paid=1");
+  if (!cert) return res.redirect(giftBase(req) + "/gift-certificates");
+  if (!cert.paid) return res.redirect(giftBase(req) + "/gift-certificates?not_paid=1");
   res.render("admin/gift-cert-label", { cert });
 });
 
@@ -1863,9 +1878,9 @@ app.post("/admin/gift-certificates/:id/print-zpl", requireStaff, async (req, res
 
 app.get("/admin/gift-certificates/:id/print", requireStaff, (req, res) => {
   const cert = db.getGiftCertificateById(parseInt(req.params.id, 10));
-  if (!cert) return res.redirect("/admin/gift-certificates");
+  if (!cert) return res.redirect(giftBase(req) + "/gift-certificates");
   // Block printing if not paid
-  if (!cert.paid) return res.redirect("/admin/gift-certificates?not_paid=1");
+  if (!cert.paid) return res.redirect(giftBase(req) + "/gift-certificates?not_paid=1");
   res.render("admin/gift-certificate-print", { cert, settings: db.getAllSettings() });
 });
 
@@ -1879,7 +1894,7 @@ app.post("/admin/gift-certificates/:id/redeem", requireStaff, (req, res) => {
   }
   const staffName = emp.name;
   db.redeemGiftCertificate(parseInt(req.params.id, 10), parseFloat(amount) || 0, redeemed_by || "", (notes ? notes + " " : "") + "[Staff: " + staffName + "]");
-  res.redirect("/admin/gift-certificates");
+  res.redirect(giftBase(req) + "/gift-certificates");
 });
 
 // ---- Reviews (admin) ----
@@ -2288,6 +2303,7 @@ app.post("/desk/login", authRateLimit, (req, res) => {
     return req.session.regenerate((err) => {
       if (err) return res.render("admin/fd-login", { error: "Login error, please try again." });
       req.session.desk = true;
+      authLimitMap.delete("/desk/login|" + (req.ip || ""));  // success clears the streak
       res.redirect("/desk");
     });
   }
@@ -2299,7 +2315,7 @@ app.get("/desk/logout", (req, res) => {
 });
 
 // Verify PIN for lock screen unlock (accepts desk password OR employee PIN)
-app.post("/desk/verify-pin", authRateLimit, (req, res) => {
+app.post("/desk/verify-pin", requireDesk, authRateLimit, (req, res) => {
   const pin = (req.body.pin || "").trim();
   const deskPw = db.getSetting("desk_password") || "1234";
   if (pin === deskPw) return res.json({ ok: true });
@@ -2316,6 +2332,7 @@ app.get("/desk", requireDesk, (req, res) => {
     return b;
   });
   res.render("admin/front-desk", {
+    query: req.query,
     activePage: "admin-dashboard",
     deskMode: true,
     todayBookings,

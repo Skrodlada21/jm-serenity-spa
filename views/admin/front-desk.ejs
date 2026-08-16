@@ -40,6 +40,43 @@
     <!-- ============================================================
          Today's Date — Big and clear
          ============================================================ -->
+    <%# Payment feedback. These flags were being set by the server and rendered
+        NOWHERE, so a failed card send looked identical to a successful one and
+        an unusable gift card silently closed the booking as paid. %>
+    <% var q = (typeof query !== 'undefined' && query) ? query : {}; %>
+
+    <% if (q.gc_error) { %>
+    <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✕ That gift card code was not found, or it has no balance left.<br />
+      <span style="font-weight:400;">Nothing was charged. Check the code and try again.</span>
+      <span class="muted small" style="display:block;">礼品卡无效或余额为零 — 未收取任何费用。</span>
+    </div>
+    <% } %>
+
+    <% if (q.gc_short) { %>
+    <div class="admin-alert" role="alert" style="background:#fff8e1; border:1px solid #ffe0a3; color:#8a6d1f; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ⚠ That gift card only covers <strong>$<%= q.gc_covers %></strong> of this visit.<br />
+      <span style="font-weight:400;">Still to collect: <strong>$<%= q.gc_owed %></strong>. Take the rest by cash or card, then complete.</span>
+      <span class="muted small" style="display:block;">礼品卡余额不足，还需收取 $<%= q.gc_owed %></span>
+    </div>
+    <% } %>
+
+    <% if (q.terminal_sent) { %>
+    <div class="admin-alert" role="status" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✓ Sent to the card terminal — ask the guest to tap or insert.<br />
+      <span style="font-weight:400;">When it approves, mark the booking complete.</span>
+      <span class="muted small" style="display:block;">已发送到刷卡终端，请客人刷卡。</span>
+    </div>
+    <% } %>
+
+    <% if (q.terminal_error) { %>
+    <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✕ Could not reach the card terminal.<br />
+      <span style="font-weight:400;">Nothing was charged. Take payment another way, or check the terminal is on and connected.</span>
+      <span class="muted small" style="display:block;">无法连接刷卡终端 — 未收取任何费用。</span>
+    </div>
+    <% } %>
+
     <div class="fd-date-bar">
       <h1 class="fd-today-label">
         Today — <%= new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>
