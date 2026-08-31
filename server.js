@@ -448,6 +448,23 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 app.use(express.static(path.join(__dirname, "public")));
+
+/* Cache-busted URLs for our own CSS/JS.
+   Browsers hang on to a stylesheet far longer than "max-age=0" suggests, so a
+   style change could sit invisible on the front desk screen until somebody
+   thought to hard-reload. Stamping the file's modification time into the URL
+   means a changed file is a changed URL, and the browser refetches it on its
+   own. Falls back to the bare path if the file cannot be stat'ed, so a typo
+   here can never take a page down. app.locals, not res.locals, so it is
+   defined for every render including the error pages. */
+app.locals.asset = function asset(p) {
+  try {
+    const st = fs.statSync(path.join(__dirname, "public", p));
+    return p + "?v=" + Math.floor(st.mtimeMs).toString(36);
+  } catch (e) {
+    return p;
+  }
+};
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 

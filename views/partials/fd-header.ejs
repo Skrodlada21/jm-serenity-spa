@@ -4,9 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Front Desk — J&amp;M Serenity Spa</title>
-  <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/admin.css" />
-  <script src="/js/admin-i18n.js" defer></script>
+  <link rel="stylesheet" href="<%= asset('/style.css') %>" />
+  <link rel="stylesheet" href="<%= asset('/admin.css') %>" />
+  <script>
+    /* Set the language class before first paint, so page-authored Chinese does
+       not flash on screen for English users. Kept inline and un-deferred on
+       purpose: a deferred file would run after the page has already painted. */
+    try {
+      if (localStorage.getItem("jm_lang") === "bi") {
+        document.documentElement.className += " jm-bi";
+      }
+    } catch (e) {}
+  </script>
+  <script src="<%= asset('/js/admin-i18n.js') %>" defer></script>
 </head>
 <body class="admin-body">
 

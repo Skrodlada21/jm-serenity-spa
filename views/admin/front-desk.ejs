@@ -49,7 +49,7 @@
     <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       ✕ That gift card code was not found, or it has no balance left.<br />
       <span style="font-weight:400;">Nothing was charged. Check the code and try again.</span>
-      <span class="muted small" style="display:block;">礼品卡无效或余额为零 — 未收取任何费用。</span>
+      <span class="zh-block muted small">礼品卡无效或余额为零 — 未收取任何费用。</span>
     </div>
     <% } %>
 
@@ -57,7 +57,7 @@
     <div class="admin-alert" role="alert" style="background:#fff8e1; border:1px solid #ffe0a3; color:#8a6d1f; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       ⚠ That gift card only covers <strong>$<%= q.gc_covers %></strong> of this visit.<br />
       <span style="font-weight:400;">Still to collect: <strong>$<%= q.gc_owed %></strong>. Take the rest by cash or card, then complete.</span>
-      <span class="muted small" style="display:block;">礼品卡余额不足，还需收取 $<%= q.gc_owed %></span>
+      <span class="zh-block muted small">礼品卡余额不足，还需收取 $<%= q.gc_owed %></span>
     </div>
     <% } %>
 
@@ -65,7 +65,7 @@
     <div class="admin-alert" role="status" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       ✓ Sent to the card terminal — ask the guest to tap or insert.<br />
       <span style="font-weight:400;">When it approves, mark the booking complete.</span>
-      <span class="muted small" style="display:block;">已发送到刷卡终端，请客人刷卡。</span>
+      <span class="zh-block muted small">已发送到刷卡终端，请客人刷卡。</span>
     </div>
     <% } %>
 
@@ -73,7 +73,7 @@
     <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       ✕ Could not reach the card terminal.<br />
       <span style="font-weight:400;">Nothing was charged. Take payment another way, or check the terminal is on and connected.</span>
-      <span class="muted small" style="display:block;">无法连接刷卡终端 — 未收取任何费用。</span>
+      <span class="zh-block muted small">无法连接刷卡终端 — 未收取任何费用。</span>
     </div>
     <% } %>
 
@@ -226,16 +226,16 @@
                   tip is already in the therapist's hand; a CARD tip was
                   collected by the spa and must be paid out. %>
               <label class="fd-form-label">
-                Tip given as 小费方式
+                Tip given as <span class="zh">小费方式</span>
                 <div class="fd-tip-toggle" style="display:flex; gap:.5rem; margin-top:.3rem;">
                   <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
-                    <input type="radio" name="tip_method" value="cash" /> 💵 Cash 现金
+                    <input type="radio" name="tip_method" value="cash" /> 💵 Cash <span class="zh">现金</span>
                   </label>
                   <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
-                    <input type="radio" name="tip_method" value="card" /> 💳 Card 刷卡
+                    <input type="radio" name="tip_method" value="card" /> 💳 Card <span class="zh">刷卡</span>
                   </label>
                 </div>
-                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. 现金小费当场拿走，刷卡小费之后结算。</span>
+                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. <span class="zh">现金小费当场拿走，刷卡小费之后结算。</span></span>
               </label>
               <button class="fd-btn fd-btn-save" type="submit">Pay with Gift Card</button>
             </form>
@@ -269,16 +269,16 @@
                   tip is already in the therapist's hand; a CARD tip was
                   collected by the spa and must be paid out. %>
               <label class="fd-form-label">
-                Tip given as 小费方式
+                Tip given as <span class="zh">小费方式</span>
                 <div class="fd-tip-toggle" style="display:flex; gap:.5rem; margin-top:.3rem;">
                   <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
-                    <input type="radio" name="tip_method" value="cash" /> 💵 Cash 现金
+                    <input type="radio" name="tip_method" value="cash" /> 💵 Cash <span class="zh">现金</span>
                   </label>
                   <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
-                    <input type="radio" name="tip_method" value="card" /> 💳 Card 刷卡
+                    <input type="radio" name="tip_method" value="card" /> 💳 Card <span class="zh">刷卡</span>
                   </label>
                 </div>
-                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. 现金小费当场拿走，刷卡小费之后结算。</span>
+                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. <span class="zh">现金小费当场拿走，刷卡小费之后结算。</span></span>
               </label>
               <label class="fd-form-label">
                 Done By

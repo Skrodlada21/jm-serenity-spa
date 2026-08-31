@@ -47,21 +47,42 @@
   color: var(--text);
 }
 
-/* Count of items waiting inside a nav link (e.g. unfiled receipt scans). */
+/* Count of items waiting inside a nav link (e.g. unfiled receipt scans).
+   Reads as a badge at a glance rather than a digit stuck to the word: a
+   filled orange circle, white bold number, its own breathing room. */
 .nav-badge {
-  display: inline-block;
-  min-width: 1.15rem;
-  margin-left: .35rem;
-  padding: 0 .35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  margin-left: .4rem;
+  padding: 0 .38rem;
   border-radius: 999px;
   background: #e67e22;
-  color: #fff;
-  font-size: .72rem;
-  font-weight: 700;
-  line-height: 1.15rem;
-  text-align: center;
-  vertical-align: text-top;
+  color: #fff !important;
+  font-size: .74rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  vertical-align: middle;
+  box-shadow: 0 1px 3px rgba(230, 126, 34, .5);
 }
+
+/* Keep the badge readable when its link is the active page. */
+.admin-link.is-active .nav-badge { background: #d35400; }
+
+/* Inline Chinese written straight into a page (as opposed to the DICT overlay
+   in admin-i18n.js, which only injects text when bilingual mode is on).
+   English view should be English only, so this stays hidden until the user
+   switches to 中文. The class is put on <html> by a small inline script in the
+   header, before first paint, so nothing flashes. */
+/* .zh sits inline after its English; .zh-block takes its own line. Both stay
+   hidden until bilingual mode. Use .zh-block rather than an inline
+   style="display:block", which would beat this rule and leak the Chinese. */
+.zh, .zh-block { display: none; }
+html.jm-bi .zh { display: inline; color: #c9a96e; }
+html.jm-bi .zh-block { display: block; }
 
 .admin-link.is-active {
   background: #eef3f4;

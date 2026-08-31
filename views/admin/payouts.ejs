@@ -3,8 +3,12 @@
 <style>
   /* The statement is handed to the therapist, who reads Chinese. Keep the
      Chinese on its own line under the English rather than inline, so neither
-     language is squeezed. */
-  .zh { display:block; font-size:.85rem; color:#666; font-weight:400; margin-top:.1rem; }
+     language is squeezed.
+     Scoped to html.jm-bi, exactly like the global rule in admin.css: this block
+     is loaded after admin.css, so an unscoped ".zh" here would out-cascade the
+     global "hidden unless bilingual" rule and leak Chinese into English view.
+     To print the bilingual sheet, switch to 中文 first. */
+  html.jm-bi .zh { display:block; font-size:.85rem; color:#666; font-weight:400; margin-top:.1rem; }
   @media print {
     .admin-header, .no-print, form { display:none !important; }
     .card { border:none !important; box-shadow:none !important; page-break-inside:avoid; }
@@ -75,7 +79,7 @@
           </tr>
           <% } %>
           <tr style="border-top:3px solid var(--brand);">
-            <td style="font-size:1.25rem;"><strong>TOTAL TO PAY 应付</strong></td>
+            <td style="font-size:1.25rem;"><strong>TOTAL TO PAY <span class="zh">应付</span></strong></td>
             <td style="text-align:right; font-size:1.5rem; color:var(--brand);"><strong><%= fmt.money(summary.totalOwed) %></strong></td>
           </tr>
         </tbody>
@@ -90,7 +94,7 @@
         <span class="zh">打印：按 ⌘+P（Windows 用 Ctrl+P）</span>
       </p>
       <button type="button" class="btn btn-ghost no-print" onclick="window.print()" style="margin-top:.4rem;">
-        🖨 Print this statement 打印结算单
+        🖨 Print this statement <span class="zh">打印结算单</span>
       </button>
 
       <form method="POST" action="/admin/payouts" style="margin-top:1.2rem;"

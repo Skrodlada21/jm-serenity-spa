@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Gift Card Label — <%= cert.code %></title>
-  <script src="/js/jsbarcode.min.js"></script>
+  <script src="<%= asset('/js/jsbarcode.min.js') %>"></script>
   <style>
     /* Sized for 2" x 1" direct-thermal die-cut labels (Zebra GX420d). */
     @page { size: 2in 1in; margin: 0; }
