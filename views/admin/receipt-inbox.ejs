@@ -1,0 +1,127 @@
+<%- include('../partials/admin-header', { activePage: 'admin-receipt-inbox' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Receipt Inbox <% if (unfiled.length) { %><span style="background:#e67e22; color:#fff; border-radius:20px; padding:.1rem .7rem; font-size:1rem; vertical-align:middle;"><%= unfiled.length %></span><% } %></h1>
+    <p class="muted" style="margin-bottom:1.2rem;">
+      Scan receipts to the printer's network folder and they appear here automatically.
+      Give each one a description, a total and a category — that's it.
+      <span class="zh">扫描的收据会自动出现在这里，只需填写说明、金额和类别。</span>
+    </p>
+
+    <% if (saved) { %>
+    <div class="admin-alert" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1.2rem; font-weight:600;">
+      ✓ Receipt filed as an expense.
+    </div>
+    <% } %>
+
+    <% if (unfiled.length === 0) { %>
+    <div class="card" style="text-align:center; padding:2.5rem 1rem;">
+      <p style="font-size:1.1rem; margin-bottom:.4rem;">📥 Nothing waiting to be filed.</p>
+      <p class="muted">Scan a receipt to the <strong>Receipts</strong> folder on the network and it will show up here within a minute.</p>
+    </div>
+    <% } %>
+
+    <% unfiled.forEach(function(r){ %>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div style="display:grid; grid-template-columns: minmax(240px, 40%) 1fr; gap:1.2rem; align-items:start;">
+
+        <%# The scan itself. PDFs get an embedded viewer, images render inline. %>
+        <div>
+          <% if (r.mime === 'application/pdf') { %>
+          <embed src="/admin/receipts/<%= r.filename %>" type="application/pdf"
+                 style="width:100%; height:340px; border:1px solid var(--line,#ddd); border-radius:8px;" />
+          <% } else { %>
+          <a href="/admin/receipts/<%= r.filename %>" target="_blank">
+            <img src="/admin/receipts/<%= r.filename %>" alt="Scanned receipt"
+                 style="width:100%; max-height:340px; object-fit:contain; border:1px solid var(--line,#ddd); border-radius:8px; background:#fafafa;" />
+          </a>
+          <% } %>
+          <p class="muted small" style="margin-top:.4rem;">
+            <a href="/admin/receipts/<%= r.filename %>" target="_blank">Open full size</a>
+            · <%= r.original_name %>
+            · <%= Math.round((r.size || 0) / 1024) %> KB
+            · scanned <%= (r.scanned_at || '').slice(0, 16).replace('T', ' ') %>
+          </p>
+        </div>
+
+        <div>
+          <form class="form" method="POST" action="/admin/receipt-inbox/<%= r.id %>/file">
+            <div class="grid two">
+              <label>What was it? <span class="zh">买了什么</span>
+                <input type="text" name="description" required autofocus placeholder="e.g. Massage oil and linens" />
+              </label>
+              <label>Total <span class="zh">金额</span>
+                <input type="number" name="amount" step="0.01" min="0" required placeholder="0.00"
+                       style="font-size:1.25rem; font-weight:700;" />
+              </label>
+            </div>
+            <div class="grid two">
+              <label>Category <span class="zh">类别</span>
+                <select name="category" required>
+                  <% ['Supplies','Linens','Equipment','Utilities','Rent','Marketing','Maintenance','Insurance','Software','Licensing','Furniture','Build-Out','Signage','Payroll','General','Other'].forEach(function(c){ %>
+                  <option value="<%= c %>" <%= c === 'Supplies' ? 'selected' : '' %>><%= c %></option>
+                  <% }); %>
+                </select>
+              </label>
+              <label>Date on the receipt <span class="zh">日期</span>
+                <input type="date" name="date" value="<%= today %>" required />
+              </label>
+            </div>
+            <div class="grid two">
+              <label>Store / vendor <span class="muted small">(optional)</span>
+                <input type="text" name="vendor" placeholder="e.g. Costco" />
+              </label>
+              <label>Paid by <span class="muted small">(optional)</span>
+                <input type="text" name="paid_by" placeholder="e.g. business card, cash" />
+              </label>
+            </div>
+            <label style="display:flex; align-items:center; gap:.5rem; font-weight:normal;">
+              <input type="checkbox" name="tax_deductible" value="1" checked />
+              Tax deductible <span class="zh">可抵税</span>
+            </label>
+            <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.6rem;">
+              <button class="btn btn-primary" type="submit">Save as expense</button>
+            </div>
+          </form>
+
+          <form method="POST" action="/admin/receipt-inbox/<%= r.id %>/ignore" style="margin-top:.5rem;"
+                onsubmit="return confirm('Hide this scan? The file is kept, it just leaves the inbox.')">
+            <button class="btn btn-small btn-ghost" type="submit" style="color:#b06a2c;">Not a receipt — hide it</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <% }); %>
+
+    <% if (recent.length) { %>
+    <div class="card">
+      <h2>Recently filed</h2>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Scanned</th><th>Filed as</th><th style="text-align:right;">Amount</th><th>Receipt</th><th></th></tr></thead>
+          <tbody>
+            <% recent.forEach(function(r){ %>
+            <tr>
+              <td class="muted small"><%= (r.scanned_at || '').slice(0,10) %></td>
+              <td><%= r.expense_description || '—' %></td>
+              <td style="text-align:right;"><%= r.expense_amount != null ? fmt.money(r.expense_amount) : '' %></td>
+              <td><a href="/admin/receipts/<%= r.filename %>" target="_blank">📎 View</a></td>
+              <td class="action-cell">
+                <form method="POST" action="/admin/receipt-inbox/<%= r.id %>/unfile" style="display:inline;"
+                      onsubmit="return confirm('Put this back in the inbox? The expense stays, it just loses the attached receipt.')">
+                  <button class="btn btn-small btn-ghost" type="submit">Undo</button>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</main>
+
+</body>
+</html>

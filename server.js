@@ -11,6 +11,7 @@ const session = require("express-session");
 const helmet = require("helmet");
 const multer = require("multer");
 const db = require("./lib/db");
+const scanWatch = require("./lib/scan-watch");
 const email = require("./lib/email");
 const sms = require("./lib/sms");
 const square = require("./lib/square");
@@ -1970,6 +1971,67 @@ app.post("/admin/gallery/:id/delete", requireAdmin, (req, res) => {
 });
 
 // Expenses
+/* =========================================================================
+   Scanned receipt inbox
+   -------------------------------------------------------------------------
+   The printer scans into scans/incoming; lib/scan-watch.js ingests them as
+   "unfiled". Here they are given a category and a total and turned into an
+   expense. No OCR — a person reads the paper and types two fields, which is
+   faster and cheaper than any model and works with the internet down.
+   ========================================================================= */
+app.get("/admin/receipt-inbox", requireAdmin, (req, res) => {
+  res.render("admin/receipt-inbox", {
+    activePage: "admin-receipt-inbox",
+    unfiled: db.getScannedReceipts("unfiled"),
+    recent: db.getScannedReceipts("filed").slice(0, 25),
+    today: localDate(0),
+    saved: req.query.saved === "1",
+  });
+});
+
+// File one scan: create the expense, attach the file, mark it done.
+app.post("/admin/receipt-inbox/:id/file", requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const receipt = db.getScannedReceiptById(id);
+  if (!receipt || receipt.status !== "unfiled") return res.redirect("/admin/receipt-inbox");
+
+  const amount = parseFloat(req.body.amount);
+  const description = String(req.body.description || "").trim();
+  if (!description || isNaN(amount)) {
+    return res.redirect("/admin/receipt-inbox?error=1");
+  }
+
+  const info = db.addExpense({
+    description,
+    amount,
+    category: req.body.category || "General",
+    date: req.body.date || localDate(0),
+    frequency: "one-time",
+    is_startup: 0,
+    vendor: req.body.vendor || "",
+    notes: req.body.notes || "",
+    payment_status: "paid",
+    paid_by: req.body.paid_by || "",
+    due_to: "",
+    due_date: "",
+    receipt_file: "",          // set by fileScannedReceipt below
+    tax_deductible: req.body.tax_deductible ? 1 : 0,
+    auto_pay: 0,
+  });
+  if (info && info.lastInsertRowid) db.fileScannedReceipt(id, info.lastInsertRowid);
+  res.redirect("/admin/receipt-inbox?saved=1");
+});
+
+app.post("/admin/receipt-inbox/:id/ignore", requireAdmin, (req, res) => {
+  db.ignoreScannedReceipt(parseInt(req.params.id, 10));
+  res.redirect("/admin/receipt-inbox");
+});
+
+app.post("/admin/receipt-inbox/:id/unfile", requireAdmin, (req, res) => {
+  db.unfileScannedReceipt(parseInt(req.params.id, 10));
+  res.redirect("/admin/receipt-inbox");
+});
+
 // Serve expense receipts (financial documents) only to authenticated admins.
 // Files live outside the public web root; basename-only lookup blocks traversal.
 app.get("/admin/receipts/:file", requireAdmin, (req, res) => {
@@ -2668,6 +2730,9 @@ app.use((err, req, res, next) => {
 /* =========================================================================
    Start server
    ========================================================================= */
+
+// Watch the scan folder for receipts the printer drops in.
+scanWatch.start(__dirname);
 
 app.listen(PORT, () => {
   console.log("J&M Serenity Spa running on http://localhost:" + PORT);
