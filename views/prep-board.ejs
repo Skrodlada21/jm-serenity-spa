@@ -33,6 +33,14 @@
     .empty { text-align: center; color: #7fa8aa; font-size: 1.4rem; padding: 4rem 1rem; }
     .nextlabel { display: inline-block; font-size: .8rem; background: #c9a96e; color: #14282b;
       padding: .1rem .5rem; border-radius: 6px; font-weight: 700; margin-bottom: .3rem; }
+  
+    .health-warn { background: rgba(220,53,69,.14); border-left: 5px solid #dc3545;
+                   border-radius: 8px; padding: .4rem .6rem; margin: .35rem 0; }
+    .flag { display: inline-block; margin-right: .7rem; font-weight: 700; }
+    .flag-preg  { color: #d63384; }
+    .flag-alrg  { color: #dc3545; }
+    .flag-avoid { color: #dc3545; }
+    .flag-cond  { color: #b06a2c; }
   </style>
 </head>
 <body>
@@ -75,6 +83,32 @@
         <% if (b.addonNames && b.addonNames.length) { %>
         <div class="row"><span class="lab">附加<span class="en">Add-ons</span></span>
           <span class="val"><%= b.addonNames.join('、') %></span></div>
+        <% } %>
+
+        <%# HEALTH FLAGS — the things a therapist must know before they start.
+            Chinese first, matching the rest of this board. Deliberately brief:
+            the full record lives on the client page at the desk. %>
+        <% var h = b.health; %>
+        <% if (h && h.hasWarning) { %>
+        <div class="row health-warn">
+          <span class="lab">注意<span class="en">Check</span></span>
+          <span class="val">
+            <% if (h.pregnant) { %><span class="flag flag-preg">🤰 怀孕 <span class="en">Pregnant</span></span><% } %>
+            <% if (h.allergies) { %><span class="flag flag-alrg">⚠ 过敏 <span class="en">Allergy</span>: <%= h.allergies %></span><% } %>
+            <% if (h.avoid) { %><span class="flag flag-avoid">⛔ 避开 <span class="en">Avoid</span>: <%= h.avoid %></span><% } %>
+            <% if (h.conditions) { %><span class="flag flag-cond">➕ 健康 <span class="en">Health</span>: <%= h.conditions %></span><% } %>
+          </span>
+        </div>
+        <% } %>
+
+        <% if (h && h.pressure) { %>
+        <div class="row"><span class="lab">力度<span class="en">Pressure</span></span>
+          <span class="val"><%= h.pressure %></span></div>
+        <% } %>
+
+        <% if (h && !h.intakeComplete) { %>
+        <div class="row"><span class="lab">表格<span class="en">Intake</span></span>
+          <span class="val" style="color:#b06a2c;">未填写 — 请到前台 <span class="en">Not on file — see front desk</span></span></div>
         <% } %>
 
         <% if (b.areas) { %>

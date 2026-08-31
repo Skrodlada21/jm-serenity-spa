@@ -2399,6 +2399,11 @@ app.get("/desk/prep", requireDesk, (req, res) => {
   const bookings = db.getBookingsForDate(today).map((b) => {
     b.is_member = b.client_phone ? !!db.getMemberByPhone(b.client_phone) : false;
     b.addonNames = b.addon_ids ? db.getAddonsByIds(b.addon_ids.split(",").map(Number)).map((a) => a.name) : [];
+    // What the therapist must know before they start. The intake was being
+    // collected at the kiosk and never shown to the person doing the massage —
+    // and the usual backstop, the therapist asking at the table, is not
+    // available when they do not share a language with the client.
+    b.health = db.getClientHealthFlags(b.client_phone);
     return b;
   });
   res.render("prep-board", { bookings, today });
