@@ -18,6 +18,7 @@
     "Therapists": "按摩师", "Services": "服务项目", "Clients": "客户", "Reports": "报告",
     "Blocked": "休息时间", "Waitlist": "候补名单", "Gifts": "礼品卡", "Reviews": "评价",
     "Gallery": "相册", "Memberships": "会员", "Discounts": "折扣", "Expenses": "开支",
+    "Receipts": "收据", "Payouts": "结算", "Vendors": "供应商",
     "Documents": "文件", "Settings": "设置", "Logout": "退出",
     // ---- Front-desk navigation ----
     "Today": "今天", "New Booking": "新预约", "Gift Cards": "礼品卡", "Members": "会员", "Prep Board": "准备清单",
@@ -198,6 +199,15 @@
     nodes.forEach(function (node) {
       var zh = DICT[norm(node.nodeValue)];
       if (!zh) return;
+      // The page may already carry its own Chinese for this label, written
+      // into the template as a .zh span. Appending the dictionary's word as
+      // well prints two different Chinese phrases side by side -- "Total 总计
+      // 金额", where 总计 is a grand total and 金额 is an amount. Leave the
+      // hand-written one alone; it was chosen for that specific field.
+      var sib = node.nextSibling;
+      while (sib && sib.nodeType === 3 && !sib.nodeValue.trim()) sib = sib.nextSibling;
+      if (sib && sib.nodeType === 1 && sib.className &&
+          /\b(zh|zh-block)\b/.test(String(sib.className))) return;
       var span = document.createElement("span");
       span.className = "jm-zh";
       span.style.cssText = "color:#c9a96e;margin-left:4px;font-weight:400;";

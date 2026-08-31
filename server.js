@@ -450,11 +450,19 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
 /* Cache-busted URLs for our own CSS/JS.
-   Browsers hang on to a stylesheet far longer than "max-age=0" suggests, so a
-   style change could sit invisible on the front desk screen until somebody
-   thought to hard-reload. Stamping the file's modification time into the URL
-   means a changed file is a changed URL, and the browser refetches it on its
-   own. Falls back to the bare path if the file cannot be stat'ed, so a typo
+   express.static serves these with "max-age=0", which would revalidate on
+   every load -- but that is not what the browser is told. Measured at the
+   edge, Cloudflare rewrites it:
+       origin:  cache-control: public, max-age=0
+       edge:    cache-control: public, max-age=14400   (4 hours)
+   So a style change could sit invisible on the front desk screen for four
+   hours, and a manager who "already refreshed" would be looking at the old
+   stylesheet. Stamping the file's modification time into the URL means a
+   changed file is a changed URL, which neither the browser nor the edge has
+   ever seen, so it is fetched immediately.
+   NOTE: images are still unversioned. They change rarely, but the same 4-hour
+   window applies to them -- version them too if the logo or photos are ever
+   swapped in place. Falls back to the bare path if the file cannot be stat'ed, so a typo
    here can never take a page down. app.locals, not res.locals, so it is
    defined for every render including the error pages. */
 app.locals.asset = function asset(p) {

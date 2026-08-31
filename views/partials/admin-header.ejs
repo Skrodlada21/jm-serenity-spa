@@ -45,10 +45,14 @@
       <a class="admin-link <%= activePage === 'admin-memberships' ? 'is-active' : '' %>" href="/admin/memberships">Memberships</a>
       <a class="admin-link <%= activePage === 'admin-discounts' ? 'is-active' : '' %>" href="/admin/discounts">Discounts</a>
       <a class="admin-link <%= activePage === 'admin-expenses' ? 'is-active' : '' %>" href="/admin/expenses">Expenses</a>
-      <a class="admin-link <%= activePage === 'admin-receipt-inbox' ? 'is-active' : '' %>" href="/admin/receipt-inbox">Receipts<%
-        /* Badge only when something is actually waiting — a permanent "0"
-           trains staff to ignore the number. */
-        if (typeof unfiledReceipts !== 'undefined' && unfiledReceipts > 0) { %><span class="nav-badge" aria-label="<%= unfiledReceipts %> receipt<%= unfiledReceipts === 1 ? '' : 's' %> waiting to be filed"><%= unfiledReceipts %></span><% } %></a>
+      <%# Badge only when something is actually waiting — a permanent "0"
+          trains staff to ignore the number. The count is named on the link
+          itself: aria-label on the bare <span> was role="generic", which ARIA
+          forbids naming and browsers drop, so it was announced as just "1". %>
+      <% var unfiled = (typeof unfiledReceipts !== 'undefined' && unfiledReceipts > 0) ? unfiledReceipts : 0; %>
+      <a class="admin-link <%= activePage === 'admin-receipt-inbox' ? 'is-active' : '' %>" href="/admin/receipt-inbox"<%
+        if (unfiled) { %> aria-label="Receipts — <%= unfiled %> waiting to be filed"<% } %>>Receipts<%
+        if (unfiled) { %><span class="nav-badge" aria-hidden="true"><%= unfiled %></span><% } %></a>
       <a class="admin-link <%= activePage === 'admin-documents' ? 'is-active' : '' %>" href="/admin/documents">Documents</a>
       <a class="admin-link <%= activePage === 'admin-payouts' ? 'is-active' : '' %>" href="/admin/payouts">Payouts</a>
       <a class="admin-link <%= activePage === 'admin-vendors' ? 'is-active' : '' %>" href="/admin/vendors">Vendors</a>
