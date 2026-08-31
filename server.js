@@ -524,6 +524,9 @@ app.use((req, res, next) => {
   res.locals.settings = db.getAllSettings();
   res.locals.hoursText = formatBusinessHours(res.locals.settings);
   res.locals.isAdmin = !!req.session.admin;
+  // Count of scans waiting to be filed, for the "Receipts" nav badge. Only
+  // queried for a signed-in manager, so public traffic never pays for it.
+  res.locals.unfiledReceipts = req.session.admin ? db.countUnfiledReceipts() : 0;
   // Shared display formatting (dates, times, money, tel: links) for every view,
   // so no template has to reinvent "2:30 PM" or "Thursday, August 20".
   res.locals.fmt = fmt;

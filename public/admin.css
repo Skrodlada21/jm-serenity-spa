@@ -47,6 +47,22 @@
   color: var(--text);
 }
 
+/* Count of items waiting inside a nav link (e.g. unfiled receipt scans). */
+.nav-badge {
+  display: inline-block;
+  min-width: 1.15rem;
+  margin-left: .35rem;
+  padding: 0 .35rem;
+  border-radius: 999px;
+  background: #e67e22;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+  vertical-align: text-top;
+}
+
 .admin-link.is-active {
   background: #eef3f4;
   color: var(--text);
