@@ -81,7 +81,15 @@
         </tbody>
       </table>
 
-      <button type="button" class="btn btn-ghost no-print" onclick="window.print()" style="margin-top:1rem;">
+      <%# Lead with the keyboard shortcut. A JS print button does nothing in a
+          preview pane or a sandboxed frame, and one that silently fails is
+          worse than none — the staff would just tap it again. %>
+      <p class="no-print muted small" style="margin-top:1rem;">
+        To print: press <kbd style="background:#fff;border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:.05rem .35rem;">⌘</kbd>+<kbd style="background:#fff;border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:.05rem .35rem;">P</kbd>
+        (or <kbd style="background:#fff;border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:.05rem .35rem;">Ctrl</kbd>+<kbd style="background:#fff;border:1px solid #bbb;border-bottom-width:2px;border-radius:4px;padding:.05rem .35rem;">P</kbd> on Windows).
+        <span class="zh">打印：按 ⌘+P（Windows 用 Ctrl+P）</span>
+      </p>
+      <button type="button" class="btn btn-ghost no-print" onclick="window.print()" style="margin-top:.4rem;">
         🖨 Print this statement 打印结算单
       </button>
 
