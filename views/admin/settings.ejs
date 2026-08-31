@@ -165,7 +165,71 @@
         </div>
       </div>
 
-      <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card" style="margin-bottom:1.5rem;">
+        <h2>Receipt Mailbox <span class="muted small">(scan to email)</span></h2>
+        <p class="muted small" style="margin-bottom:.8rem;">
+          Scan a receipt on the printer (or photograph one on a phone) and email it to this
+          address. Attachments arrive in the <a href="/admin/receipt-inbox">Receipt Inbox</a>
+          to be given a category and a total. Checked every 5 minutes.
+        </p>
+
+        <label style="display:flex; align-items:center; gap:.5rem; font-weight:normal; margin-bottom:.8rem;">
+          <input type="checkbox" name="scan_email_enabled" value="1"
+            <%= settings.scan_email_enabled === '1' ? 'checked' : '' %> />
+          Check the receipt mailbox automatically
+        </label>
+
+        <div class="grid two">
+          <label>IMAP server
+            <input type="text" name="scan_email_host"
+              value="<%= settings.scan_email_host || 'imap.gmail.com' %>" placeholder="imap.gmail.com" />
+          </label>
+          <label>Port
+            <input type="text" name="scan_email_port"
+              value="<%= settings.scan_email_port || '993' %>" placeholder="993" />
+          </label>
+        </div>
+
+        <div class="grid two">
+          <label>Mailbox address
+            <input type="text" name="scan_email_user"
+              value="<%= settings.scan_email_user || '' %>" placeholder="receipts@jmserenityspa.com" />
+          </label>
+          <label>Folder
+            <input type="text" name="scan_email_folder"
+              value="<%= settings.scan_email_folder || 'INBOX' %>" placeholder="INBOX" />
+          </label>
+        </div>
+
+        <label>
+          App Password for that mailbox
+          <input type="password" name="scan_email_pass" value="" autocomplete="new-password"
+            placeholder="<%= settings.scan_email_pass ? '•••••••••••• saved' : 'Google App Password' %>" />
+          <% if (settings.scan_email_pass) { %>
+          <label class="muted small" style="display:block; margin-top:.3rem; font-weight:normal;">
+            Leave blank to keep the saved value. <input type="checkbox" name="clear_scan_email_pass" value="1" /> Clear it
+          </label>
+          <% } %>
+          <span class="muted small" style="display:block; margin-top:.3rem;">
+            Not the account password — a Google <strong>App Password</strong>, same as the email settings above.
+          </span>
+        </label>
+
+        <label>
+          Approved senders
+          <input type="text" name="scan_email_allowed"
+            value="<%= settings.scan_email_allowed || '' %>"
+            placeholder="@jmserenityspa.com, printer@jmserenityspa.com" />
+          <span class="muted small" style="display:block; margin-top:.3rem;">
+            <strong>Only these can add receipts.</strong> One address per entry, comma separated.
+            Use <code>@jmserenityspa.com</code> to allow anyone on your domain. Mail from anyone
+            else is left unread and never imported — this address ends up printed on a printer
+            config, so it should not be treated as trusted.
+          </span>
+        </label>
+      </div>
+
+<div class="card" style="margin-bottom: 1.5rem;">
         <h2>Text Message Reminders (OpenPhone)</h2>
         <p class="muted small" style="margin-bottom: .5rem;">Configure to send SMS booking confirmations and automatic 24-hour appointment reminders. Leave blank to disable texting.</p>
         <label>

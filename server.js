@@ -12,6 +12,7 @@ const helmet = require("helmet");
 const multer = require("multer");
 const db = require("./lib/db");
 const scanWatch = require("./lib/scan-watch");
+const scanMail = require("./lib/scan-mail");
 const email = require("./lib/email");
 const sms = require("./lib/sms");
 const square = require("./lib/square");
@@ -2391,12 +2392,16 @@ app.get("/admin/settings", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/settings", requireAdmin, (req, res) => {
-  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","water_head_tables","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon","openrouter_api_key","openrouter_model","label_printer_ip","label_printer_port"];
+  const fields = ["spa_name","phone","email","address","site_url","open_time","close_time","open_days","slot_interval","full_body_rooms","chair_stations","foot_chairs","couples_rooms","water_head_tables","smtp_host","smtp_port","smtp_user","smtp_pass","smtp_from","google_maps_embed","openphone_api_key","openphone_phone_id","sms_reminder_hours","sms_reminders_enabled","square_access_token","square_location_id","square_device_id","square_environment","desk_password","coming_soon","openrouter_api_key","openrouter_model","label_printer_ip","label_printer_port",
+    // Receipt mailbox (scan-to-email)
+    "scan_email_enabled","scan_email_host","scan_email_port","scan_email_user",
+    "scan_email_pass","scan_email_folder","scan_email_allowed"];
   // Credentials are never echoed back to the browser, so the form posts them
   // blank unless the admin is actually setting a new one. Blank = keep the
   // stored value; the matching "clear_<field>" checkbox is how you erase one.
   const secretFields = new Set([
     "smtp_pass", "openphone_api_key", "square_access_token", "openrouter_api_key",
+    "scan_email_pass",
   ]);
   for (const f of fields) {
     if (req.body[f] !== undefined) {
@@ -2733,6 +2738,8 @@ app.use((err, req, res, next) => {
 
 // Watch the scan folder for receipts the printer drops in.
 scanWatch.start(__dirname);
+// Pull scans emailed in from the printer or a staff phone.
+scanMail.start(__dirname);
 
 app.listen(PORT, () => {
   console.log("J&M Serenity Spa running on http://localhost:" + PORT);
