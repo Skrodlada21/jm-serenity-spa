@@ -1956,6 +1956,57 @@ app.get("/admin/receipts/:file", requireAdmin, (req, res) => {
    DOCUMENTS (COI, welcome packet, licenses — admin only)
    ========================================================================= */
 
+/* =========================================================================
+   Therapist payouts
+   -------------------------------------------------------------------------
+   Therapists are 1099 contractors. They keep 100% of tips and split service
+   revenue with the house (default 50/50 — the house half covers the room and
+   supplies, in the manner of a booth rental).
+
+   The distinction that decides what is actually handed over: a CASH tip is
+   already in the therapist's pocket and is shown for the record only. A CARD
+   tip was collected by the business and is genuinely owed.
+   ========================================================================= */
+app.get("/admin/payouts", requireAdmin, (req, res) => {
+  const therapists = db.getActiveTherapists();
+  const therapistId = req.query.therapist_id ? parseInt(req.query.therapist_id, 10) : null;
+
+  // Default to the week just gone: Monday through Sunday.
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7;               // 0 = Monday
+  const lastMon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow - 7);
+  const lastSun = new Date(lastMon.getFullYear(), lastMon.getMonth(), lastMon.getDate() + 6);
+  const ymd = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+    "-" + String(d.getDate()).padStart(2, "0");
+
+  const startDate = req.query.start || ymd(lastMon);
+  const endDate = req.query.end || ymd(lastSun);
+  const summary = therapistId ? db.getPayoutSummary(therapistId, startDate, endDate) : null;
+
+  res.render("admin/payouts", {
+    activePage: "admin-payouts",
+    therapists, therapistId, startDate, endDate, summary,
+    history: db.getPayoutHistory(therapistId),
+    saved: req.query.saved === "1",
+  });
+});
+
+app.post("/admin/payouts", requireAdmin, (req, res) => {
+  const therapistId = parseInt(req.body.therapist_id, 10);
+  const { start, end } = req.body;
+  const summary = therapistId ? db.getPayoutSummary(therapistId, start, end) : null;
+  if (!summary) return res.redirect("/admin/payouts");
+  db.recordPayout({
+    therapistId, startDate: start, endDate: end,
+    sessions: summary.sessions, serviceTotal: summary.serviceTotal,
+    serviceShare: summary.serviceShare, cardTips: summary.cardTips,
+    cashTips: summary.cashTips, totalOwed: summary.totalOwed,
+    notes: req.body.notes || "", paidBy: "admin",
+  });
+  res.redirect("/admin/payouts?saved=1&therapist_id=" + therapistId +
+    "&start=" + encodeURIComponent(start) + "&end=" + encodeURIComponent(end));
+});
+
 app.get("/admin/documents", requireAdmin, (req, res) => {
   res.render("admin/documents", { activePage: "admin-documents", documents: db.getDocuments() });
 });

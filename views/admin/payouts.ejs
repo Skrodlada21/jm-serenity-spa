@@ -1,0 +1,139 @@
+<%- include('../partials/admin-header', { activePage: 'admin-payouts' }) %>
+
+<main class="admin-main">
+  <div class="container">
+    <h1>Therapist Payouts</h1>
+    <p class="muted" style="margin-bottom:1.2rem;">
+      Therapists keep <strong>all tips</strong> and receive their share of service revenue.
+      <strong>Cash tips are already in their pocket</strong> — shown here for the record only.
+      <strong>Card tips were collected by the spa and are owed.</strong>
+    </p>
+
+    <% if (saved) { %>
+    <div class="admin-alert" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1.2rem; font-weight:600;">
+      ✓ Payout recorded.
+    </div>
+    <% } %>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+      <form class="form" method="GET" action="/admin/payouts">
+        <div class="grid two">
+          <label>Therapist
+            <select name="therapist_id" required>
+              <option value="">— Choose —</option>
+              <% therapists.forEach(function(t){ %>
+              <option value="<%= t.id %>" <%= therapistId === t.id ? 'selected' : '' %>><%= t.name %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label>Split
+            <input type="text" value="<%= summary ? summary.commissionPercent + '% to therapist' : 'set on the therapist' %>" disabled />
+          </label>
+        </div>
+        <div class="grid two">
+          <label>From<input type="date" name="start" value="<%= startDate %>" required /></label>
+          <label>To<input type="date" name="end" value="<%= endDate %>" required /></label>
+        </div>
+        <button class="btn btn-primary" type="submit">Show payout</button>
+      </form>
+    </div>
+
+    <% if (summary) { %>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h2><%= summary.therapist.name %> — <%= fmt.prettyDate(startDate) %> to <%= fmt.prettyDate(endDate) %></h2>
+
+      <table class="admin-table" style="margin-top:1rem;">
+        <tbody>
+          <tr><td>Sessions</td><td style="text-align:right;"><strong><%= summary.sessions %></strong></td></tr>
+          <tr><td>Service revenue credited</td><td style="text-align:right;"><%= fmt.money(summary.serviceTotal) %></td></tr>
+          <tr style="background:#f6faf9;">
+            <td><strong>Their share (<%= summary.commissionPercent %>%)</strong></td>
+            <td style="text-align:right;"><strong><%= fmt.money(summary.serviceShare) %></strong></td>
+          </tr>
+          <tr>
+            <td>Cash tips <span class="muted small">— already taken, not paid here</span></td>
+            <td style="text-align:right; color:#888;"><%= fmt.money(summary.cashTips) %></td>
+          </tr>
+          <tr style="background:#f6faf9;">
+            <td><strong>Card tips</strong> <span class="muted small">— owed</span></td>
+            <td style="text-align:right;"><strong><%= fmt.money(summary.cardTips) %></strong></td>
+          </tr>
+          <tr style="border-top:3px solid var(--brand);">
+            <td style="font-size:1.25rem;"><strong>TOTAL TO PAY 应付</strong></td>
+            <td style="text-align:right; font-size:1.5rem; color:var(--brand);"><strong><%= fmt.money(summary.totalOwed) %></strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <form method="POST" action="/admin/payouts" style="margin-top:1.2rem;"
+            onsubmit="return confirm('Record a payout of <%= fmt.money(summary.totalOwed) %> to <%= summary.therapist.name %>?')">
+        <input type="hidden" name="therapist_id" value="<%= therapistId %>" />
+        <input type="hidden" name="start" value="<%= startDate %>" />
+        <input type="hidden" name="end" value="<%= endDate %>" />
+        <label>Notes <span class="muted small">(optional)</span>
+          <input type="text" name="notes" placeholder="e.g. paid by check #1042, or final payout on departure" />
+        </label>
+        <button class="btn btn-primary" type="submit">Record this payout</button>
+      </form>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h2>Sessions in this period (<%= summary.lines.length %>)</h2>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Date</th><th>Time</th><th>Client</th><th>Service</th>
+            <th style="text-align:right;">Collected</th><th style="text-align:right;">Credited</th>
+            <th style="text-align:right;">Tip</th></tr></thead>
+          <tbody>
+            <% summary.lines.forEach(function(l){ %>
+            <tr>
+              <td><%= fmt.shortDate(l.date) %></td>
+              <td><%= fmt.prettyTime(l.time) %></td>
+              <td><%= l.client %></td>
+              <td><%= l.service %><% if (l.hands > 1) { %> <span class="muted small">(2 therapists — split)</span><% } %></td>
+              <td style="text-align:right;"><%= fmt.money(l.gross) %></td>
+              <td style="text-align:right;"><%= fmt.money(l.mine) %></td>
+              <td style="text-align:right;"><%= fmt.money(l.tip) %>
+                <span class="muted small"><%= l.tipMethod === 'cash' ? 'cash' : 'card' %></span></td>
+            </tr>
+            <% }); %>
+            <% if (summary.lines.length === 0) { %>
+            <tr><td colspan="7" class="muted">No completed sessions in this period.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% } %>
+
+    <div class="card">
+      <h2>Payout history</h2>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Paid</th><% if (!therapistId) { %><th>Therapist</th><% } %>
+            <th>Period</th><th style="text-align:right;">Service share</th>
+            <th style="text-align:right;">Card tips</th><th style="text-align:right;">Total</th><th>Notes</th></tr></thead>
+          <tbody>
+            <% history.forEach(function(h){ %>
+            <tr>
+              <td><%= (h.paid_at || '').slice(0,10) %></td>
+              <% if (!therapistId) { %><td><%= h.therapist_name || '' %></td><% } %>
+              <td><%= fmt.shortDate(h.period_start) %> – <%= fmt.shortDate(h.period_end) %></td>
+              <td style="text-align:right;"><%= fmt.money(h.service_share) %></td>
+              <td style="text-align:right;"><%= fmt.money(h.card_tips) %></td>
+              <td style="text-align:right;"><strong><%= fmt.money(h.total_paid) %></strong></td>
+              <td class="muted small"><%= h.notes %></td>
+            </tr>
+            <% }); %>
+            <% if (history.length === 0) { %>
+            <tr><td colspan="<%= therapistId ? 6 : 7 %>" class="muted">No payouts recorded yet.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>
