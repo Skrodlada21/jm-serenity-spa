@@ -728,6 +728,10 @@ app.get("/book", (req, res) => {
     // Without this the param was dropped and the customer landed on a form that
     // had forgotten the therapist they just chose.
     preselectTherapist: req.query.therapist || "",
+    // Sparse map of therapists who charge their own rate. Almost always empty —
+    // most therapists use the menu price — so this adds nothing to the page in
+    // the normal case.
+    therapistPrices: db.getAllTherapistPrices(),
     bookingError: req.query.error || "",
     waitlisted: req.query.waitlisted === "1",
   });
@@ -773,6 +777,12 @@ app.post("/book", rateLimit, (req, res) => {
   ).some((s) => s.time === time);
   if (!stillOpen) return res.redirect("/book?error=slot_taken");
 
+  // Lock in the price the customer was shown. If they chose a therapist with
+  // their own rate, that is the price — and it cannot drift later if the menu
+  // changes. "No preference" always gets the menu price, because that is what
+  // was on screen.
+  const bookedPrice = db.priceForTherapist(service.id, therapist_id ? parseInt(therapist_id, 10) : null);
+
   // Auto-save/update client profile
   if (client_phone) db.upsertClient(client_phone, client_name || "", client_email || "");
 
@@ -794,6 +804,7 @@ app.post("/book", rateLimit, (req, res) => {
     source: "online",
     addonIds: aidStr,
     cancelToken,
+    quotedPrice: bookedPrice,
   });
 
   // Send email & SMS confirmation (async, non-blocking). The booking is already

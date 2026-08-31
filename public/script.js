@@ -213,3 +213,44 @@ if (revealItems.length) {
   filterTherapistsByGender();
   fetchSlots();
 })();
+
+/* ---------------------------------------------------------------------------
+   Therapist's own price.
+   Most therapists use the menu price, so this normally does nothing. When one
+   charges their own rate and the customer picks them, show it immediately —
+   the price on screen is the price charged. Someone who leaves "no preference"
+   always sees and pays the menu price.
+   --------------------------------------------------------------------------- */
+(function () {
+  var svcSel = document.getElementById("service-select");
+  var thSel = document.getElementById("therapist-select");
+  var note = document.getElementById("therapist-price-note");
+  var map = window.JM_THERAPIST_PRICES || {};
+  if (!svcSel || !thSel || !note) return;
+
+  function money(n) {
+    return "$" + (Number.isInteger(n) ? n : Number(n).toFixed(2));
+  }
+
+  function update() {
+    var svcId = svcSel.value;
+    var thId = thSel.value;
+    note.style.display = "none";
+    if (!svcId || !thId) return;
+
+    var forTherapist = map[thId];
+    var own = forTherapist ? forTherapist[svcId] : null;
+    if (!own || own <= 0) return;   // uses the menu price — say nothing
+
+    var opt = svcSel.options[svcSel.selectedIndex];
+    var svcName = (opt ? opt.textContent : "").split("—")[0].trim();
+    var thName = (thSel.options[thSel.selectedIndex].textContent || "").split("(")[0].trim();
+    note.textContent = svcName + " with " + thName + " — " + money(own) +
+      ". This is " + thName + "'s own rate. You pay in person after your session.";
+    note.style.display = "block";
+  }
+
+  svcSel.addEventListener("change", update);
+  thSel.addEventListener("change", update);
+  update();
+})();
