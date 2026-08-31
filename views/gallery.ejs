@@ -25,7 +25,7 @@
         <div class="gallery-grid reveal">
           <% images.forEach(function(img) { %>
           <div class="gallery-item">
-            <img src="<%= img.filename %>" alt="<%= img.caption || 'J&M Serenity Spa' %>" loading="lazy" />
+            <img src="<%= asset(img.filename) %>" alt="<%= img.caption || 'J&M Serenity Spa' %>" loading="lazy" />
             <% if (img.caption) { %>
             <p class="gallery-caption muted small"><%= img.caption %></p>
             <% } %>

@@ -161,7 +161,7 @@
 <body>
 
   <header class="tv-header">
-    <img src="/images/logo.png" alt="" class="tv-logo" />
+    <img src="<%= asset('/images/logo.png') %>" alt="" class="tv-logo" />
     <h1 class="tv-title">Our Therapists</h1>
   </header>
 
@@ -169,7 +169,7 @@
     <% statuses.forEach(function(t) { %>
     <div class="therapist-card <%= t.status %>">
       <% if (t.photo) { %>
-        <img class="therapist-photo" src="<%= t.photo %>" alt="<%= t.name %>" />
+        <img class="therapist-photo" src="<%= asset(t.photo) %>" alt="<%= t.name %>" />
       <% } else { %>
         <div class="therapist-avatar"><%= t.name.charAt(0) %></div>
       <% } %>

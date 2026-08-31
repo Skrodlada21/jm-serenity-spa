@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Spa Check-In" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="apple-touch-icon" href="/images/logo.png" />
-  <link rel="manifest" href="/checkin-manifest.json" />
+  <link rel="apple-touch-icon" href="<%= asset('/images/logo.png') %>" />
+  <link rel="manifest" href="<%= asset('/checkin-manifest.json') %>" />
   <link rel="stylesheet" href="<%= asset('/style.css') %>" />
   <style>
     body { background: #f5f1eb; min-height: 100vh; }
@@ -58,7 +58,7 @@
 
 <div class="checkin-wrap">
   <div class="checkin-logo">
-    <img src="/images/logo.png" alt="J&M Serenity Spa" />
+    <img src="<%= asset('/images/logo.png') %>" alt="J&M Serenity Spa" />
   </div>
 
   <% if (typeof success !== 'undefined' && success) { %>

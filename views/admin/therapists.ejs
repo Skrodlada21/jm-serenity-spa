@@ -47,7 +47,7 @@
             <% if (editTherapist && editTherapist.photo) { %>
               <input type="hidden" name="existing_photo" value="<%= editTherapist.photo %>" />
               <div style="margin-top: .5rem; display: flex; align-items: center; gap: .5rem;">
-                <img src="<%= editTherapist.photo %>" alt="Current photo" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover;" />
+                <img src="<%= asset(editTherapist.photo) %>" alt="Current photo" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover;" />
                 <span class="muted small">Current photo (upload new to replace)</span>
               </div>
             <% } else { %>
@@ -198,7 +198,7 @@
           <!-- Photo -->
           <div style="flex-shrink: 0;">
             <% if (t.photo) { %>
-              <img src="<%= t.photo %>" alt="<%= t.name %>" style="width: 56px; height: 56px; border-radius: 14px; object-fit: cover;" />
+              <img src="<%= asset(t.photo) %>" alt="<%= t.name %>" style="width: 56px; height: 56px; border-radius: 14px; object-fit: cover;" />
             <% } else { %>
               <div style="width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; font-weight: 900; color: #fff; background: linear-gradient(135deg, var(--accent), var(--brand)); font-size: 1.2rem;"><%= t.name.charAt(0) %></div>
             <% } %>

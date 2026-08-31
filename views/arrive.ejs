@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Welcome — J&M Serenity Spa</title>
-  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="icon" type="image/png" href="<%= asset('/images/favicon-32.png') %>" sizes="32x32" />
   <style>
     :root { --brand:#1f6f78; --brand-deep:#114a50; --gold:#c9a96e; --cream:#faf7f2; --text:#2c2c2c; }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -45,7 +45,7 @@
 </head>
 <body>
   <div class="kiosk">
-    <img class="logo" src="/images/logo.png" alt="J&M Serenity Spa" />
+    <img class="logo" src="<%= asset('/images/logo.png') %>" alt="J&M Serenity Spa" />
 
     <!-- HOME -->
     <div class="screen active" id="screen-home">

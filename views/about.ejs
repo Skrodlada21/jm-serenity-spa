@@ -50,7 +50,7 @@
         <article class="card therapist-profile reveal">
           <div class="therapist-profile-top">
             <% if (t.photo) { %>
-              <img class="therapist-profile-photo" src="<%= t.photo %>" alt="<%= t.name %>" />
+              <img class="therapist-profile-photo" src="<%= asset(t.photo) %>" alt="<%= t.name %>" />
             <% } else { %>
               <div class="therapist-profile-avatar" aria-hidden="true"><%= t.name.charAt(0) %></div>
             <% } %>

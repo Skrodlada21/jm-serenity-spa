@@ -8,9 +8,9 @@
   <meta name="description" content="<%= description %>" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
-  <link rel="icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="<%= asset('/images/favicon-32.png') %>" sizes="32x32" />
+  <link rel="icon" href="<%= asset('/favicon.ico') %>" />
+  <link rel="apple-touch-icon" href="<%= asset('/images/apple-touch-icon.png') %>" />
 
   <!-- Open Graph (link previews in texts / social media).
        og:image MUST be an absolute URL — Facebook, Instagram and iMessage will
@@ -22,7 +22,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="<%= title %>" />
   <meta property="og:description" content="<%= description %>" />
-  <meta property="og:image" content="<%= ogBase %>/images/og-image.png" />
+  <meta property="og:image" content="<%= ogBase %><%= asset('/images/og-image.png') %>" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:url" content="<%= ogBase %>" />
@@ -32,7 +32,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="<%= title %>" />
   <meta name="twitter:description" content="<%= description %>" />
-  <meta name="twitter:image" content="<%= ogBase %>/images/og-image.png" />
+  <meta name="twitter:image" content="<%= ogBase %><%= asset('/images/og-image.png') %>" />
 
   <%- include('structured-data') %>
 
@@ -43,7 +43,7 @@
 <header class="site-header">
   <div class="container header-inner">
     <a class="brand" href="/" aria-label="J&amp;M Serenity Spa Home">
-      <img src="/images/logo.png" alt="J&amp;M Serenity Spa" class="brand-logo" />
+      <img src="<%= asset('/images/logo.png') %>" alt="J&amp;M Serenity Spa" class="brand-logo" />
       <span class="brand-wordmark">
         <span class="brand-name">J&amp;M Serenity Spa</span>
         <span class="brand-tag">Signature Treatments</span>

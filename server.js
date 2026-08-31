@@ -465,12 +465,23 @@ app.use(express.static(path.join(__dirname, "public")));
    swapped in place. Falls back to the bare path if the file cannot be stat'ed, so a typo
    here can never take a page down. app.locals, not res.locals, so it is
    defined for every render including the error pages. */
+const PUBLIC_DIR = path.join(__dirname, "public");
 app.locals.asset = function asset(p) {
+  // Also called with values out of the database (therapist and gallery photo
+  // columns), so it has to cope with empty, external and malformed paths
+  // rather than assume a literal we wrote by hand.
+  if (typeof p !== "string" || !p) return p || "";
+  if (!p.startsWith("/") || p.startsWith("//")) return p; // external URL, data:, relative
   try {
-    const st = fs.statSync(path.join(__dirname, "public", p));
-    return p + "?v=" + Math.floor(st.mtimeMs).toString(36);
+    const rel = p.split("?")[0].split("#")[0];
+    const full = path.join(PUBLIC_DIR, rel);
+    // A path out of the database must not climb out of public/.
+    if (full !== PUBLIC_DIR && !full.startsWith(PUBLIC_DIR + path.sep)) return p;
+    const st = fs.statSync(full);
+    if (!st.isFile()) return p;
+    return p + (p.includes("?") ? "&" : "?") + "v=" + Math.floor(st.mtimeMs).toString(36);
   } catch (e) {
-    return p;
+    return p; // missing file: serve the bare path and let it 404 as before
   }
 };
 app.use(express.urlencoded({ extended: true }));

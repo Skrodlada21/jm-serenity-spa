@@ -109,7 +109,7 @@
         <% therapists.slice(0, 6).forEach(function(t) { %>
         <div class="card reveal" style="text-align: center; padding: 1.5rem;">
           <% if (t.photo) { %>
-          <img src="<%= t.photo %>" alt="<%= t.name %>" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto .75rem; display: block; border: 3px solid var(--line);" />
+          <img src="<%= asset(t.photo) %>" alt="<%= t.name %>" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto .75rem; display: block; border: 3px solid var(--line);" />
           <% } %>
           <h3><%= t.name %></h3>
           <% if (t.specialties) { %>
