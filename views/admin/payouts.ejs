@@ -58,6 +58,12 @@
             <td><strong>Card tips</strong> <span class="muted small">— owed</span></td>
             <td style="text-align:right;"><strong><%= fmt.money(summary.cardTips) %></strong></td>
           </tr>
+          <% if (summary.rentDeduction > 0) { %>
+          <tr>
+            <td>Housing rent <span class="muted small">— <%= summary.housingStatus %>, <%= fmt.money(summary.rentMonthly) %>/mo × <%= summary.periodDays %> days</span></td>
+            <td style="text-align:right; color:#b02a37;">− <%= fmt.money(summary.rentDeduction) %></td>
+          </tr>
+          <% } %>
           <tr style="border-top:3px solid var(--brand);">
             <td style="font-size:1.25rem;"><strong>TOTAL TO PAY 应付</strong></td>
             <td style="text-align:right; font-size:1.5rem; color:var(--brand);"><strong><%= fmt.money(summary.totalOwed) %></strong></td>

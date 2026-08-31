@@ -69,6 +69,60 @@
         </fieldset>
 
         <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin-bottom: 1rem;">
+          <legend style="font-weight: 700;">Pay &amp; Housing</legend>
+          <div class="grid two">
+            <label>
+              Their share of each service
+              <input type="number" name="commission_percent" min="0" max="100" step="1"
+                value="<%= editTherapist && editTherapist.commission_percent != null ? editTherapist.commission_percent : 50 %>" />
+              <span class="muted small">50 means a 50/50 split with the house. On a two-therapist
+                service each is credited half the price, so the house still keeps 50% and each
+                therapist earns 25%.</span>
+            </label>
+            <label>
+              Housing
+              <select name="housing_status">
+                <option value="none"   <%= !editTherapist || (editTherapist.housing_status || 'none') === 'none' ? 'selected' : '' %>>Not housed</option>
+                <option value="single" <%= editTherapist && editTherapist.housing_status === 'single' ? 'selected' : '' %>>Single — $450/mo</option>
+                <option value="couple" <%= editTherapist && editTherapist.housing_status === 'couple' ? 'selected' : '' %>>Couple — $800/mo for the pair</option>
+              </select>
+              <span class="muted small">Deducted from each payout, apportioned by day.</span>
+            </label>
+          </div>
+          <label>
+            Rent charged to THIS person, per month
+            <input type="number" name="housing_rent_monthly" min="0" step="1"
+              value="<%= editTherapist ? (editTherapist.housing_rent_monthly || 0) : 0 %>" />
+            <span class="muted small">Leave 0 if not housed. For a couple sharing a unit, enter
+              <strong>$400 on each person</strong> so the pair totals $800. Picking a housing
+              option above fills this in automatically.</span>
+          </label>
+        </fieldset>
+
+        <% if (editTherapist && typeof services !== 'undefined') { %>
+        <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin-bottom: 1rem;">
+          <legend style="font-weight: 700;">Their Own Prices <span class="muted small">(optional)</span></legend>
+          <p class="muted small" style="margin-bottom: .8rem;">
+            Leave blank to use the menu price. A price here applies only when a customer
+            <strong>chooses this therapist</strong> — someone who books "no preference" always pays
+            the menu price, because that is what they were shown. <strong>The public menu never
+            changes.</strong>
+          </p>
+          <div class="grid two">
+            <% services.forEach(function(svc) { %>
+            <% var ov = (typeof therapistPrices !== 'undefined' ? therapistPrices : []).find(function(x){ return x.service_id === svc.id; }); %>
+            <label>
+              <%= svc.name %> <span class="muted small">(menu: <%= Number(svc.price) > 0 ? '$' + svc.price : 'not set' %>)</span>
+              <input type="number" name="price_<%= svc.id %>" min="0" step="1"
+                placeholder="<%= Number(svc.price) > 0 ? svc.price : '' %>"
+                value="<%= ov ? ov.price : '' %>" />
+            </label>
+            <% }); %>
+          </div>
+        </fieldset>
+        <% } %>
+
+        <fieldset style="border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin-bottom: 1rem;">
           <legend style="font-weight: 700;">Work Schedule</legend>
           <div class="grid two" style="margin-bottom: .8rem;">
             <label>
@@ -220,5 +274,17 @@
   </div>
 </main>
 
+<script>
+(function(){
+  var sel = document.querySelector('select[name="housing_status"]');
+  var amt = document.querySelector('input[name="housing_rent_monthly"]');
+  if (!sel || !amt) return;
+  // A couple is $800 for the PAIR, so each person carries $400.
+  var RATES = { none: 0, single: 450, couple: 400 };
+  sel.addEventListener('change', function(){
+    if (RATES[sel.value] !== undefined) amt.value = RATES[sel.value];
+  });
+})();
+</script>
 </body>
 </html>

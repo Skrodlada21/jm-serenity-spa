@@ -222,6 +222,21 @@
                 Tip ($)
                 <input type="number" name="tip_amount" placeholder="0" min="0" step="1" class="fd-input" />
               </label>
+              <%# HOW the tip was given decides whether the spa owes it. A CASH
+                  tip is already in the therapist's hand; a CARD tip was
+                  collected by the spa and must be paid out. %>
+              <label class="fd-form-label">
+                Tip given as 小费方式
+                <div class="fd-tip-toggle" style="display:flex; gap:.5rem; margin-top:.3rem;">
+                  <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
+                    <input type="radio" name="tip_method" value="cash" /> 💵 Cash 现金
+                  </label>
+                  <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
+                    <input type="radio" name="tip_method" value="card" /> 💳 Card 刷卡
+                  </label>
+                </div>
+                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. 现金小费当场拿走，刷卡小费之后结算。</span>
+              </label>
               <button class="fd-btn fd-btn-save" type="submit">Pay with Gift Card</button>
             </form>
           </details>
@@ -249,6 +264,21 @@
               <label class="fd-form-label">
                 Tip ($)
                 <input type="number" name="tip_amount" placeholder="0" min="0" step="1" class="fd-input" />
+              </label>
+              <%# HOW the tip was given decides whether the spa owes it. A CASH
+                  tip is already in the therapist's hand; a CARD tip was
+                  collected by the spa and must be paid out. %>
+              <label class="fd-form-label">
+                Tip given as 小费方式
+                <div class="fd-tip-toggle" style="display:flex; gap:.5rem; margin-top:.3rem;">
+                  <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
+                    <input type="radio" name="tip_method" value="cash" /> 💵 Cash 现金
+                  </label>
+                  <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
+                    <input type="radio" name="tip_method" value="card" /> 💳 Card 刷卡
+                  </label>
+                </div>
+                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. 现金小费当场拿走，刷卡小费之后结算。</span>
               </label>
               <label class="fd-form-label">
                 Done By

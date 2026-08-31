@@ -1239,6 +1239,7 @@ app.get("/admin/therapists", requireAdmin, (req, res) => {
     therapists: db.getAllTherapists(),
     services: db.getActiveServices(),
     editTherapist: editId ? db.getTherapistById(editId) : null,
+    therapistPrices: editId ? db.getTherapistPrices(editId) : [],
   });
 });
 
@@ -1247,7 +1248,10 @@ app.post("/admin/therapists", requireAdmin, upload.single("photo"), (req, res) =
   const sids = Array.isArray(service_ids) ? service_ids.join(",") : service_ids || "";
   const wdays = Array.isArray(work_days) ? work_days.join(",") : work_days || "";
   const photo = req.file ? "/images/therapists/" + req.file.filename : "";
-  db.addTherapist(name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "", end_time || "", pin || "");
+  const info = db.addTherapist(name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "", end_time || "", pin || "");
+  if (info && info.lastInsertRowid) {
+    db.setTherapistPay(info.lastInsertRowid, req.body.commission_percent, req.body.housing_status, req.body.housing_rent_monthly);
+  }
   res.redirect("/admin/therapists");
 });
 
@@ -1256,8 +1260,16 @@ app.post("/admin/therapists/:id/edit", requireAdmin, upload.single("photo"), (re
   const sids = Array.isArray(service_ids) ? service_ids.join(",") : service_ids || "";
   const wdays = Array.isArray(work_days) ? work_days.join(",") : work_days || "";
   const photo = req.file ? "/images/therapists/" + req.file.filename : (existing_photo || "");
-  db.updateTherapist(parseInt(req.params.id, 10), name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "", end_time || "", pin || "");
-  res.redirect("/admin/therapists");
+  const tid = parseInt(req.params.id, 10);
+  db.updateTherapist(tid, name, gender || "female", specialties || "", sids, photo, bio || "", wdays, start_time || "", end_time || "", pin || "");
+  db.setTherapistPay(tid, req.body.commission_percent, req.body.housing_status, req.body.housing_rent_monthly);
+  // Per-service price overrides: a blank or zero field clears the override and
+  // the menu price applies again.
+  db.getActiveServices().forEach((svc) => {
+    const raw = req.body["price_" + svc.id];
+    if (raw !== undefined) db.setTherapistPrice(tid, svc.id, parseFloat(raw) || 0);
+  });
+  res.redirect("/admin/therapists?edit=" + tid);
 });
 
 app.post("/admin/therapists/:id/toggle", requireAdmin, (req, res) => {
@@ -1436,7 +1448,7 @@ app.post("/admin/bookings/:id/cancel", requireStaff, (req, res) => {
 });
 
 app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
-  const { payment_method, tip_amount, completed_by, gift_cert_code, discount_code } = req.body;
+  const { payment_method, tip_amount, completed_by, gift_cert_code, discount_code, tip_method } = req.body;
   const bookingId = parseInt(req.params.id, 10);
 
   // What the customer actually owes: service + add-ons, less a VALIDATED
@@ -1473,8 +1485,14 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
   // Count the discount once, only if it was genuinely applied.
   if (quote && quote.discountRow) db.incrementDiscountUse(quote.discountRow.id);
 
+  // If nobody picked, infer from how they paid: a cash sale's tip is cash,
+  // anything else is on the card and therefore owed to the therapist.
+  const tipHow = String(tip_method || "").toLowerCase() === "cash" ? "cash"
+    : String(tip_method || "").toLowerCase() === "card" ? "card"
+    : (String(payment_method || "").toLowerCase().includes("cash") ? "cash" : "card");
+
   db.completeBooking(bookingId, payment_method, parseFloat(tip_amount) || 0, completed_by || "", {
-    charged, paid, discount: discountAmt,
+    charged, paid, discount: discountAmt, tipMethod: tipHow, quoted: charged,
   });
   const back = safeBack(req, "/admin");
   res.redirect(back);
@@ -2000,7 +2018,7 @@ app.post("/admin/payouts", requireAdmin, (req, res) => {
     therapistId, startDate: start, endDate: end,
     sessions: summary.sessions, serviceTotal: summary.serviceTotal,
     serviceShare: summary.serviceShare, cardTips: summary.cardTips,
-    cashTips: summary.cashTips, totalOwed: summary.totalOwed,
+    cashTips: summary.cashTips, rentDeduction: summary.rentDeduction, totalOwed: summary.totalOwed,
     notes: req.body.notes || "", paidBy: "admin",
   });
   res.redirect("/admin/payouts?saved=1&therapist_id=" + therapistId +
