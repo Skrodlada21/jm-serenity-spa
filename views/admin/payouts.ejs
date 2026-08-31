@@ -1,5 +1,15 @@
 <%- include('../partials/admin-header', { activePage: 'admin-payouts' }) %>
 
+<style>
+  /* The statement is handed to the therapist, who reads Chinese. Keep the
+     Chinese on its own line under the English rather than inline, so neither
+     language is squeezed. */
+  .zh { display:block; font-size:.85rem; color:#666; font-weight:400; margin-top:.1rem; }
+  @media print {
+    .admin-header, .no-print, form { display:none !important; }
+    .card { border:none !important; box-shadow:none !important; page-break-inside:avoid; }
+  }
+</style>
 <main class="admin-main">
   <div class="container">
     <h1>Therapist Payouts</h1>
@@ -44,23 +54,23 @@
 
       <table class="admin-table" style="margin-top:1rem;">
         <tbody>
-          <tr><td>Sessions</td><td style="text-align:right;"><strong><%= summary.sessions %></strong></td></tr>
-          <tr><td>Service revenue credited</td><td style="text-align:right;"><%= fmt.money(summary.serviceTotal) %></td></tr>
+          <tr><td>Sessions <span class="zh">服务次数</span></td><td style="text-align:right;"><strong><%= summary.sessions %></strong></td></tr>
+          <tr><td>Service revenue collected <span class="zh">服务收入合计</span></td><td style="text-align:right;"><%= fmt.money(summary.serviceTotal) %></td></tr>
           <tr style="background:#f6faf9;">
-            <td><strong>Their share (<%= summary.commissionPercent %>%)</strong></td>
+            <td><strong>Their share (<%= summary.commissionPercent %>%)</strong> <span class="zh">按摩师分成</span></td>
             <td style="text-align:right;"><strong><%= fmt.money(summary.serviceShare) %></strong></td>
           </tr>
           <tr>
-            <td>Cash tips <span class="muted small">— already taken, not paid here</span></td>
+            <td>Cash tips <span class="muted small">— already taken, not paid here</span> <span class="zh">现金小费 — 已收到，此处不再支付</span></td>
             <td style="text-align:right; color:#888;"><%= fmt.money(summary.cashTips) %></td>
           </tr>
           <tr style="background:#f6faf9;">
-            <td><strong>Card tips</strong> <span class="muted small">— owed</span></td>
+            <td><strong>Card tips</strong> <span class="muted small">— owed</span> <span class="zh">刷卡小费 — 应付</span></td>
             <td style="text-align:right;"><strong><%= fmt.money(summary.cardTips) %></strong></td>
           </tr>
           <% if (summary.rentDeduction > 0) { %>
           <tr>
-            <td>Housing rent <span class="muted small">— <%= summary.housingStatus %>, <%= fmt.money(summary.rentMonthly) %>/mo × <%= summary.periodDays %> days</span></td>
+            <td>Housing rent <span class="muted small">— <%= summary.housingStatus %>, <%= fmt.money(summary.rentMonthly) %>/mo × <%= summary.periodDays %> days</span> <span class="zh">住宿费 — 按天计算</span></td>
             <td style="text-align:right; color:#b02a37;">− <%= fmt.money(summary.rentDeduction) %></td>
           </tr>
           <% } %>
@@ -70,6 +80,10 @@
           </tr>
         </tbody>
       </table>
+
+      <button type="button" class="btn btn-ghost no-print" onclick="window.print()" style="margin-top:1rem;">
+        🖨 Print this statement 打印结算单
+      </button>
 
       <form method="POST" action="/admin/payouts" style="margin-top:1.2rem;"
             onsubmit="return confirm('Record a payout of <%= fmt.money(summary.totalOwed) %> to <%= summary.therapist.name %>?')">
