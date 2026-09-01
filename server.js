@@ -1501,7 +1501,7 @@ app.post("/admin/bookings/:id/cancel", requireStaff, (req, res) => {
 });
 
 app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
-  const { payment_method, tip_amount, completed_by, gift_cert_code, discount_code, tip_method } = req.body;
+  const { payment_method, tip_amount, completed_by, gift_cert_code, discount_code, tip_method, gc_rest_method, second_method, second_amount } = req.body;
   const bookingId = parseInt(req.params.id, 10);
 
   // What the customer actually owes: service + add-ons, less a VALIDATED
@@ -1519,35 +1519,66 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
   const tipFromGift = String(tip_method || "").toLowerCase() === "gift"
     && payment_method === "Gift Certificate" && tipAmt > 0;
 
+  // The stored payment label. Splits become self-documenting strings like
+  // "Gift Card $80.00 + Cash $15.00" — nothing aggregates by method, so the
+  // label IS the record and reads right everywhere it is displayed.
+  let methodLabel = payment_method;
+
   if (payment_method === "Gift Certificate" && gift_cert_code) {
     const cert = db.getGiftCertificateByCode(String(gift_cert_code).trim().toUpperCase());
     if (!cert || cert.status !== "active" || cert.balance <= 0) {
       return res.redirect(safeBack(req, "/admin") + "?gc_error=1");
     }
-    // A card that only partly covers the bill used to be marked PAID IN FULL —
-    // a $20 card silently settled a $95 massage. Stop and tell the desk what is
-    // still owed instead of quietly losing the difference.
     if (cert.balance + 0.001 < charged) {
+      // Card doesn't cover the visit. With a "rest paid by" choice this is a
+      // split: drain the card, take the remainder the other way. Without one,
+      // stop and tell the desk what is still owed — a $20 card must never
+      // silently settle a $95 massage.
       const remaining = Math.round((charged - cert.balance) * 100) / 100;
-      return res.redirect(
-        safeBack(req, "/admin") +
-        "?gc_short=1&gc_covers=" + encodeURIComponent(cert.balance.toFixed(2)) +
-        "&gc_owed=" + encodeURIComponent(remaining.toFixed(2))
+      const rest = String(gc_rest_method || "").trim();
+      if (!rest) {
+        return res.redirect(
+          safeBack(req, "/admin") +
+          "?gc_short=1&gc_covers=" + encodeURIComponent(cert.balance.toFixed(2)) +
+          "&gc_owed=" + encodeURIComponent(remaining.toFixed(2))
+        );
+      }
+      // The balance is fully consumed by the service, so a gift-balance tip
+      // is impossible on a split — take the tip as cash or card instead.
+      if (tipFromGift) {
+        return res.redirect(safeBack(req, "/admin") + "?gc_tip_short=1&gc_left=" + encodeURIComponent("0.00"));
+      }
+      const drained = cert.balance;
+      db.redeemGiftCertificate(
+        cert.id, drained,
+        (db.getBookingById(bookingId) || {}).client_name || "",
+        "Booking #" + bookingId + " (split — rest by " + rest + ")"
+      );
+      methodLabel = "Gift Card $" + drained.toFixed(2) + " + " + rest + " $" + remaining.toFixed(2);
+    } else {
+      // The balance covers the service — but a gift-balance tip only if it
+      // stretches that far. Never overdraw the card for a tip.
+      if (tipFromGift && cert.balance + 0.001 < charged + tipAmt) {
+        const left = Math.max(0, Math.round((cert.balance - charged) * 100) / 100);
+        return res.redirect(
+          safeBack(req, "/admin") + "?gc_tip_short=1&gc_left=" + encodeURIComponent(left.toFixed(2))
+        );
+      }
+      db.redeemGiftCertificate(
+        cert.id, charged + (tipFromGift ? tipAmt : 0),
+        (db.getBookingById(bookingId) || {}).client_name || "",
+        "Booking #" + bookingId + (tipFromGift ? " (incl $" + tipAmt.toFixed(2) + " tip)" : "")
       );
     }
-    // The balance covers the service — but a gift-balance tip only if it
-    // stretches that far. Never overdraw the card for a tip.
-    if (tipFromGift && cert.balance + 0.001 < charged + tipAmt) {
-      const left = Math.max(0, Math.round((cert.balance - charged) * 100) / 100);
-      return res.redirect(
-        safeBack(req, "/admin") + "?gc_tip_short=1&gc_left=" + encodeURIComponent(left.toFixed(2))
-      );
+  } else if (second_method && parseFloat(second_amount) > 0) {
+    // Generic two-way split (e.g. cash + card): the second amount is what was
+    // taken by the second method; the first method covers the rest.
+    const secAmt = Math.round(parseFloat(second_amount) * 100) / 100;
+    if (secAmt + 0.001 >= charged) {
+      return res.redirect(safeBack(req, "/admin") + "?split_error=1");
     }
-    db.redeemGiftCertificate(
-      cert.id, charged + (tipFromGift ? tipAmt : 0),
-      (db.getBookingById(bookingId) || {}).client_name || "",
-      "Booking #" + bookingId + (tipFromGift ? " (incl $" + tipAmt.toFixed(2) + " tip)" : "")
-    );
+    const firstAmt = Math.round((charged - secAmt) * 100) / 100;
+    methodLabel = payment_method + " $" + firstAmt.toFixed(2) + " + " + String(second_method).trim() + " $" + secAmt.toFixed(2);
   }
 
   // Count the discount once, only if it was genuinely applied.
@@ -1560,7 +1591,7 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
     : String(tip_method || "").toLowerCase() === "card" ? "card"
     : (String(payment_method || "").toLowerCase().includes("cash") ? "cash" : "card");
 
-  db.completeBooking(bookingId, payment_method, tipAmt, completed_by || "", {
+  db.completeBooking(bookingId, methodLabel, tipAmt, completed_by || "", {
     charged, paid, discount: discountAmt, tipMethod: tipHow, quoted: charged,
   });
   const back = safeBack(req, "/admin");
@@ -1605,7 +1636,21 @@ app.post("/admin/bookings/:id/charge", requireStaff, async (req, res) => {
   }
 
   const totalDollars = servicePrice + addonTotal - discount;
-  const amountCents = Math.round(totalDollars * 100);
+
+  // Optional split: charge only part of the visit to the card (the rest is
+  // taken as cash or a gift card). The guest still picks their tip on top.
+  let chargeDollars = totalDollars;
+  const partial = parseFloat(req.body.card_amount);
+  if (req.body.card_amount !== undefined && req.body.card_amount !== "") {
+    if (!partial || partial < 1 || partial > totalDollars + 0.001) {
+      const back = safeBack(req, "/admin");
+      const sep = back.includes("?") ? "&" : "?";
+      return res.redirect(back + sep + "split_error=1");
+    }
+    chargeDollars = partial;
+  }
+
+  const amountCents = Math.round(chargeDollars * 100);
   const note = `${booking.service_name || "Service"} - ${booking.client_name}`;
 
   const checkout = await square.createTerminalCheckout(amountCents, note, {
@@ -1678,12 +1723,30 @@ app.get("/api/admin/checkout-status/:checkoutId", requireStaff, async (req, res)
     if (payment && payment.tipMoney) tipDollars = Number(payment.tipMoney.amount) / 100;
     if (payment && payment.totalMoney) totalDollars = Number(payment.totalMoney.amount) / 100;
   }
+  // Was this only part of the visit? Compare the card's base amount (total
+  // minus tip) against the booking's quote — the page uses this to steer the
+  // desk to the matching split option instead of auto-filling "Credit Card".
+  let partial = false;
+  let stillDue = 0;
+  const ref = String(checkout.referenceId || "");
+  if (checkout.status === "COMPLETED" && /^\d+$/.test(ref) && totalDollars !== null) {
+    const quote = db.quoteBooking(parseInt(ref, 10));
+    if (quote) {
+      const cardBase = Math.round((totalDollars - tipDollars) * 100) / 100;
+      if (cardBase + 0.01 < quote.total) {
+        partial = true;
+        stillDue = Math.round((quote.total - cardBase) * 100) / 100;
+      }
+    }
+  }
   res.json({
     status: checkout.status,
     paymentId,
     bookingId: checkout.referenceId || null,
     tipDollars,
     totalDollars,
+    partial,
+    stillDue,
   });
 });
 

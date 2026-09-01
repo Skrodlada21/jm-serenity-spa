@@ -56,7 +56,7 @@
     <% if (q.gc_short) { %>
     <div class="admin-alert" role="alert" style="background:#fff8e1; border:1px solid #ffe0a3; color:#8a6d1f; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       ⚠ That gift card only covers <strong>$<%= q.gc_covers %></strong> of this visit.<br />
-      <span style="font-weight:400;">Still to collect: <strong>$<%= q.gc_owed %></strong>. Take the rest by cash or card, then complete.</span>
+      <span style="font-weight:400;">Still to collect: <strong>$<%= q.gc_owed %></strong>. Pick "take the rest as…" in the Gift Card form to finish in one go — for a card, send $<%= q.gc_owed %> with the Split button first.</span>
       <span class="zh-block muted small">礼品卡余额不足，还需收取 $<%= q.gc_owed %></span>
     </div>
     <% } %>
@@ -66,6 +66,14 @@
       ⚠ The gift card can't cover that tip — only <strong>$<%= q.gc_left %></strong> is left after the service.<br />
       <span style="font-weight:400;">Nothing was completed. Tip up to what's left, or take the tip as cash or card instead.</span>
       <span class="zh-block muted small">礼品卡余额不足以支付小费，剩余 $<%= q.gc_left %></span>
+    </div>
+    <% } %>
+
+    <% if (q.split_error) { %>
+    <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✕ That split doesn't add up — the amount must be at least $1 and less than the visit total.<br />
+      <span style="font-weight:400;">Nothing was charged or completed. Check the amounts and try again.</span>
+      <span class="zh-block muted small">拆分金额无效 — 未收取任何费用。</span>
     </div>
     <% } %>
 
@@ -209,6 +217,20 @@
             </button>
           </form>
 
+          <!-- Split: only part of the visit goes on the card; the rest is
+               cash or gift card, recorded with the matching split on complete. -->
+          <details class="fd-complete-details">
+            <summary class="fd-btn" style="background: #2c6e91; color: #fff;">&#128181;+&#128179; Split</summary>
+            <form class="fd-complete-form" method="POST" action="/admin/bookings/<%= b.id %>/charge">
+              <label class="fd-form-label">
+                Amount on card ($)
+                <input type="number" name="card_amount" min="1" step="0.01" placeholder="part of the total" required class="fd-input" />
+              </label>
+              <span class="muted small" style="display:block; margin:.25rem 0 .5rem;">Sends just this much to the terminal (guest can still tip on top). Take the rest as cash or gift card, then finish below with the matching split. <span class="zh">仅刷卡部分金额，其余现金或礼品卡。</span></span>
+              <button class="fd-btn fd-btn-save" type="submit">Send Part to Terminal</button>
+            </form>
+          </details>
+
           <!-- Quick Cash Complete — one tap for cash payments -->
           <form method="POST" action="/admin/bookings/<%= b.id %>/complete" style="display:inline;" onsubmit="return confirm('Complete with Cash?')">
             <input type="hidden" name="payment_method" value="Cash" />
@@ -225,6 +247,19 @@
               <label class="fd-form-label">
                 Gift Certificate Code
                 <input type="text" name="gift_cert_code" placeholder="JMS-XXXXXXXX" required class="fd-input" style="text-transform: uppercase; font-family: monospace; font-size: 1.1rem; letter-spacing: .08em;" />
+              </label>
+              <label class="fd-form-label">
+                If the card comes up short, take the rest as <span class="zh">余额不足时其余部分</span>
+                <select name="gc_rest_method" class="fd-select">
+                  <option value="">— stop and warn me —</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Debit Card">Debit Card</option>
+                  <option value="Zelle">Zelle</option>
+                  <option value="Venmo">Venmo</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span class="muted small" style="display:block; margin-top:.25rem;">Drains the card and records the split. For Credit Card, send that part to the terminal first (Split button).</span>
               </label>
               <label class="fd-form-label">
                 Tip ($)
@@ -286,6 +321,21 @@
               <label class="fd-form-label">
                 Discount Code <span style="font-weight:400; color: var(--muted);">(if any)</span>
                 <input type="text" name="discount_code" placeholder="e.g. DEALER10" class="fd-input" style="text-transform: uppercase;" />
+              </label>
+              <label class="fd-form-label">
+                Split? Second payment <span style="font-weight:400; color: var(--muted);">(optional)</span>
+                <div style="display:flex; gap:.5rem;">
+                  <select name="second_method" class="fd-select" style="flex:1;">
+                    <option value="">— no split —</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Zelle">Zelle</option>
+                    <option value="Venmo">Venmo</option>
+                  </select>
+                  <input type="number" name="second_amount" min="0.01" step="0.01" placeholder="amount $" class="fd-input" style="flex:1;" />
+                </div>
+                <span class="muted small" style="display:block; margin-top:.25rem;">The amount the second method took — the first method covers the rest. <span class="zh">第二种付款方式的金额，其余归第一种。</span></span>
               </label>
               <label class="fd-form-label">
                 Tip ($)

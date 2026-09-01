@@ -44,6 +44,11 @@
       ⚠ The gift card can't cover that tip — only <strong>$<%= q.gc_left %></strong> is left after the service. Nothing was completed.
     </div>
     <% } %>
+    <% if (q.split_error) { %>
+    <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✕ That split doesn't add up — the amount must be at least $1 and less than the visit total. Nothing was charged or completed.
+    </div>
+    <% } %>
     <% if (q.terminal_sent) { %>
     <div id="fd-terminal-banner" class="admin-alert" role="status" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       <span id="fd-terminal-head">✓ Sent to the card terminal — ask the guest to tap or insert.</span><br />
@@ -266,10 +271,35 @@
                       Gift Cert Code
                       <input type="text" name="gift_cert_code" placeholder="JMS-XXXXXXXX" style="text-transform: uppercase;" />
                       <small class="gc-status" style="color: var(--muted);"></small>
+                      <span class="muted small" style="display:block; margin-top:.3rem;">If the card comes up short, take the rest as:</span>
+                      <select name="gc_rest_method">
+                        <option value="">— stop and warn me —</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Zelle">Zelle</option>
+                        <option value="Venmo">Venmo</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </label>
                     <label>
                       Discount Code <span style="font-weight:400; color: var(--muted);">(if any)</span>
                       <input type="text" name="discount_code" placeholder="e.g. DEALER10" style="text-transform: uppercase;" />
+                    </label>
+                    <label>
+                      Split? Second payment <span style="font-weight:400; color: var(--muted);">(optional)</span>
+                      <div style="display:flex; gap:.5rem;">
+                        <select name="second_method" style="flex:1;">
+                          <option value="">— no split —</option>
+                          <option value="Cash">Cash</option>
+                          <option value="Credit Card">Credit Card</option>
+                          <option value="Debit Card">Debit Card</option>
+                          <option value="Zelle">Zelle</option>
+                          <option value="Venmo">Venmo</option>
+                        </select>
+                        <input type="number" name="second_amount" min="0.01" step="0.01" placeholder="amount $" style="flex:1;" />
+                      </div>
+                      <span class="muted small" style="display:block; margin-top:.2rem;">The amount the second method took — the first covers the rest.</span>
                     </label>
                     <label>
                       Tip ($)
