@@ -126,7 +126,7 @@
               <td style="text-align:right;"><%= fmt.money(l.gross) %></td>
               <td style="text-align:right;"><%= fmt.money(l.mine) %></td>
               <td style="text-align:right;"><%= fmt.money(l.tip) %>
-                <span class="muted small"><%= l.tipMethod === 'cash' ? 'cash' : 'card' %></span></td>
+                <span class="muted small"><%= l.tipMethod === 'cash' ? 'cash' : (l.tipMethod === 'gift' ? 'gift card' : 'card') %></span></td>
             </tr>
             <% }); %>
             <% if (summary.lines.length === 0) { %>

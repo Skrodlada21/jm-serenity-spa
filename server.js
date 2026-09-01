@@ -1269,6 +1269,7 @@ app.get("/admin", requireAdmin, (req, res) => {
     return b;
   });
   res.render("admin/dashboard", {
+    query: req.query,
     activePage: "admin-dashboard",
     stats: db.getBookingStats(),
     todayBookings,
@@ -1511,6 +1512,13 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
   const discountAmt = quote ? quote.discount : 0;
   let paid = charged;
 
+  const tipAmt = parseFloat(tip_amount) || 0;
+  // "gift" = take the tip out of the gift card's remaining balance too. Only
+  // meaningful on a gift-certificate sale. The money was collected when the
+  // cert was sold, so the tip is owed to the therapist like a card tip.
+  const tipFromGift = String(tip_method || "").toLowerCase() === "gift"
+    && payment_method === "Gift Certificate" && tipAmt > 0;
+
   if (payment_method === "Gift Certificate" && gift_cert_code) {
     const cert = db.getGiftCertificateByCode(String(gift_cert_code).trim().toUpperCase());
     if (!cert || cert.status !== "active" || cert.balance <= 0) {
@@ -1527,10 +1535,18 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
         "&gc_owed=" + encodeURIComponent(remaining.toFixed(2))
       );
     }
+    // The balance covers the service — but a gift-balance tip only if it
+    // stretches that far. Never overdraw the card for a tip.
+    if (tipFromGift && cert.balance + 0.001 < charged + tipAmt) {
+      const left = Math.max(0, Math.round((cert.balance - charged) * 100) / 100);
+      return res.redirect(
+        safeBack(req, "/admin") + "?gc_tip_short=1&gc_left=" + encodeURIComponent(left.toFixed(2))
+      );
+    }
     db.redeemGiftCertificate(
-      cert.id, charged,
+      cert.id, charged + (tipFromGift ? tipAmt : 0),
       (db.getBookingById(bookingId) || {}).client_name || "",
-      "Booking #" + bookingId
+      "Booking #" + bookingId + (tipFromGift ? " (incl $" + tipAmt.toFixed(2) + " tip)" : "")
     );
   }
 
@@ -1539,11 +1555,12 @@ app.post("/admin/bookings/:id/complete", requireStaff, (req, res) => {
 
   // If nobody picked, infer from how they paid: a cash sale's tip is cash,
   // anything else is on the card and therefore owed to the therapist.
-  const tipHow = String(tip_method || "").toLowerCase() === "cash" ? "cash"
+  const tipHow = tipFromGift ? "gift"
+    : String(tip_method || "").toLowerCase() === "cash" ? "cash"
     : String(tip_method || "").toLowerCase() === "card" ? "card"
     : (String(payment_method || "").toLowerCase().includes("cash") ? "cash" : "card");
 
-  db.completeBooking(bookingId, payment_method, parseFloat(tip_amount) || 0, completed_by || "", {
+  db.completeBooking(bookingId, payment_method, tipAmt, completed_by || "", {
     charged, paid, discount: discountAmt, tipMethod: tipHow, quoted: charged,
   });
   const back = safeBack(req, "/admin");
@@ -1605,6 +1622,20 @@ app.post("/admin/bookings/:id/charge", requireStaff, async (req, res) => {
     const sep = back.includes("?") ? "&" : "?";
     res.redirect(back + sep + "terminal_error=1");
   }
+});
+
+// List the Square devices paired to our location — the settings page uses
+// this to find the Terminal's device ID after pairing, instead of the admin
+// hunting for it in the Square dashboard.
+app.get("/api/admin/square-devices", requireAdmin, async (req, res) => {
+  const devices = await square.listDevices();
+  res.json({
+    devices: devices.map((d) => ({
+      id: d.id || "",
+      name: (d.attributes && d.attributes.name) || d.name || "",
+      status: (d.status && d.status.category) || "",
+    })),
+  });
 });
 
 // Card tip only — for visits fully covered by a gift certificate: send just
@@ -2519,6 +2550,9 @@ app.post("/admin/settings", requireAdmin, (req, res) => {
   if (req.body.new_password && req.body.new_password.trim()) {
     db.setSetting("admin_password", req.body.new_password.trim());
   }
+  // Drop the cached Square client so a new token/environment takes effect
+  // immediately — otherwise it keeps the old credentials until a restart.
+  square.resetClient();
   res.redirect("/admin/settings?saved=1");
 });
 

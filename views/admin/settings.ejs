@@ -281,7 +281,9 @@
           </label>
           <label>
             Device ID <span class="muted small">(Terminal)</span>
-            <input type="text" name="square_device_id" value="<%= settings.square_device_id || '' %>" placeholder="e.g. device:XXXXX" />
+            <input type="text" name="square_device_id" id="square-device-id" value="<%= settings.square_device_id || '' %>" placeholder="e.g. device:XXXXX" />
+            <button type="button" class="btn btn-small btn-ghost" style="margin-top:.35rem;" onclick="findSquareDevices(this)">Find my Terminal</button>
+            <small id="square-device-result" class="muted" style="display:block; margin-top:.25rem;"></small>
           </label>
         </div>
         <label>
@@ -329,6 +331,31 @@
     </div>
   </div>
 </main>
+
+<script>
+// Fill the Device ID by asking Square which devices are paired to our
+// location — saves hunting for it in the Square dashboard after pairing.
+function findSquareDevices(btn) {
+  var out = document.getElementById('square-device-result');
+  btn.disabled = true;
+  out.textContent = 'Asking Square…';
+  fetch('/api/admin/square-devices')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      btn.disabled = false;
+      var list = (d.devices || []).filter(function (x) { return x.id; });
+      if (!list.length) {
+        out.textContent = 'No paired devices found. Pair the Terminal first (Square app > Settings > Device codes), then try again.';
+        return;
+      }
+      document.getElementById('square-device-id').value = list[0].id;
+      out.textContent = list.length === 1
+        ? 'Found "' + (list[0].name || 'Terminal') + '" — filled in above. Hit Save Settings.'
+        : list.length + ' devices found — filled in the first (' + (list[0].name || list[0].id) + '). Others: ' + list.slice(1).map(function (x) { return (x.name || '?') + ' = ' + x.id; }).join(', ');
+    })
+    .catch(function () { btn.disabled = false; out.textContent = 'Could not reach Square — check the token and try again.'; });
+}
+</script>
 
 </body>
 </html>

@@ -61,6 +61,14 @@
     </div>
     <% } %>
 
+    <% if (q.gc_tip_short) { %>
+    <div class="admin-alert" role="alert" style="background:#fff8e1; border:1px solid #ffe0a3; color:#8a6d1f; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ⚠ The gift card can't cover that tip — only <strong>$<%= q.gc_left %></strong> is left after the service.<br />
+      <span style="font-weight:400;">Nothing was completed. Tip up to what's left, or take the tip as cash or card instead.</span>
+      <span class="zh-block muted small">礼品卡余额不足以支付小费，剩余 $<%= q.gc_left %></span>
+    </div>
+    <% } %>
+
     <% if (q.terminal_sent) { %>
     <div id="fd-terminal-banner" class="admin-alert" role="status" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
       <span id="fd-terminal-head">✓ Sent to the card terminal — ask the guest to tap or insert.</span><br />
@@ -234,8 +242,11 @@
                   <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
                     <input type="radio" name="tip_method" value="card" /> 💳 Card <span class="zh">刷卡</span>
                   </label>
+                  <label style="flex:1; display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.7rem; border:2px solid var(--line,#ddd); border-radius:10px; cursor:pointer; font-weight:600;">
+                    <input type="radio" name="tip_method" value="gift" /> 💝 Gift Card <span class="zh">礼品卡</span>
+                  </label>
                 </div>
-                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. <span class="zh">现金小费当场拿走，刷卡小费之后结算。</span></span>
+                <span class="muted small" style="display:block; margin-top:.25rem;">Cash tips they keep now. Card tips are paid out later. Gift Card takes the tip from the card's remaining balance. <span class="zh">现金小费当场拿走，刷卡小费之后结算，礼品卡小费从余额扣除。</span></span>
               </label>
               <button class="fd-btn fd-btn-save" type="submit">Pay with Gift Card</button>
             </form>
@@ -464,97 +475,8 @@ document.querySelectorAll('input[name="gift_cert_code"]').forEach(function (i) {
 </script>
 
 <% if (q.terminal_sent && q.checkout_id) { %>
-<script>
-// Live Terminal status: poll Square until the guest finishes on the terminal,
-// then open that booking's payment form pre-filled with the card tip they
-// picked — the desk just confirms and hits Save.
-(function () {
-  var checkoutId = <%- JSON.stringify(q.checkout_id) %>;
-  var banner = document.getElementById('fd-terminal-banner');
-  var head = document.getElementById('fd-terminal-head');
-  var sub = document.getElementById('fd-terminal-sub');
-  var tries = 0;
-
-  function paint(bg, border, color) {
-    if (!banner) return;
-    banner.style.background = bg;
-    banner.style.borderColor = border;
-    banner.style.color = color;
-  }
-
-  function fillForm(bookingId, tipDollars) {
-    // Only the "Other Payment" form has a payment_method <select>.
-    var sel = document.querySelector('form[action="/admin/bookings/' + bookingId + '/complete"] select[name="payment_method"]');
-    if (!sel) return false;
-    var form = sel.closest('form');
-    sel.value = 'Credit Card';
-    var tip = form.querySelector('input[name="tip_amount"]');
-    if (tip) tip.value = tipDollars.toFixed(2);
-    var cardRadio = form.querySelector('input[name="tip_method"][value="card"]');
-    if (cardRadio) cardRadio.checked = true;
-    var details = form.closest('details');
-    if (details) details.open = true;
-    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return true;
-  }
-
-  function fillGiftForm(bookingId, tipDollars) {
-    // A tip-only charge pairs with the Gift Card payment form.
-    var code = document.querySelector('form[action="/admin/bookings/' + bookingId + '/complete"] input[name="gift_cert_code"]');
-    if (!code) return false;
-    var form = code.closest('form');
-    var tip = form.querySelector('input[name="tip_amount"]');
-    if (tip) tip.value = tipDollars.toFixed(2);
-    var cardRadio = form.querySelector('input[name="tip_method"][value="card"]');
-    if (cardRadio) cardRadio.checked = true;
-    var details = form.closest('details');
-    if (details) details.open = true;
-    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return true;
-  }
-
-  function poll() {
-    tries++;
-    if (tries > 120) { // ~5 minutes, then stop quietly
-      if (sub) sub.textContent = 'Still waiting — check the terminal, or refresh this page.';
-      return;
-    }
-    fetch('/api/admin/checkout-status/' + encodeURIComponent(checkoutId))
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d.status === 'COMPLETED') {
-          paint('#e8f5e9', '#a5d6a7', '#2e7d32');
-          var ref = String(d.bookingId || '');
-          if (ref.indexOf('tip:') === 0) {
-            // Tip-only charge: the whole payment is the tip.
-            var tipAmt = d.totalDollars || 0;
-            if (head) head.textContent = '✓ Tip paid on card — $' + tipAmt.toFixed(2) + '.';
-            var gFilled = fillGiftForm(ref.slice(4), tipAmt);
-            if (sub) sub.textContent = gFilled
-              ? 'Tip recorded in the Gift Card form below — scan the card and hit Pay with Gift Card.'
-              : 'Record it as a Card tip when completing the booking.';
-          } else {
-            var tipTxt = d.tipDollars > 0 ? ' — tip $' + d.tipDollars.toFixed(2) : ' — no tip';
-            if (head) head.textContent = '✓ Paid on the terminal' + (d.totalDollars ? ' ($' + d.totalDollars.toFixed(2) + ' total)' : '') + tipTxt + '.';
-            var filled = ref ? fillForm(ref, d.tipDollars || 0) : false;
-            if (sub) sub.textContent = filled
-              ? 'Payment form is filled in below — check it and hit Save.'
-              : 'Mark the booking complete with payment method Credit Card.';
-          }
-        } else if (d.status === 'CANCELED') {
-          paint('#fdecea', '#f5c6cb', '#b02a37');
-          if (head) head.textContent = '✕ Checkout canceled — nothing was charged.';
-          if (sub) sub.textContent = 'Send it to the terminal again, or take another payment method.';
-        } else { // PENDING / IN_PROGRESS / CANCEL_REQUESTED / unknown
-          if (sub) sub.textContent = 'Waiting for the guest to finish on the terminal…';
-          setTimeout(poll, 2500);
-        }
-      })
-      .catch(function () { setTimeout(poll, 4000); });
-  }
-  poll();
-})();
-</script>
+<script src="/js/terminal-checkout.js"></script>
+<script>watchTerminalCheckout(<%- JSON.stringify(q.checkout_id) %>);</script>
 <% } %>
 
 </body>

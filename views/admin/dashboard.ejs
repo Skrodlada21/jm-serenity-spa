@@ -25,6 +25,37 @@
     <div class="admin-alert">Phone booking added successfully.</div>
     <% } %>
 
+    <%# Payment feedback — same banners as the front desk, so charges sent
+        from this page get live Terminal status too. %>
+    <% var q = (typeof query !== 'undefined' && query) ? query : {}; %>
+
+    <% if (q.gc_error) { %>
+    <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✕ That gift card code was not found, or it has no balance left. Nothing was charged.
+    </div>
+    <% } %>
+    <% if (q.gc_short) { %>
+    <div class="admin-alert" role="alert" style="background:#fff8e1; border:1px solid #ffe0a3; color:#8a6d1f; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ⚠ That gift card only covers <strong>$<%= q.gc_covers %></strong> of this visit — still to collect: <strong>$<%= q.gc_owed %></strong>.
+    </div>
+    <% } %>
+    <% if (q.gc_tip_short) { %>
+    <div class="admin-alert" role="alert" style="background:#fff8e1; border:1px solid #ffe0a3; color:#8a6d1f; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ⚠ The gift card can't cover that tip — only <strong>$<%= q.gc_left %></strong> is left after the service. Nothing was completed.
+    </div>
+    <% } %>
+    <% if (q.terminal_sent) { %>
+    <div id="fd-terminal-banner" class="admin-alert" role="status" style="background:#e8f5e9; border:1px solid #a5d6a7; color:#2e7d32; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      <span id="fd-terminal-head">✓ Sent to the card terminal — ask the guest to tap or insert.</span><br />
+      <span id="fd-terminal-sub" style="font-weight:400;">When it approves, mark the booking complete.</span>
+    </div>
+    <% } %>
+    <% if (q.terminal_error) { %>
+    <div class="admin-alert" role="alert" style="background:#fdecea; border:1px solid #f5c6cb; color:#b02a37; border-radius:12px; padding:.8rem 1rem; margin-bottom:1rem; font-weight:600;">
+      ✕ Could not reach the card terminal. Nothing was charged — take payment another way, or check the terminal is on and connected.
+    </div>
+    <% } %>
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
       <div class="card admin-stat">
         <p class="admin-stat-number"><%= stats.todayCount %></p>
@@ -242,10 +273,11 @@
                     </label>
                     <label>
                       Tip ($)
-                      <input type="number" name="tip_amount" placeholder="0" min="0" step="1" />
+                      <input type="number" name="tip_amount" placeholder="0" min="0" step="0.01" />
                       <span class="muted small" style="display:block; margin-top:.2rem;">Tip given as:</span>
                       <label style="margin-right:.8rem;"><input type="radio" name="tip_method" value="cash" /> 💵 Cash</label>
-                      <label><input type="radio" name="tip_method" value="card" /> 💳 Card</label>
+                      <label style="margin-right:.8rem;"><input type="radio" name="tip_method" value="card" /> 💳 Card</label>
+                      <label><input type="radio" name="tip_method" value="gift" /> 💝 Gift Card balance</label>
                     </label>
                     <label>
                       Completed By
@@ -375,6 +407,11 @@ document.querySelectorAll('input[name="gift_cert_code"]').forEach(function(input
   });
 });
 </script>
+
+<% if (q.terminal_sent && q.checkout_id) { %>
+<script src="/js/terminal-checkout.js"></script>
+<script>watchTerminalCheckout(<%- JSON.stringify(q.checkout_id) %>);</script>
+<% } %>
 
 </body>
 </html>
