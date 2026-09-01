@@ -26,6 +26,14 @@ function watchTerminalCheckout(checkoutId) {
     banner.style.color = color;
   }
 
+  // Keep the banner's hand-written Chinese line (visible in bilingual mode)
+  // in step with the status — otherwise it would still say "ask the guest to
+  // tap" after the payment already went through. No-op where there is none.
+  function setZh(text) {
+    var zh = banner && banner.querySelector(".zh-block");
+    if (zh) zh.textContent = text;
+  }
+
   // Open a booking's completion form pre-filled, so the desk just confirms.
   // "wanted" picks the form: a payment_method <select> for a normal card
   // sale, the gift_cert_code input for a tip-only charge.
@@ -62,6 +70,7 @@ function watchTerminalCheckout(checkoutId) {
     tries++;
     if (tries > 120) { // ~5 minutes, then stop quietly
       if (sub) sub.textContent = "Still waiting — check the terminal, or refresh this page.";
+      setZh("仍在等待 — 请检查终端或刷新页面。");
       return;
     }
     fetch("/api/admin/checkout-status/" + encodeURIComponent(checkoutId))
@@ -77,10 +86,12 @@ function watchTerminalCheckout(checkoutId) {
             if (sub) sub.textContent = gFilled
               ? "Tip recorded in the Gift Card form below — scan the card and hit Pay with Gift Card."
               : "Record it as a Card tip when completing the booking.";
+            setZh("小费已刷卡支付，请扫礼品卡完成结账。");
           } else if (d.partial) {
             if (head) head.textContent = "✓ Card part paid — $" + (d.totalDollars || 0).toFixed(2) + (d.tipDollars > 0 ? " (incl $" + d.tipDollars.toFixed(2) + " tip)" : "") + ".";
             if (ref) fillTips(ref, d.tipDollars || 0);
             if (sub) sub.textContent = "Still to collect: $" + (d.stillDue || 0).toFixed(2) + " — finish with the matching split: Gift Card form (“rest as”) or Other Payment (second payment row).";
+            setZh("刷卡部分已支付，还需收取 $" + (d.stillDue || 0).toFixed(2) + "，请选择对应的拆分方式完成。");
           } else {
             var tipTxt = d.tipDollars > 0 ? " — tip $" + d.tipDollars.toFixed(2) : " — no tip";
             if (head) head.textContent = "✓ Paid on the terminal" + (d.totalDollars ? " ($" + d.totalDollars.toFixed(2) + " total)" : "") + tipTxt + ".";
@@ -88,13 +99,16 @@ function watchTerminalCheckout(checkoutId) {
             if (sub) sub.textContent = filled
               ? "Payment form is filled in below — check it and hit Save."
               : "Mark the booking complete with payment method Credit Card.";
+            setZh("已在终端支付成功，请核对下方表格并保存。");
           }
         } else if (d.status === "CANCELED") {
           paint("#fdecea", "#f5c6cb", "#b02a37");
           if (head) head.textContent = "✕ Checkout canceled — nothing was charged.";
           if (sub) sub.textContent = "Send it to the terminal again, or take another payment method.";
+          setZh("已取消 — 未收取任何费用。");
         } else { // PENDING / IN_PROGRESS / CANCEL_REQUESTED / unknown
           if (sub) sub.textContent = "Waiting for the guest to finish on the terminal…";
+          setZh("等待客人在终端完成操作…");
           setTimeout(poll, 2500);
         }
       })

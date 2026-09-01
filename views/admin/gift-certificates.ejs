@@ -19,13 +19,18 @@
     <div id="gc-terminal-banner" class="admin-alert" role="status" style="background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; font-weight: 600;">
       <span id="gc-terminal-head">✓ Sent to the card terminal — ask the buyer to tap or insert.</span><br />
       <span id="gc-terminal-sub" style="font-weight: 400;">The certificate activates as soon as the payment approves — don't print the label before then.</span>
+      <span class="zh-block muted small">已发送到刷卡终端，请购买人付款。付款成功后礼品券才会激活，请勿提前打印。</span>
     </div>
     <% } %>
     <% if (typeof terminal_error !== 'undefined' && terminal_error) { %>
-    <div class="admin-alert" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">✕ Could not reach the card terminal — nothing was charged. The certificate is saved unpaid; use its Charge button to try again.</div>
+    <div class="admin-alert" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">✕ Could not reach the card terminal — nothing was charged. The certificate is saved unpaid; use its Charge button to try again.
+      <span class="zh-block muted small">无法连接刷卡终端 — 未收取费用。礼品券保存为未付款，可用收费按钮重试。</span>
+    </div>
     <% } %>
     <% if (typeof gc_paid !== 'undefined' && gc_paid) { %>
-    <div class="admin-alert" role="status" style="background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; font-weight: 600;">✓ Payment approved — the certificate is active and ready to print.</div>
+    <div class="admin-alert" role="status" style="background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; font-weight: 600;">✓ Payment approved — the certificate is active and ready to print.
+      <span class="zh-block muted small">付款成功 — 礼品券已激活，可以打印。</span>
+    </div>
     <% } %>
 
     <div class="card" style="margin-bottom: 1.5rem;">
@@ -294,16 +299,24 @@ function printGiftLabel(id, btn) {
   var sub = document.getElementById('gc-terminal-sub');
   var tries = 0;
 
-  function fail(msg) {
+  // Keep the banner's Chinese line (bilingual mode) in step with the status.
+  function setZh(text) {
+    var zh = banner && banner.querySelector('.zh-block');
+    if (zh) zh.textContent = text;
+  }
+
+  function fail(msg, zhMsg) {
     if (banner) { banner.style.background = '#f8d7da'; banner.style.borderColor = '#f5c6cb'; banner.style.color = '#721c24'; }
     if (head) head.textContent = msg;
     if (sub) sub.textContent = 'The certificate is saved unpaid — use its Charge button to try again, or take another payment method and Mark Paid.';
+    setZh(zhMsg + ' 礼品券保存为未付款，可用收费按钮重试或改用其他付款方式。');
   }
 
   function poll() {
     tries++;
     if (tries > 120) { // ~5 minutes
       if (sub) sub.textContent = 'Still waiting — check the terminal, or refresh this page.';
+      setZh('仍在等待 — 请检查终端或刷新页面。');
       return;
     }
     fetch('/api/admin/checkout-status/' + encodeURIComponent(checkoutId))
@@ -311,6 +324,7 @@ function printGiftLabel(id, btn) {
       .then(function (d) {
         if (d.status === 'COMPLETED') {
           if (head) head.textContent = '✓ Card approved — activating the certificate…';
+          setZh('付款成功 — 正在激活礼品券…');
           fetch('/admin/gift-certificates/' + certId + '/confirm-terminal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -319,13 +333,14 @@ function printGiftLabel(id, btn) {
             if (c.ok) {
               window.location.href = base + '/gift-certificates?gc_paid=1';
             } else {
-              fail('✕ Could not confirm the payment — do not hand out the card yet.');
+              fail('✕ Could not confirm the payment — do not hand out the card yet.', '无法确认付款 — 请勿交付礼品卡。');
             }
-          }).catch(function () { fail('✕ Could not confirm the payment — do not hand out the card yet.'); });
+          }).catch(function () { fail('✕ Could not confirm the payment — do not hand out the card yet.', '无法确认付款 — 请勿交付礼品卡。'); });
         } else if (d.status === 'CANCELED') {
-          fail('✕ Checkout canceled — nothing was charged.');
+          fail('✕ Checkout canceled — nothing was charged.', '已取消 — 未收取费用。');
         } else {
           if (sub) sub.textContent = 'Waiting for the buyer to finish on the terminal…';
+          setZh('等待购买人在终端完成付款…');
           setTimeout(poll, 2500);
         }
       })

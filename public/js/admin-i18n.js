@@ -148,6 +148,16 @@
     "AI Email Assistant (OpenRouter)": "AI 邮件助手（OpenRouter）", "Email Not Configured Yet": "邮件尚未配置",
     "Sandbox (Testing)": "沙盒（测试）", "Production (Live)": "生产环境（正式）",
     "Clear All Test Data & Start Fresh": "清除所有测试数据并重新开始",
+    // Front desk — split payments & tips
+    "Card Tip Only": "仅刷卡小费", "Send Tip to Terminal": "发送小费到终端",
+    "Split": "拆分付款", "Send Part to Terminal": "发送部分到终端",
+    "Amount on card ($)": "刷卡金额（$）", "Tip amount ($)": "小费金额（$）",
+    "Split? Second payment": "拆分？第二种付款方式",
+    "stop and warn me —": "停止并提醒我 —", "no split —": "不拆分 —",
+    "If the card comes up short, take the rest as:": "如果礼品卡余额不足，其余部分以：",
+    "The amount the second method took — the first covers the rest.": "第二种付款方式收取的金额 —— 其余归第一种。",
+    "Drains the card and records the split. For Credit Card, send that part to the terminal first (Split button).": "抵扣礼品卡余额并记录拆分。如需刷卡，请先用拆分按钮将该部分发送到终端。",
+    "Find my Terminal": "查找我的终端",
     // Front desk — waiting / walk-in panel
     "No one waiting right now. Walk-ins you add and tablet check-ins show up here — then pick a therapist and Accept them.": "目前暂无等候的客人。您添加的散客和平板签到会显示在这里 —— 然后为其选择一位按摩师并点击接受。",
     "Accept & Seat": "接受并安排入座",
