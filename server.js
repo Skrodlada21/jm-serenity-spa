@@ -1607,6 +1607,32 @@ app.post("/admin/bookings/:id/charge", requireStaff, async (req, res) => {
   }
 });
 
+// Card tip only — for visits fully covered by a gift certificate: send just
+// the tip to the Terminal so the guest can still tip on their card. The whole
+// charge IS the tip; the completion form records it as a card tip.
+app.post("/admin/bookings/:id/tip-charge", requireStaff, async (req, res) => {
+  const booking = db.getBookingById(parseInt(req.params.id, 10));
+  const back = safeBack(req, "/admin");
+  const sep = back.includes("?") ? "&" : "?";
+  if (!booking) return res.redirect(back);
+
+  const tipDollars = parseFloat(req.body.tip_amount);
+  if (!tipDollars || tipDollars < 1) {
+    return res.redirect(back + sep + "terminal_error=1");
+  }
+
+  const note = "Tip - " + (booking.client_name || "Guest");
+  const checkout = await square.createTerminalCheckout(Math.round(tipDollars * 100), note, {
+    allowTip: false,
+    referenceId: "tip:" + booking.id,
+  });
+  if (checkout) {
+    res.redirect(back + sep + "terminal_sent=1&checkout_id=" + encodeURIComponent(checkout.id));
+  } else {
+    res.redirect(back + sep + "terminal_error=1");
+  }
+});
+
 // Check terminal checkout status (AJAX endpoint)
 app.get("/api/admin/checkout-status/:checkoutId", requireStaff, async (req, res) => {
   const checkout = await square.getTerminalCheckout(req.params.checkoutId);
@@ -1868,6 +1894,11 @@ app.get("/admin/gift-certificates", requireAdmin, (req, res) => {
     redemptions: db.getAllRedemptions(),
     not_paid: req.query.not_paid || false,
     pin_error: req.query.pin_error || false,
+    terminal_sent: req.query.terminal_sent || false,
+    terminal_error: req.query.terminal_error || false,
+    gc_paid: req.query.gc_paid || false,
+    checkout_id: req.query.checkout_id || "",
+    cert_id: req.query.cert_id || "",
   });
 });
 
@@ -1888,10 +1919,11 @@ app.post("/admin/gift-certificates", requireStaff, async (req, res) => {
     db.createGiftCertificate(code, purchaser_name, purchaser_email || "", recipient_name || "", parsedAmount, message || "", "", createdBy);
     const cert = db.getGiftCertificateByCode(code);
     if (cert) {
-      const checkout = await square.createTerminalCheckout(Math.round(parsedAmount * 100), "Gift Certificate " + code + " - " + purchaser_name, { allowTip: false });
+      const checkout = await square.createTerminalCheckout(Math.round(parsedAmount * 100), "Gift Certificate " + code + " - " + purchaser_name, { allowTip: false, referenceId: "gc:" + cert.id });
       if (checkout) {
-        db.markGiftCertificatePaid(cert.id, "Square Terminal");
-        return res.redirect(giftBase(req) + "/gift-certificates?terminal_sent=1");
+        // NOT paid yet — the page polls Square and marks it paid only once
+        // the buyer's card actually approves (confirm-terminal below).
+        return res.redirect(giftBase(req) + "/gift-certificates?terminal_sent=1&checkout_id=" + encodeURIComponent(checkout.id) + "&cert_id=" + cert.id);
       }
     }
     return res.redirect(giftBase(req) + "/gift-certificates?terminal_error=1");
@@ -1923,14 +1955,31 @@ app.post("/admin/gift-certificates/:id/charge", requireStaff, async (req, res) =
   const amountCents = Math.round(cert.amount * 100);
   const note = "Gift Certificate " + cert.code + " - " + cert.purchaser_name;
 
-  const checkout = await square.createTerminalCheckout(amountCents, note, { allowTip: false });
+  const checkout = await square.createTerminalCheckout(amountCents, note, { allowTip: false, referenceId: "gc:" + cert.id });
   if (checkout) {
-    // Mark as paid immediately (terminal will handle the actual charge)
-    db.markGiftCertificatePaid(cert.id, "Square Terminal");
-    res.redirect(giftBase(req) + "/gift-certificates?terminal_sent=1");
+    // NOT paid yet — the page polls Square and confirms once the card approves.
+    res.redirect(giftBase(req) + "/gift-certificates?terminal_sent=1&checkout_id=" + encodeURIComponent(checkout.id) + "&cert_id=" + cert.id);
   } else {
     res.redirect(giftBase(req) + "/gift-certificates?terminal_error=1");
   }
+});
+
+// Mark a Terminal-sold gift cert paid — only after Square says the payment
+// completed, and only for the checkout that was created for that exact cert.
+app.post("/admin/gift-certificates/:id/confirm-terminal", requireStaff, async (req, res) => {
+  const certId = parseInt(req.params.id, 10);
+  const cert = db.getGiftCertificateById(certId);
+  const checkoutId = String((req.body && req.body.checkout_id) || "");
+  if (!cert || !checkoutId) return res.json({ ok: false, status: "unknown" });
+  if (cert.paid) return res.json({ ok: true, status: "COMPLETED" });
+
+  const checkout = await square.getTerminalCheckout(checkoutId);
+  if (!checkout) return res.json({ ok: false, status: "unknown" });
+  if (checkout.status === "COMPLETED" && checkout.referenceId === "gc:" + certId) {
+    db.markGiftCertificatePaid(certId, "Square Terminal");
+    return res.json({ ok: true, status: "COMPLETED" });
+  }
+  res.json({ ok: false, status: checkout.status });
 });
 
 // Barcode label for the back of a pre-printed gift card (browser-print fallback)
@@ -2665,6 +2714,11 @@ app.get("/desk/gift-certificates", requireDesk, (req, res) => {
     deskMode: true,
     not_paid: req.query.not_paid || false,
     pin_error: req.query.pin_error || false,
+    terminal_sent: req.query.terminal_sent || false,
+    terminal_error: req.query.terminal_error || false,
+    gc_paid: req.query.gc_paid || false,
+    checkout_id: req.query.checkout_id || "",
+    cert_id: req.query.cert_id || "",
   });
 });
 

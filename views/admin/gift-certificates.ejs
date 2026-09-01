@@ -15,6 +15,19 @@
     <div class="admin-alert" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">Invalid employee PIN. Please try again.</div>
     <% } %>
 
+    <% if (typeof terminal_sent !== 'undefined' && terminal_sent) { %>
+    <div id="gc-terminal-banner" class="admin-alert" role="status" style="background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; font-weight: 600;">
+      <span id="gc-terminal-head">✓ Sent to the card terminal — ask the buyer to tap or insert.</span><br />
+      <span id="gc-terminal-sub" style="font-weight: 400;">The certificate activates as soon as the payment approves — don't print the label before then.</span>
+    </div>
+    <% } %>
+    <% if (typeof terminal_error !== 'undefined' && terminal_error) { %>
+    <div class="admin-alert" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">✕ Could not reach the card terminal — nothing was charged. The certificate is saved unpaid; use its Charge button to try again.</div>
+    <% } %>
+    <% if (typeof gc_paid !== 'undefined' && gc_paid) { %>
+    <div class="admin-alert" role="status" style="background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; font-weight: 600;">✓ Payment approved — the certificate is active and ready to print.</div>
+    <% } %>
+
     <div class="card" style="margin-bottom: 1.5rem;">
       <h2>Issue New Gift Certificate</h2>
       <form class="form" method="POST" action="/admin/gift-certificates">
@@ -267,6 +280,61 @@ function printGiftLabel(id, btn) {
   });
 }
 </script>
+
+<% if (typeof terminal_sent !== 'undefined' && terminal_sent && typeof checkout_id !== 'undefined' && checkout_id && typeof cert_id !== 'undefined' && cert_id) { %>
+<script>
+// Watch the Terminal sale: the cert stays unpaid until Square confirms the
+// buyer's card went through, then the server marks it paid and we refresh.
+(function () {
+  var checkoutId = <%- JSON.stringify(checkout_id) %>;
+  var certId = <%- JSON.stringify(String(cert_id)) %>;
+  var base = <%- JSON.stringify((typeof deskMode !== 'undefined' && deskMode) ? '/desk' : '/admin') %>;
+  var banner = document.getElementById('gc-terminal-banner');
+  var head = document.getElementById('gc-terminal-head');
+  var sub = document.getElementById('gc-terminal-sub');
+  var tries = 0;
+
+  function fail(msg) {
+    if (banner) { banner.style.background = '#f8d7da'; banner.style.borderColor = '#f5c6cb'; banner.style.color = '#721c24'; }
+    if (head) head.textContent = msg;
+    if (sub) sub.textContent = 'The certificate is saved unpaid — use its Charge button to try again, or take another payment method and Mark Paid.';
+  }
+
+  function poll() {
+    tries++;
+    if (tries > 120) { // ~5 minutes
+      if (sub) sub.textContent = 'Still waiting — check the terminal, or refresh this page.';
+      return;
+    }
+    fetch('/api/admin/checkout-status/' + encodeURIComponent(checkoutId))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.status === 'COMPLETED') {
+          if (head) head.textContent = '✓ Card approved — activating the certificate…';
+          fetch('/admin/gift-certificates/' + certId + '/confirm-terminal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ checkout_id: checkoutId })
+          }).then(function (r) { return r.json(); }).then(function (c) {
+            if (c.ok) {
+              window.location.href = base + '/gift-certificates?gc_paid=1';
+            } else {
+              fail('✕ Could not confirm the payment — do not hand out the card yet.');
+            }
+          }).catch(function () { fail('✕ Could not confirm the payment — do not hand out the card yet.'); });
+        } else if (d.status === 'CANCELED') {
+          fail('✕ Checkout canceled — nothing was charged.');
+        } else {
+          if (sub) sub.textContent = 'Waiting for the buyer to finish on the terminal…';
+          setTimeout(poll, 2500);
+        }
+      })
+      .catch(function () { setTimeout(poll, 4000); });
+  }
+  poll();
+})();
+</script>
+<% } %>
 
 </body>
 </html>

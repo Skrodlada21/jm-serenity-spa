@@ -241,6 +241,21 @@
             </form>
           </details>
 
+          <!-- Card tip only — the visit is covered by a gift card but the
+               guest wants to put the tip on their card. Sends just the tip
+               to the Terminal; the payment form records it as a card tip. -->
+          <details class="fd-complete-details">
+            <summary class="fd-btn" style="background: #6b5b95; color: #fff;">&#128179; Card Tip Only</summary>
+            <form class="fd-complete-form" method="POST" action="/admin/bookings/<%= b.id %>/tip-charge">
+              <label class="fd-form-label">
+                Tip amount ($)
+                <input type="number" name="tip_amount" min="1" step="0.01" placeholder="e.g. 15" required class="fd-input" />
+              </label>
+              <span class="muted small" style="display:block; margin:.25rem 0 .5rem;">For visits paid by gift card — sends only the tip to the terminal. <span class="zh">仅将小费发送到刷卡终端。</span></span>
+              <button class="fd-btn fd-btn-save" type="submit">Send Tip to Terminal</button>
+            </form>
+          </details>
+
           <!-- Full Complete Form -->
           <details class="fd-complete-details">
             <summary class="fd-btn fd-btn-complete" style="background: #1a6b2b;">&#10003; Other Payment</summary>
@@ -483,6 +498,21 @@ document.querySelectorAll('input[name="gift_cert_code"]').forEach(function (i) {
     return true;
   }
 
+  function fillGiftForm(bookingId, tipDollars) {
+    // A tip-only charge pairs with the Gift Card payment form.
+    var code = document.querySelector('form[action="/admin/bookings/' + bookingId + '/complete"] input[name="gift_cert_code"]');
+    if (!code) return false;
+    var form = code.closest('form');
+    var tip = form.querySelector('input[name="tip_amount"]');
+    if (tip) tip.value = tipDollars.toFixed(2);
+    var cardRadio = form.querySelector('input[name="tip_method"][value="card"]');
+    if (cardRadio) cardRadio.checked = true;
+    var details = form.closest('details');
+    if (details) details.open = true;
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return true;
+  }
+
   function poll() {
     tries++;
     if (tries > 120) { // ~5 minutes, then stop quietly
@@ -494,12 +524,23 @@ document.querySelectorAll('input[name="gift_cert_code"]').forEach(function (i) {
       .then(function (d) {
         if (d.status === 'COMPLETED') {
           paint('#e8f5e9', '#a5d6a7', '#2e7d32');
-          var tipTxt = d.tipDollars > 0 ? ' — tip $' + d.tipDollars.toFixed(2) : ' — no tip';
-          if (head) head.textContent = '✓ Paid on the terminal' + (d.totalDollars ? ' ($' + d.totalDollars.toFixed(2) + ' total)' : '') + tipTxt + '.';
-          var filled = d.bookingId ? fillForm(d.bookingId, d.tipDollars || 0) : false;
-          if (sub) sub.textContent = filled
-            ? 'Payment form is filled in below — check it and hit Save.'
-            : 'Mark the booking complete with payment method Credit Card.';
+          var ref = String(d.bookingId || '');
+          if (ref.indexOf('tip:') === 0) {
+            // Tip-only charge: the whole payment is the tip.
+            var tipAmt = d.totalDollars || 0;
+            if (head) head.textContent = '✓ Tip paid on card — $' + tipAmt.toFixed(2) + '.';
+            var gFilled = fillGiftForm(ref.slice(4), tipAmt);
+            if (sub) sub.textContent = gFilled
+              ? 'Tip recorded in the Gift Card form below — scan the card and hit Pay with Gift Card.'
+              : 'Record it as a Card tip when completing the booking.';
+          } else {
+            var tipTxt = d.tipDollars > 0 ? ' — tip $' + d.tipDollars.toFixed(2) : ' — no tip';
+            if (head) head.textContent = '✓ Paid on the terminal' + (d.totalDollars ? ' ($' + d.totalDollars.toFixed(2) + ' total)' : '') + tipTxt + '.';
+            var filled = ref ? fillForm(ref, d.tipDollars || 0) : false;
+            if (sub) sub.textContent = filled
+              ? 'Payment form is filled in below — check it and hit Save.'
+              : 'Mark the booking complete with payment method Credit Card.';
+          }
         } else if (d.status === 'CANCELED') {
           paint('#fdecea', '#f5c6cb', '#b02a37');
           if (head) head.textContent = '✕ Checkout canceled — nothing was charged.';
