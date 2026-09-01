@@ -1611,10 +1611,22 @@ app.post("/admin/bookings/:id/charge", requireStaff, async (req, res) => {
 app.get("/api/admin/checkout-status/:checkoutId", requireStaff, async (req, res) => {
   const checkout = await square.getTerminalCheckout(req.params.checkoutId);
   if (!checkout) return res.json({ status: "unknown" });
+  // The tip lives on the Payment, not the checkout — and SDK money amounts
+  // are BigInt, which res.json cannot serialize. Return plain dollar numbers.
+  let tipDollars = 0;
+  let totalDollars = null;
+  const paymentId = checkout.paymentIds ? checkout.paymentIds[0] : null;
+  if (checkout.status === "COMPLETED" && paymentId) {
+    const payment = await square.getPayment(paymentId);
+    if (payment && payment.tipMoney) tipDollars = Number(payment.tipMoney.amount) / 100;
+    if (payment && payment.totalMoney) totalDollars = Number(payment.totalMoney.amount) / 100;
+  }
   res.json({
     status: checkout.status,
-    paymentId: checkout.paymentIds ? checkout.paymentIds[0] : null,
-    tipMoney: checkout.tipMoney || null,
+    paymentId,
+    bookingId: checkout.referenceId || null,
+    tipDollars,
+    totalDollars,
   });
 });
 
